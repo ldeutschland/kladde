@@ -40,6 +40,8 @@ targets:
       - path: LaunchScreen.storyboard
       - path: ../../PrivacyInfo.xcprivacy
         buildPhase: resources
+      - path: ../../locales
+        buildPhase: resources
     info:
       path: kladde_iOS/Info.plist
       properties:

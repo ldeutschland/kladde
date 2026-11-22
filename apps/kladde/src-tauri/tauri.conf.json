@@ -38,7 +38,9 @@
       "entitlements": "macos.entitlements",
       "files": {
         "Resources/PrivacyInfo.xcprivacy": "PrivacyInfo.xcprivacy",
-        "Resources/container-migration.plist": "container-migration.plist"
+        "Resources/container-migration.plist": "container-migration.plist",
+        "Resources/de.lproj/InfoPlist.strings": "locales/de.lproj/InfoPlist.strings",
+        "Resources/en.lproj/InfoPlist.strings": "locales/en.lproj/InfoPlist.strings"
       }
     },
     "iOS": {

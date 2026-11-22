@@ -1,0 +1,4 @@
+"NSMicrophoneUsageDescription" = "Kladde records audio notes when you start a recording.";
+"NSSpeechRecognitionUsageDescription" = "Kladde turns your recordings into text on this device.";
+"NSCameraUsageDescription" = "Kladde uses the camera when you take a photo to add it to a note.";
+"NSPhotoLibraryAddUsageDescription" = "Kladde saves images to your photo library when you choose “Save Image”.";

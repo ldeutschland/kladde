@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { Notebook } from "../notebook/notebook";
-import { translator } from "../locale/locale";
+import { notebookLanguage, translator } from "../locale/locale";
 import { rememberTheme } from "../platform/startTheme";
 
 function watchColorScheme(change: () => void) {
@@ -17,7 +17,7 @@ function systemIsDark() {
 
 export function useAppearance(book: Notebook) {
   const systemDark = useSyncExternalStore(watchColorScheme, systemIsDark);
-  const lang = String(book.settings.get("language") ?? "de"),
+  const lang = notebookLanguage(book),
     theme = String(book.settings.get("theme") ?? "system"),
     dark = theme === "dark" || (theme === "system" && systemDark),
     t = useMemo(() => translator(lang), [lang]);

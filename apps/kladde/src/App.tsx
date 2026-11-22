@@ -3,7 +3,7 @@ import { BookOpen, LoaderCircle } from "lucide-react";
 import { Notebook } from "./notebook/notebook";
 import { command } from "./platform/native";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
-import { translator, type T } from "./locale/locale";
+import { deviceLanguage, translator, type T } from "./locale/locale";
 import { Panel } from "./ui/dialog";
 import { ContextMenuHost } from "./ui/ContextMenu";
 import { Workspace } from "./workspace/Workspace";
@@ -104,8 +104,8 @@ function useAppSession() {
 
   useStartup(refresh, setPlatform, setError);
 
-  async function start(sync: boolean) {
-    const created = await Notebook.create("Mein Notizbuch");
+  async function start(sync: boolean, title: string) {
+    const created = await Notebook.create(title);
 
     setBooks(await command("spaces"));
     setBook(created);
@@ -187,7 +187,7 @@ function ErrorPanel({ session, t }: { session: Session; t: T }) {
 export function App() {
   const session = useAppSession();
   const { book } = session;
-  const t = translator("de");
+  const t = translator(deviceLanguage());
 
   return (
     <>
@@ -197,7 +197,7 @@ export function App() {
         <StartScreen
           ready={session.ready}
           t={t}
-          start={(sync) => void session.start(sync)}
+          start={(sync) => void session.start(sync, t("firstBook"))}
         />
       )}
       {!book && <ContextMenuHost t={t} />}

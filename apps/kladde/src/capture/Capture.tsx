@@ -1,4 +1,5 @@
 import { Inbox } from "lucide-react";
+import { notebookLanguage } from "../locale/locale";
 import { Panel } from "../ui/dialog";
 import { Select } from "../ui/Select";
 import { useRecorder } from "./audio";
@@ -78,7 +79,7 @@ function CaptureFooter({ props, draft, shared, saving }: CaptureBoxProps) {
 
 export function Capture(props: CaptureProps) {
   const { book, t } = props;
-  const lang = String(book.settings.get("language") ?? "de");
+  const lang = notebookLanguage(book);
   const draft = useCaptureDraft(props);
   const shared = useSharedItem(props.shared, draft);
   const recorder = useRecorder();

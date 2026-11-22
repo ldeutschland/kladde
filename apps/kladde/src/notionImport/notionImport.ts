@@ -2,7 +2,7 @@ import { markdown, writeMarkdown } from "../notebook/content";
 import { fileBlockType, saveFile } from "../files/attachments";
 import { storeImage } from "../capture/clipper";
 import { pageLink } from "../notebook/links";
-import { translator, type T } from "../locale/locale";
+import { notebookLanguage, translator, type T } from "../locale/locale";
 import { addView, fields, newField, views } from "../database/fields";
 import { validValue } from "../database/validValue";
 import type { Entry, Kind, Notebook } from "../notebook/notebook";
@@ -86,7 +86,7 @@ interface Run {
 }
 
 function bookTranslator(book: Notebook) {
-  return translator(String(book.settings.get("language") ?? "de"));
+  return translator(notebookLanguage(book));
 }
 
 function createEntry(

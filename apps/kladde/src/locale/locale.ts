@@ -1,3 +1,5 @@
+import type { Notebook } from "../notebook/notebook";
+
 const copy = {
   formula: ["Formel", "Formula"],
   rollup: ["Rollup", "Rollup"],
@@ -510,6 +512,7 @@ const copy = {
   ],
   newPage: ["Neue Seite", "New page"],
   newBook: ["Neues Notizbuch", "New notebook"],
+  firstBook: ["Mein Notizbuch", "My notebook"],
   untitled: ["Ohne Titel", "Untitled"],
   recent: ["Zuletzt bearbeitet", "Recently edited"],
   empty: ["Hier ist noch nichts.", "Nothing here yet."],
@@ -685,8 +688,8 @@ const copy = {
     "Turn on AI for this notebook?",
   ],
   aiPrivacyDetail: [
-    "Ausgewählte Inhalte werden im Klartext an OpenRouter und den gewählten Modellanbieter gesendet.",
-    "Selected content is sent in plaintext to OpenRouter and the chosen model provider.",
+    "Für deine Anfragen sendet Kladde Inhalte dieses Notizbuchs im Klartext mit deinem eigenen Schlüssel an OpenRouter (USA) und den Anbieter des gewählten Modells: was du der KI gibst, Seiten, die der Assistent für eine Anfrage liest, sowie deine KI-Anweisungen und Erinnerungen. Von der KI ausgeschlossene Seiten werden nie gesendet. Standardmäßig nutzt Kladde nur Anbieter ohne Datenspeicherung. Die Websuche schickt Suchbegriffe über OpenRouter an Exa. Du kannst die KI jederzeit wieder ausschalten.",
+    "For your requests, Kladde sends content from this notebook in plaintext, using your own key, to OpenRouter (USA) and the provider of the chosen model: what you give the AI, pages the assistant reads for a request, and your AI instructions and memories. Pages excluded from AI are never sent. By default Kladde only uses providers without data retention. Web search sends queries through OpenRouter to Exa. You can turn AI off again at any time.",
   ],
   enabled: ["KI aktiviert", "AI enabled"],
   apiKey: ["OpenRouter-Schlüssel", "OpenRouter key"],
@@ -1180,4 +1183,12 @@ export type Word = keyof typeof copy;
 export type T = (key: Word) => string;
 export function translator(lang: string): T {
   return (key) => copy[key][lang === "en" ? 1 : 0];
+}
+
+export function deviceLanguage() {
+  return navigator.language.toLowerCase().startsWith("de") ? "de" : "en";
+}
+
+export function notebookLanguage(book: Notebook) {
+  return String(book.settings.get("language") ?? deviceLanguage());
 }
