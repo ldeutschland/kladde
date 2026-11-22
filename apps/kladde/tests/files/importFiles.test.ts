@@ -218,6 +218,7 @@ describe("importing files", () => {
     const book = await Notebook.create("Notizbuch");
     const zip = new File([zipSync({ "Notiz.md": strToU8("x") })], "Export.zip");
 
+    book.settings.set("language", "de");
     await expect(importFiles(book, [zip])).rejects.toThrow(
       translator("de")("notionEmpty"),
     );
