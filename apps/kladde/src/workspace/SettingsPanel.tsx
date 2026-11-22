@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   ChevronRight,
   Cloud,
+  LifeBuoy,
   Monitor,
   Moon,
   Plus,
@@ -37,6 +38,7 @@ export interface SettingsActions {
   transfer: () => void;
   clipper: () => void;
   privacy: () => void;
+  support: () => void;
   newBook: () => void;
   open: (target: string | null) => Promise<void>;
   notify: (text: string) => void;
@@ -189,6 +191,11 @@ export function SettingsPanel({
         <button onClick={actions.privacy}>
           <ShieldCheck />
           {t("privacyPolicy")}
+          <ChevronRight className="trail" />
+        </button>
+        <button onClick={actions.support}>
+          <LifeBuoy />
+          {t("support")}
           <ChevronRight className="trail" />
         </button>
       </div>

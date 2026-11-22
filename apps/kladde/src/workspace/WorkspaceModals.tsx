@@ -82,6 +82,7 @@ function settingsActionsFor(
     transfer: () => setModal("transfer"),
     clipper: () => setModal("clipper"),
     privacy: () => setModal("privacy"),
+    support: () => setModal("support"),
     newBook: () => void newWorkspace(workspace.context),
     open: workspace.navigation.open,
     notify,

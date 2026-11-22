@@ -782,6 +782,16 @@ const copy = {
     "Clip waiting: {error}. Kladde will try again shortly.",
   ],
   privacyPolicy: ["Datenschutz", "Privacy policy"],
+  support: ["Support", "Support"],
+  supportIntro: [
+    "Fragen, Fehler oder Wünsche? Schreib eine E-Mail an diese Adresse. Schick bitte keine privaten Notizinhalte mit.",
+    "Questions, bugs or ideas? Send an email to this address. Please do not include private note contents.",
+  ],
+  copySupportAddress: ["Adresse kopieren", "Copy address"],
+  copyFailed: [
+    "Kopieren nicht möglich. Markiere die Adresse und kopiere sie von Hand.",
+    "Copying failed. Select the address and copy it manually.",
+  ],
   webClipper: ["Web-Clipper", "Web clipper"],
   phoneClipperIntro: [
     "Auf dem iPhone clippst du über das Teilen-Menü. Kladde speichert die Seite so, wie Safari sie anzeigt, und legt sie wie am Mac unter „Web-Clips“ ab.",

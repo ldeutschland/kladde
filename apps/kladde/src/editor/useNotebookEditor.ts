@@ -12,6 +12,17 @@ import { schema } from "./schema";
 
 const CURSOR_COLOR = "#7f63d9";
 
+const GERMAN = {
+  ...de,
+  slash_menu: {
+    ...de.slash_menu,
+    toggle_list: {
+      ...de.slash_menu.toggle_list,
+      subtext: "Liste mit ausblendbaren Unterpunkten",
+    },
+  },
+};
+
 interface EditorOptions {
   book: Notebook;
   entry: Entry;
@@ -29,7 +40,7 @@ function clickedPageLink(event: MouseEvent) {
 }
 
 function editorDictionary(lang: string, t: T, aiReady: boolean) {
-  const words = lang === "en" ? en : de;
+  const words = lang === "en" ? en : GERMAN;
 
   if (!aiReady) return words;
 

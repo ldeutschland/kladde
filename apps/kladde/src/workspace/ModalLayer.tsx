@@ -16,6 +16,7 @@ import {
 import { SearchPalette, type PaletteActions } from "./SearchPalette";
 import { TrashPanel } from "./Palettes";
 import { SettingsPanel, type SettingsActions } from "./SettingsPanel";
+import { Support } from "./Support";
 import type { Search } from "./useSearch";
 import type { Sync } from "./useSyncStatus";
 import type { Modal } from "./types";
@@ -134,6 +135,12 @@ function ToolModal({
         </Suspense>
       </Panel>
     );
+  if (modal === "support")
+    return (
+      <Panel title={t("support")} t={t} close={actions.close}>
+        <Support t={t} notify={actions.notify} />
+      </Panel>
+    );
   if (modal === "clipper")
     return (
       <Panel title={t("webClipper")} t={t} close={actions.close}>
@@ -193,6 +200,7 @@ export function ModalLayer({
   if (
     modal === "clipper" ||
     modal === "privacy" ||
+    modal === "support" ||
     modal === "sync" ||
     modal === "transfer"
   )

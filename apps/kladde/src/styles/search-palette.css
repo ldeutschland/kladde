@@ -45,6 +45,11 @@
 .panel p {
   line-height: 1.5;
 }
+.supportaddress {
+  font-weight: 500;
+  -webkit-user-select: text;
+  user-select: text;
+}
 .panel h3 {
   margin: 16px 0 6px;
   font-size: 12px;

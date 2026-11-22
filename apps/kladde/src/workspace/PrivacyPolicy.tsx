@@ -28,8 +28,8 @@ const SECTIONS: readonly Section[] = [
     heading: ["Synchronisieren (freiwillig)", "Sync (optional)"],
     paragraphs: [
       [
-        "Nur wenn du ein Konto auf einem Relay-Server einrichtest, werden Daten übertragen. Inhalte werden vorher auf dem Gerät Ende-zu-Ende verschlüsselt, der Server kann sie nicht lesen. Er verarbeitet deinen Benutzernamen, die verschlüsselten Daten, technische Angaben wie Größe, Zeitpunkt, Geräte- und Notizbuchkennungen sowie deine IP-Adresse, um den Abgleich zu ermöglichen. Verantwortlich dafür ist der Betreiber des Servers, dessen Adresse du einträgst.",
-        "Data is only transferred if you set up an account on a relay server. Content is end-to-end encrypted on your device first, the server cannot read it. It processes your user name, the encrypted data, technical details such as size, time, device and notebook identifiers, and your IP address to make syncing work. The operator of the server whose address you enter is responsible for it.",
+        "Für die Synchronisierung werden Daten nur übertragen, wenn du ein Konto auf einem Relay-Server einrichtest. Inhalte werden vorher auf dem Gerät Ende-zu-Ende verschlüsselt, der Server kann sie nicht lesen. Er verarbeitet deinen Benutzernamen, die verschlüsselten Daten, technische Angaben wie Größe, Zeitpunkt, Geräte- und Notizbuchkennungen, Mitgliedschaften, öffentliche Schlüssel sowie deine IP-Adresse, um die Synchronisierung zu ermöglichen. Verantwortlich dafür ist der Betreiber des Servers, dessen Adresse du einträgst.",
+        "For syncing, data is only transferred if you set up an account on a relay server. Content is end-to-end encrypted on your device first, the server cannot read it. It processes your user name, the encrypted data, technical details such as size, time, device and notebook identifiers, memberships, public keys, and your IP address to make syncing work. The operator of the server whose address you enter is responsible for it.",
       ],
       [
         "Konto und Serverdaten löschst du jederzeit unter Einstellungen → Synchronisieren.",
@@ -44,8 +44,8 @@ const SECTIONS: readonly Section[] = [
     ],
     paragraphs: [
       [
-        "Erst nach deiner ausdrücklichen Zustimmung sendet Kladde die Inhalte, die du der KI gibst, im Klartext mit deinem eigenen Schlüssel an OpenRouter (OpenRouter, Inc., USA) und an den Anbieter des gewählten Modells. Die Websuche sendet Suchbegriffe über OpenRouter an Exa. Dafür gelten die Datenschutzbestimmungen dieser Anbieter. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Du kannst die KI jederzeit in den Einstellungen ausschalten.",
-        "Only after your explicit consent does Kladde send the content you give the AI in plaintext, using your own key, to OpenRouter (OpenRouter, Inc., USA) and to the provider of the chosen model. Web search sends queries through OpenRouter to Exa. Their privacy policies apply. The legal basis is your consent (Art. 6(1)(a) GDPR). You can turn AI off in the settings at any time.",
+        "Erst nach deiner ausdrücklichen Zustimmung sendet Kladde die Inhalte, die du der KI gibst oder die der Assistent für deine Anfrage liest, sowie deine KI-Anweisungen und Erinnerungen im Klartext mit deinem eigenen Schlüssel an OpenRouter (OpenRouter, Inc., USA) und an den Anbieter des gewählten Modells. Seiten, die du von der KI ausschließt, werden nicht gesendet. Standardmäßig nutzt Kladde nur Anbieter ohne Datenspeicherung. Die Websuche sendet Suchbegriffe über OpenRouter an Exa. Dafür gelten die Datenschutzbestimmungen dieser Anbieter. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Du kannst die KI jederzeit in den Einstellungen ausschalten.",
+        "Only after your explicit consent does Kladde send the content you give the AI or that the assistant reads for your request, along with your AI instructions and memories, in plaintext, using your own key, to OpenRouter (OpenRouter, Inc., USA) and to the provider of the chosen model. Pages you exclude from AI are never sent. By default Kladde only uses providers without data retention. Web search sends queries through OpenRouter to Exa. Their privacy policies apply. The legal basis is your consent (Art. 6(1)(a) GDPR). You can turn AI off in the settings at any time.",
       ],
     ],
   },
@@ -62,8 +62,8 @@ const SECTIONS: readonly Section[] = [
     heading: ["Audionotizen", "Audio notes"],
     paragraphs: [
       [
-        "Aufnahme und Umwandlung in Text finden auf dem Gerät statt. Sprachmodelle lädt das Betriebssystem bei Bedarf von Apple.",
-        "Recording and transcription happen on the device. The operating system downloads speech models from Apple when needed.",
+        "Aufnahme und Umwandlung in Text finden auf dem Gerät statt. Sprachmodelle lädt das Betriebssystem bei Bedarf von Apple, Apple erfährt dabei die gewählte Sprache.",
+        "Recording and transcription happen on the device. The operating system downloads speech models from Apple when needed, which tells Apple the chosen language.",
       ],
     ],
   },
@@ -75,6 +75,10 @@ const SECTIONS: readonly Section[] = [
         "You have the right to access, rectification, erasure, restriction of processing, data portability and withdrawal of consent, and to lodge a complaint with a data protection supervisory authority.",
       ],
     ],
+  },
+  {
+    heading: ["Support", "Support"],
+    paragraphs: [["kontakt@deutschland.sh", "kontakt@deutschland.sh"]],
   },
 ];
 

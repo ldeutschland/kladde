@@ -1,0 +1,111 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "prConcurrentLimit": 10,
+  "labels": ["abhängigkeiten"],
+  "automerge": false,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/target/**",
+    "vendor/**",
+    "fuzz/corpus/**",
+    "fuzz/artifacts/**"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["abhängigkeiten", "sicherheit"],
+    "minimumReleaseAge": null,
+    "schedule": ["at any time"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchPackageNames": ["yrs"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackageNames": [
+        "argon2",
+        "bip39",
+        "chacha20poly1305",
+        "ed25519-dalek",
+        "x25519-dalek",
+        "hkdf",
+        "sha2",
+        "subtle",
+        "zeroize",
+        "opaque-ke",
+        "rand",
+        "rusqlite",
+        "security-framework"
+      ],
+      "groupName": "Kryptografie",
+      "labels": ["abhängigkeiten", "kryptografie"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchPackageNames": ["tauri", "tauri-build", "@tauri-apps/{/,}**"],
+      "groupName": "Tauri"
+    },
+    {
+      "matchPackageNames": ["@blocknote/{/,}**"],
+      "groupName": "BlockNote"
+    },
+    {
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "React"
+    },
+    {
+      "matchPackageNames": ["yjs", "y-prosemirror", "y-protocols"],
+      "groupName": "Yjs"
+    },
+    {
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/{/,}**"],
+      "groupName": "Tailwind"
+    },
+    {
+      "matchPackageNames": ["eslint", "@eslint/{/,}**", "typescript-eslint"],
+      "groupName": "ESLint"
+    },
+    {
+      "matchPackageNames": ["sqlx-core", "sqlx-postgres"],
+      "groupName": "SQLx"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": ["npm install -g pnpm@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "pnpm",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": ["(?<depName>cargo-[a-z-]+)@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "crate"
+    }
+  ]
+}
