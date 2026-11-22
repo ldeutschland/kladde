@@ -4,10 +4,14 @@
 
 Pages, databases, attachments and the full-text index are stored encrypted on the device. Your own devices can optionally sync through a self-hosted relay that only ever sees encrypted data.
 
+Currently supported: macOS, iOS 
+
+Planned: Windows, Android
+
 ## Features
 
 - **Pages & editor**: blocks, `/` menu, formatting bar, history and versioning
-- **Databases**: views with AND/OR filter groups, multi-key sorting, summaries and automations
+- **Databases**: views with AND/OR filter groups, multi-key sorting and automations
 - **Full-text search** (`⌘P`), including PDFs, scans, images and Office files, with on-device text recognition
 - **Attachments**, with a viewer and editing for images and PDFs
 - **Quick notes & web clips**: global `⌘⌥⇧N` on the Mac, "Share → Kladde" on the iPhone, plus a browser extension
