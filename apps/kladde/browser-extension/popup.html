@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/32.png" alt="" width="20" height="20" />
+      <h1 data-text="name"></h1>
+    </header>
+    <textarea
+      id="note"
+      maxlength="4000"
+      rows="3"
+      data-placeholder="notePlaceholder"
+    ></textarea>
+    <div class="actions">
+      <button data-kind="article" data-text="article" class="primary"></button>
+      <button data-kind="page" data-text="page"></button>
+      <button data-kind="selection" data-text="selection"></button>
+      <button data-kind="screenshot" data-text="screenshot"></button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p class="hint" data-text="hint"></p>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

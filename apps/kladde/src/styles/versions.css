@@ -1,0 +1,235 @@
+.panel.versions {
+  display: flex;
+  flex-direction: column;
+  top: 8vh;
+  width: min(980px, calc(100% - 32px));
+  height: 84dvh;
+  max-height: 84dvh;
+  overflow: hidden;
+}
+.versionlayout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 20px;
+  min-height: 0;
+}
+.versionlist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 12px;
+  border-right: 1px solid var(--border);
+}
+.versiontools {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.versiontools button,
+.versionitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 14px;
+}
+.versionlist section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.versionlist svg.lucide,
+.versionhead svg.lucide {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+.versiontools button[aria-pressed="true"],
+.versionitem[aria-pressed="true"] {
+  background: var(--hover-strong);
+}
+.versionlist h4 {
+  margin: 14px 8px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.versionitem time {
+  font-variant-numeric: tabular-nums;
+}
+.versionlabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--tag-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+.versioncause,
+.versionorigin {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.versionlist > .muted {
+  margin: 12px 8px;
+  font-size: 14px;
+}
+.panel .versionhint {
+  margin: auto 8px 0;
+  padding-top: 16px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--light);
+}
+.versiondetail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.versiondetail > .emptystate {
+  margin: auto;
+}
+.versionhead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  margin-bottom: 8px;
+}
+.versionhead .grow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.versionhead button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+.versionhead button.danger svg.lucide {
+  color: var(--red);
+}
+.versionhead .versionback {
+  display: none;
+}
+.versiontabs {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--field);
+}
+.versiontabs button {
+  min-height: 28px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.versiontabs button[aria-selected="true"] {
+  background: var(--popover);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+}
+.versionbody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.versiondetail > footer {
+  margin-top: 12px;
+}
+.versionsame {
+  margin: 32px 0;
+  text-align: center;
+}
+.versionpreview {
+  min-height: 0;
+  margin: 12px 0;
+  cursor: default;
+}
+.panel .versionpreview h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.difflegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+.difflegend del,
+.difflegend ins,
+.difftext del,
+.difftext ins {
+  padding: 1px 2px;
+  border-radius: 3px;
+  text-decoration: none;
+}
+.difflegend del,
+.difftext del {
+  background: var(--tag-8);
+  text-decoration: line-through;
+}
+.difflegend ins,
+.difftext ins {
+  background: var(--tag-4);
+}
+.change {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.change:first-of-type {
+  border-top: 0;
+}
+.change > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+}
+.changekind {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.change > header button {
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--accent-text);
+}
+.panel .difftext {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.55;
+}

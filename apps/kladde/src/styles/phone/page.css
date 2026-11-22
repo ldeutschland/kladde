@@ -1,0 +1,125 @@
+.phone .document {
+  padding-top: 0;
+  background: var(--bg);
+}
+.phone .work:has(.document[data-swiping]) {
+  background: color-mix(in srgb, var(--bg) 88%, var(--text));
+}
+.phone .document[data-swiping] {
+  box-shadow: -10px 0 28px rgba(0, 0, 0, 0.18);
+}
+.phone .underlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  pointer-events: none;
+}
+.phone .work .underlay > * {
+  animation: none;
+  scroll-timeline: none;
+}
+.phone .cover {
+  height: calc(env(safe-area-inset-top) + 190px);
+}
+.phone .covertools {
+  right: 12px;
+  opacity: 0;
+  pointer-events: none;
+}
+.phone .cover[data-tools] .covertools {
+  opacity: 1;
+  pointer-events: auto;
+}
+.phone .covertools button {
+  min-height: 36px;
+  border-radius: 18px;
+}
+.phone .paper {
+  padding: calc(var(--top-space) + 12px) 20px 32px;
+}
+.phone .paper.hascover {
+  padding-top: 20px;
+}
+.phone .paper.hascover.hasicon {
+  padding-top: 0;
+}
+.phone .pagetitle {
+  font-size: 32px;
+  line-height: 1.2;
+}
+.phone .pageicon {
+  width: 68px;
+  height: 68px;
+  font-size: 56px;
+}
+.phone .pagecontrols {
+  flex-wrap: nowrap;
+  gap: 8px;
+  height: auto;
+  margin: 0 0 6px;
+  opacity: 1;
+}
+.phone .pagecontrols:empty {
+  display: none;
+}
+.phone .pagecontrols button {
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border-radius: 16px;
+  background: var(--hover);
+  color: var(--muted);
+  font-size: 14px;
+}
+.phone .pagecontrols svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+.phone .writing,
+body:has(.phone) .peekbody .writing {
+  font-size: 17px;
+}
+.phone .writing .bn-editor,
+body:has(.phone) .peekbody .writing .bn-editor {
+  font-size: 17px;
+  line-height: 1.5;
+}
+body:has(.phone) .bn-side-menu {
+  display: none;
+}
+body:has(.phone) .bn-editor input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+}
+body:has(.phone) .bn-toolbar {
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 14px;
+}
+body:has(.phone) .bn-toolbar :is(button, [role="button"]) {
+  min-width: 40px;
+  min-height: 40px;
+}
+body:has(.phone) .bn-suggestion-menu {
+  max-height: 44dvh;
+  border-radius: 16px;
+}
+body:has(.phone) .bn-suggestion-menu-item {
+  min-height: 48px;
+  font-size: 16px;
+}
+.phone .subpage,
+.phone .backlinks .pageitem {
+  min-height: 48px;
+  font-size: 17px;
+}
+.phone .property {
+  grid-template-columns: 116px minmax(0, 1fr) auto;
+  min-height: 44px;
+  font-size: 16px;
+}

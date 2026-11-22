@@ -1,0 +1,433 @@
+button.dangerbutton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--red);
+  color: #ffffff;
+  font-weight: 500;
+}
+@media (hover: hover) {
+  button.dangerbutton:hover {
+    background: #d94848;
+  }
+}
+.panel footer button.dangerbutton {
+  box-shadow: none;
+}
+.ask form > input {
+  margin-top: 4px;
+}
+.askdetail {
+  margin: -4px 0 12px;
+  color: var(--muted);
+}
+.ask > header {
+  margin-bottom: 8px;
+}
+.panel.ask {
+  top: 18vh;
+}
+.renameform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+}
+.renameform input {
+  flex: 1;
+  min-width: 0;
+}
+.emptystate {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 16px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+.emptystate svg.lucide {
+  width: 28px;
+  height: 28px;
+  color: var(--light);
+}
+.emptystate p {
+  max-width: 280px;
+  margin: 0;
+}
+.trash .searchbox {
+  margin-bottom: 8px;
+}
+.settings > h3 {
+  margin: 14px 8px 4px;
+}
+.settings > h3:first-child {
+  margin-top: 0;
+}
+.settingrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  padding: 0 8px;
+}
+.settings > button svg.lucide.trail {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--light);
+}
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--hover);
+}
+.segmented.wide {
+  display: flex;
+  margin-bottom: 16px;
+}
+.segmented.wide > button {
+  flex: 1;
+  justify-content: center;
+}
+.segmented > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.segmented > button svg.lucide {
+  width: 14px;
+  height: 14px;
+}
+.segmented > button[aria-checked="true"] {
+  background: var(--popover);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+}
+.syncpanel > p.muted {
+  margin: 0 0 16px;
+}
+.accountcard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.accountcard .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+.accountname {
+  display: flex;
+  flex-direction: column;
+}
+.accountname small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: 12px;
+}
+.syncactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.syncactions button,
+button.outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font-size: 13px;
+}
+.syncactions button svg.lucide {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+.syncactions button[aria-pressed="true"] {
+  background: var(--hover-strong);
+}
+.syncrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.syncrow > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.syncpanel .line svg.lucide {
+  width: 16px;
+  color: var(--muted);
+}
+form.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+form.stacked label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+form.stacked input {
+  width: 100%;
+  color: var(--text);
+  font-weight: 400;
+}
+form.stacked .hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--hover);
+  color: var(--muted);
+  font-size: 13px;
+}
+form.stacked footer {
+  align-items: center;
+  margin-top: 4px;
+}
+form.stacked footer .primary {
+  margin-left: auto;
+}
+.phrasebox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.phrasebox h3 {
+  margin: 4px 0 0;
+}
+.formerror {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(235, 87, 87, 0.1);
+  overflow-wrap: anywhere;
+}
+.panel footer button.link,
+button.link {
+  padding: 0;
+  box-shadow: none;
+  color: var(--accent-text);
+  font-size: 13px;
+}
+@media (hover: hover) {
+  button.link:hover {
+    background: transparent;
+    text-decoration: underline;
+  }
+}
+button.dangerlink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 6px 8px;
+  color: var(--red);
+  font-size: 13px;
+}
+button.dangerlink svg.lucide {
+  width: 15px;
+  height: 15px;
+}
+@media (hover: hover) {
+  button.dangerlink:hover {
+    background: rgba(235, 87, 87, 0.1);
+  }
+}
+.toast .spin {
+  width: 16px;
+  height: 16px;
+  margin-left: -4px;
+  opacity: 0.8;
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  button:active:not(:disabled) {
+    transition-duration: 0s;
+  }
+  button.primary:active:not(:disabled),
+  button.dangerbutton:active:not(:disabled),
+  .aifab:active {
+    scale: 0.97;
+  }
+  .shade {
+    animation: fade 0.16s ease-out;
+  }
+  .panel,
+  .popover {
+    animation: pop 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .popover {
+    transform-origin: top left;
+  }
+  .panel.peek,
+  .aipanel {
+    animation: slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .toast {
+    animation: toastin 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .document,
+  .home {
+    animation: fade 0.2s ease-out;
+  }
+  .welcome > div {
+    animation: welcome 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .switch,
+  .switch::after {
+    transition:
+      transform 0.18s cubic-bezier(0.3, 0.7, 0.4, 1.3),
+      background-color 0.18s ease;
+  }
+  .disclose .chevron {
+    transition: transform 0.15s ease;
+  }
+  .segmented > button {
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .tabclose,
+  .covertools,
+  .pagecontrols {
+    transition: opacity 0.12s ease;
+  }
+  .aifab {
+    transition:
+      scale 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease;
+  }
+  @media (hover: hover) {
+    .aifab:hover {
+      scale: 1.06;
+    }
+  }
+  .card {
+    transition:
+      box-shadow 0.15s ease,
+      translate 0.15s ease;
+  }
+  @media (hover: hover) {
+    .card:hover {
+      translate: 0 -1px;
+    }
+  }
+  .treerow[data-drop="before"]::after,
+  .treerow[data-drop="after"]::after,
+  .tree[data-drop-root]::after {
+    transform-origin: left;
+    animation: dropline 0.14s ease-out;
+  }
+  .treerow[data-moved] {
+    animation: moved 1.2s ease-out;
+  }
+  .home[data-drop]::after {
+    animation: fade 0.15s ease-out;
+  }
+  .cardslot {
+    animation: pop 0.16s ease-out;
+  }
+  .boardcard.floating {
+    animation: lift 0.14s ease-out;
+  }
+  .boardcard[data-lifted] {
+    transition: opacity 0.12s ease;
+  }
+  @keyframes lift {
+    from {
+      rotate: 0deg;
+      scale: 1;
+      box-shadow: var(--card-shadow);
+    }
+  }
+  .column {
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  @keyframes dropline {
+    from {
+      opacity: 0;
+      scale: 0.6 1;
+    }
+  }
+  @keyframes moved {
+    0%,
+    30% {
+      background: var(--drop);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      scale: 0.97;
+      translate: 0 -4px;
+    }
+  }
+  @keyframes slide {
+    from {
+      opacity: 0;
+      translate: 32px 0;
+    }
+  }
+  @keyframes rise {
+    from {
+      translate: 0 100%;
+    }
+  }
+  @keyframes toastin {
+    from {
+      opacity: 0;
+      translate: 0 12px;
+      scale: 0.96;
+    }
+  }
+  @keyframes welcome {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+  }
+}

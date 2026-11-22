@@ -1,0 +1,164 @@
+.templatehint {
+  margin: 4px 2px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.ailibrary .aihistoryitem > button.grow {
+  align-items: flex-start;
+  min-width: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.ailibrary .aihistoryitem > button.grow > svg.lucide {
+  margin-top: 1px;
+}
+.ailibrary .aihistoryitem span.grow {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ailibrary .aihistoryitem span.grow small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.templateadd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--muted);
+}
+.templateadd svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+.agentchip {
+  color: var(--ai);
+  background: var(--ai-soft);
+}
+.agentchip .grow {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menunote {
+  margin: 4px 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.popover.above {
+  top: auto;
+  bottom: var(--b);
+  max-height: calc(100dvh - var(--b) - 8px);
+  transform-origin: bottom left;
+}
+.ailibrary .segmented {
+  margin: 4px 0 4px;
+}
+.ailibrary .segmented > button {
+  flex: 1;
+  justify-content: center;
+}
+.uselink {
+  flex: none;
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--accent-text);
+}
+.memorymark {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ai-soft);
+  font-size: 12px;
+  color: var(--muted);
+}
+p.memorymark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.memorymark svg.lucide {
+  width: 14px;
+  height: 14px;
+  color: var(--ai);
+}
+.memorymark > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+@media (hover: hover) {
+  .memorymark > button:hover {
+    background: transparent;
+    text-decoration: underline;
+  }
+}
+.memorymark small {
+  margin-left: auto;
+  color: var(--light);
+}
+.memorymark ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 0 20px;
+  list-style: none;
+}
+.memorymark li {
+  overflow-wrap: anywhere;
+}
+.memorymark li::before {
+  margin-right: 6px;
+  font-weight: 600;
+}
+.memorymark li[data-change="added"]::before {
+  content: "+";
+  color: var(--ai);
+}
+.memorymark li[data-change="removed"] {
+  text-decoration: line-through;
+}
+.memorymark li[data-change="removed"]::before {
+  content: "−";
+}
+.settinghint {
+  margin: -4px 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.sectionhead .sectionlink {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  margin-left: -4px;
+  padding: 2px 4px;
+  opacity: 1;
+  font: inherit;
+  color: inherit;
+}
+.settinglink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-top: 4px;
+  padding: 0 8px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.settinglink svg.lucide {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}

@@ -1,0 +1,66 @@
+name: Kladde
+on: workflow_dispatch
+permissions: {contents: read}
+jobs:
+  apple:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: 24}
+      - run: npm install -g pnpm@11.25.0 && pnpm install --frozen-lockfile
+      - run: rustup update stable && rustup component add clippy rustfmt && rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+      - run: pnpm build && pnpm lint && pnpm test
+      - run: cargo fmt --all --check && cargo clippy --locked --workspace --all-targets -- -D warnings && cargo test --locked --workspace
+      - run: pnpm exec playwright install webkit && pnpm e2e
+      - run: cargo check -p kladde --lib --locked --target aarch64-apple-ios && pnpm tauri build --no-sign --bundles app
+      - run: |
+          id=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; print(next(d["udid"] for ds in json.load(sys.stdin)["devices"].values() for d in ds if d["name"].startswith("iPhone")))')
+          xcrun simctl boot "$id"
+          xcrun simctl bootstatus "$id" -b
+          echo "SIMULATOR_ID=$id" >> "$GITHUB_ENV"
+          SIMULATOR_ID="$id" sh scripts/test-simulator.sh
+      - name: Offline sync and encrypted restore on Mac and iPhone
+        run: |
+          brew list postgresql@17 >/dev/null 2>&1 || brew install postgresql@17
+          export PATH="$(brew --prefix postgresql@17)/bin:$PATH"
+          pgdata="$RUNNER_TEMP/kladde-pg"
+          socket="$RUNNER_TEMP/kladde-socket"
+          mkdir -m 700 "$socket"
+          initdb -D "$pgdata" --auth-local=trust --auth-host=reject
+          pg_ctl -D "$pgdata" -o "-k $socket -h '' -p 57431" -w start
+          trap 'pg_ctl -D "$pgdata" -w stop' EXIT
+          export TEST_DATABASE_URL="postgresql:///postgres?host=$socket&port=57431"
+          export KLADDE_QA_DIR="$RUNNER_TEMP/kladde-native"
+          sh scripts/build-native-pair.sh
+          sh scripts/test-native-pair.sh
+  postgres:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - run: sudo apt-get update && sudo apt-get install -y ripgrep && rustup update stable
+      - run: sh scripts/test-postgres-container.sh
+      - run: docker build -t kladde-ci -f deploy/Dockerfile . && cd deploy && POSTGRES_PASSWORD=ci-only DOMAIN=localhost docker compose config -q
+  parsers:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: {target: [envelope, protocol, snapshot]}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - run: rustup toolchain install nightly && cargo install --locked cargo-fuzz@0.13.2
+      - run: cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=60 -rss_limit_mb=768
+  supply-chain:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: 24}
+      - run: npm install -g pnpm@11.25.0 && pnpm install --frozen-lockfile && pnpm audit --audit-level moderate
+      - run: cargo install --locked cargo-deny@0.20.2 cargo-audit@0.23.0
+      - run: cargo deny check
+      - if: "${{ !cancelled() }}"
+        run: cargo audit

@@ -1,0 +1,20 @@
+[package]
+name = "kladde-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kladde-protocol.workspace = true
+yrs.workspace = true
+rusqlite.workspace = true
+uuid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile.workspace = true

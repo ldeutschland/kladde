@@ -1,0 +1,43 @@
+.panel.peek {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  transform: none;
+  width: min(760px, 100%);
+  max-height: none;
+  padding: 0;
+  border-radius: 0;
+  background: var(--bg);
+}
+.peekbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg);
+}
+.peekbar button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--muted);
+}
+.peekbar svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+.peekbody {
+  padding: 24px 48px 48px;
+}
+.peekbody .pagetitle {
+  min-height: 0;
+  margin-bottom: 12px;
+  font-size: 32px;
+  resize: none;
+}

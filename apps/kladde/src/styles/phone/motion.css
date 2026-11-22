@@ -1,0 +1,34 @@
+@media (prefers-reduced-motion: no-preference) {
+  body:has(.phone) .panel,
+  body:has(.phone) .popover {
+    animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  body:has(.phone) .panel.palette,
+  body:has(.phone) .panel.peek,
+  body:has(.phone) .panel.versions {
+    animation: fade 0.16s ease-out;
+  }
+  .phone .aipanel {
+    animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .phone .document,
+  .pagesview,
+  .phone .home {
+    animation: fade 0.18s ease-out;
+  }
+  .bottomtabs button,
+  .glassbutton,
+  .glassgroup button,
+  .bottomadd {
+    transition:
+      scale 0.12s ease,
+      background-color 0.15s ease;
+  }
+  .bottomtabs button:active,
+  .glassbutton:active,
+  .glassgroup button:active,
+  .bottomadd:active {
+    scale: 0.94;
+  }
+}

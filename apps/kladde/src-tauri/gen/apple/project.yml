@@ -1,0 +1,165 @@
+name: kladde
+options:
+  bundleIdPrefix: de.kladde.notebook
+  deploymentTarget:
+    iOS: 26.0
+fileGroups: [../../src]
+configs:
+  debug: debug
+  release: release
+settingGroups:
+  app:
+    base:
+      PRODUCT_NAME: Kladde
+      PRODUCT_BUNDLE_IDENTIFIER: de.kladde.notebook
+targetTemplates:
+  app:
+    type: application
+    sources:
+      - path: Sources
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      groups: [app]
+targets:
+  kladde_iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Shared
+      - path: Assets.xcassets
+      - path: Externals
+        excludes: ["**/*.a"]
+      - path: kladde_iOS
+      - path: assets
+        buildPhase: resources
+        type: folder
+      - path: LaunchScreen.storyboard
+      - path: ../../PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: kladde_iOS/Info.plist
+      properties:
+        CADisableMinimumFrameDurationOnPhone: true
+        CaptureKeychainGroup: "$(AppIdentifierPrefix)de.kladde.notebook.capture"
+        NSMicrophoneUsageDescription: "Kladde nimmt Audionotizen auf, wenn du eine Aufnahme startest."
+        NSSpeechRecognitionUsageDescription: "Kladde wandelt deine Aufnahmen auf diesem Gerät in Text um."
+        NSCameraUsageDescription: "Kladde verwendet die Kamera, wenn du ein Foto aufnimmst, um es in eine Notiz einzufügen."
+        NSPhotoLibraryAddUsageDescription: "Kladde legt Bilder in deiner Fotomediathek ab, wenn du „Bild sichern“ wählst."
+        ITSAppUsesNonExemptEncryption: true
+        UIBackgroundModes: [audio]
+        LSRequiresIPhoneOS: true
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiredDeviceCapabilities: [arm64, metal]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "0.1.0"
+    entitlements:
+      path: kladde_iOS/kladde_iOS.entitlements
+      properties: &shareEntitlements
+        com.apple.security.application-groups: [group.de.kladde.notebook.capture]
+        keychain-access-groups: ["$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)", "$(AppIdentifierPrefix)de.kladde.notebook.capture"]
+    scheme:
+      environmentVariables:
+        RUST_BACKTRACE: full
+        RUST_LOG: info
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: 1
+        OTHER_LDFLAGS: "$(inherited) -framework PDFKit -framework Vision -framework ImageIO"
+        ENABLE_BITCODE: false
+        ARCHS: [arm64]
+        VALID_ARCHS: arm64 
+        LIBRARY_SEARCH_PATHS[arch=x86_64]: $(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)
+        LIBRARY_SEARCH_PATHS[arch=arm64]: $(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: true
+        EXCLUDED_ARCHS[sdk=iphoneos*]: x86_64
+      groups: [app]
+    dependencies:
+      - target: KladdeShare
+        embed: true
+      - framework: libapp.a
+        embed: false
+      - sdk: CoreGraphics.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: Security.framework
+      - sdk: UIKit.framework
+      - sdk: WebKit.framework
+    preBuildScripts:
+      - script: |
+          sh "$SRCROOT/../../../../../scripts/xcode-rust.sh"
+        name: Build Rust Code
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a
+          - $(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a
+  KladdeShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Share
+        excludes: ["ClipPage.js", "PrivacyInfo.xcprivacy"]
+      - path: Share/ClipPage.js
+        buildPhase: resources
+      - path: Share/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      - path: Shared
+    info:
+      path: Share/Info.plist
+      properties:
+        CFBundleDisplayName: Kladde
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "0.1.0"
+        CaptureKeychainGroup: "$(AppIdentifierPrefix)de.kladde.notebook.capture"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareController"
+          NSExtensionAttributes:
+            NSExtensionJavaScriptPreprocessingFile: ClipPage
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 1
+              NSExtensionActivationSupportsFileWithMaxCount: 1
+    entitlements:
+      path: Share/Share.entitlements
+      properties: *shareEntitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.kladde.notebook.share
+        SKIP_INSTALL: true
+        TARGETED_DEVICE_FAMILY: 1
+        APPLICATION_EXTENSION_API_ONLY: true
+  NotebookUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: kladde_iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.kladde.notebook.uitests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: kladde_iOS
+schemes:
+  NotebookSmoke:
+    build:
+      targets:
+        kladde_iOS: all
+        NotebookUITests: [test]
+    test:
+      targets: [NotebookUITests]

@@ -1,0 +1,68 @@
+.fieldpanel {
+  width: min(460px, calc(100% - 32px));
+}
+.fieldpanel form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fieldpanel form > input {
+  width: 100%;
+}
+.typegrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.typegrid legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.typegrid label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .typegrid label:hover {
+    background: var(--hover);
+  }
+}
+.typegrid label:has(input:checked) {
+  background: var(--hover-strong);
+  font-weight: 500;
+}
+.typegrid label:has(input:focus-visible) {
+  box-shadow: var(--ring);
+}
+.typegrid input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.typegrid svg.lucide {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+.menurow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin: 0;
+  padding: 2px 8px;
+}
+.menurow .select {
+  max-width: 60%;
+}

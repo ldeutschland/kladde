@@ -1,0 +1,342 @@
+.datarow[data-tint],
+.boardcard[data-tint],
+.gallerycard[data-tint] {
+  background: color-mix(in srgb, var(--tint, var(--tag-0)) 55%, transparent);
+}
+[data-tint="1"] {
+  --tint: var(--tag-1);
+}
+[data-tint="2"] {
+  --tint: var(--tag-2);
+}
+[data-tint="3"] {
+  --tint: var(--tag-3);
+}
+[data-tint="4"] {
+  --tint: var(--tag-4);
+}
+[data-tint="5"] {
+  --tint: var(--tag-5);
+}
+[data-tint="6"] {
+  --tint: var(--tag-6);
+}
+[data-tint="7"] {
+  --tint: var(--tag-7);
+}
+[data-tint="8"] {
+  --tint: var(--tag-8);
+}
+.datarow[data-chosen] {
+  background: rgba(127, 99, 217, 0.08);
+}
+.rowcheck {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.rowcheck:focus-visible,
+.rowcheck:checked,
+[data-choosing] .rowcheck {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .datarow:hover .rowcheck {
+    opacity: 1;
+  }
+}
+.bulkbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 4px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 8px;
+  background: rgba(127, 99, 217, 0.1);
+  font-size: 13px;
+}
+.bulkbar strong {
+  margin-right: auto;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.bulkbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+}
+@media (hover: hover) {
+  .bulkbar button:hover {
+    background: var(--hover-strong);
+  }
+}
+.bulkbar .danger {
+  color: var(--red);
+}
+.datarow.foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  height: 32px;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+  background: var(--bg);
+}
+.calccell {
+  justify-content: flex-end;
+  gap: 6px;
+  border-right-color: transparent;
+  border-radius: 0;
+  color: var(--muted);
+}
+.calccell.titlecell {
+  justify-content: flex-start;
+}
+.calccell small {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--light);
+}
+.calccell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-weight: 500;
+}
+.calchint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+}
+@media (hover: hover) {
+  .calccell:hover {
+    background: var(--hover);
+  }
+}
+.calccell:focus-visible .calchint {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .calccell:hover .calchint {
+    opacity: 1;
+  }
+}
+.reltag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-strong);
+  font-size: 14px;
+}
+.reltag + .reltag {
+  margin-left: 6px;
+}
+.reltag svg.lucide {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+}
+.chips .reltag button {
+  display: inline-flex;
+  padding: 1px;
+  border-radius: 3px;
+  color: var(--muted);
+}
+.valuebar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.bartrack {
+  flex: 1;
+  min-width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hover-strong);
+  overflow: hidden;
+}
+.bartrack span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.cellbutton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font-size: 13px;
+  font-weight: 500;
+}
+@media (hover: hover) {
+  .cellbutton:hover:not(:disabled) {
+    background: var(--hover);
+  }
+}
+.cellbutton:disabled {
+  color: var(--light);
+}
+.computedvalue {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 6px;
+  color: var(--text);
+}
+.fieldsettings {
+  display: grid;
+  gap: 2px;
+}
+.fieldsettings h4,
+.menuhead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 8px 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.narrow {
+  width: 96px;
+}
+.optioneditor {
+  display: grid;
+  gap: 2px;
+}
+.optionline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+.optionline input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+}
+.optionline svg.lucide {
+  color: var(--muted);
+}
+.swatch {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  padding: 0;
+  border-radius: 4px;
+}
+button.swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.formulaeditor {
+  display: grid;
+  gap: 6px;
+  padding: 0 8px;
+}
+.formulaeditor h4 {
+  margin-left: 0;
+}
+.formulaeditor textarea,
+.automationstep textarea.code {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+.formulapreview {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--hover);
+  font-size: 12px;
+  color: var(--muted);
+}
+.formulapreview output {
+  font-size: 13px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.formulapreview[data-failed] output {
+  color: var(--red);
+}
+.formulaeditor details summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+.formulachips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 140px;
+  overflow: auto;
+  padding: 2px 0;
+}
+.chip {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: var(--hover);
+  font-size: 12px;
+}
+@media (hover: hover) {
+  .chip:hover {
+    background: var(--hover-strong);
+  }
+}
+.chip.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.tintrule {
+  display: grid;
+  gap: 6px;
+  margin: 4px 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tint, var(--tag-0)) 45%, transparent);
+}
+.swatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.swatches .end {
+  display: flex;
+  justify-content: flex-end;
+}
+.automationstep {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.automationform h4 {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}

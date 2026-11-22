@@ -1,0 +1,113 @@
+use kladde_store::{Note, SearchHit, Store};
+use std::{collections::HashMap, path::Path};
+use uuid::Uuid;
+use yrs::{Any, Doc, Map, ReadTxn, StateVector, Transact};
+
+const KEY: [u8; 32] = [5; 32];
+const FILLER: &str = "Absatz mit Fülltext ";
+
+fn page_with_file(space: Uuid, body: &str, file: Uuid, name: &str, links: Vec<Uuid>) -> Note {
+    let doc = Doc::new();
+    let files = doc.get_or_insert_map("files");
+    let meta = HashMap::from([("name".to_owned(), Any::from(name))]);
+
+    files.insert(&mut doc.transact_mut(), file.to_string(), Any::from(meta));
+
+    Note {
+        id: Uuid::new_v4(),
+        space,
+        kind: "page".into(),
+        title: "Hausakte".into(),
+        body: body.into(),
+        parent: None,
+        archived: false,
+        props: "{}".into(),
+        links,
+        data: doc
+            .transact()
+            .encode_state_as_update_v1(&StateVector::default()),
+        rev: 0,
+    }
+}
+
+fn hits(store: &Store, space: Uuid, query: &str) -> Vec<SearchHit> {
+    store.search_content(space, query, None).unwrap()
+}
+
+fn as_older_index(path: &Path) {
+    let raw = rusqlite::Connection::open(path).unwrap();
+    let key = format!("PRAGMA key=\"x'{}'\"", hex::encode(KEY));
+
+    raw.execute_batch(&key).unwrap();
+    raw.execute_batch(
+        "DELETE FROM words; INSERT INTO words SELECT id,space,title,body FROM notes; PRAGMA user_version=5;",
+    )
+    .unwrap();
+}
+
+#[test]
+fn excerpts_read_like_text_while_the_body_keeps_links_and_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("notebook");
+    let mut store = Store::open(&path, &KEY).unwrap();
+    let (space, file, target) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+    let body = format!(
+        "Wartungsvertrag läuft bis Ende 2027. Siehe [Heizung](kladde:{target}).\n\n<audio src=\"kladde-file:{file}\"></audio>"
+    );
+    let page = page_with_file(space, &body, file, "Scan.png", vec![target]);
+
+    store.save(std::slice::from_ref(&page), false).unwrap();
+
+    let found = hits(&store, space, "Wartungsvertrag");
+
+    assert_eq!(found.len(), 1);
+    assert_eq!(
+        found[0].snippet,
+        "Wartungsvertrag läuft bis Ende 2027. Siehe Heizung."
+    );
+
+    for markup in ["kladde", "audio", "src", &file.to_string()[..8]] {
+        assert!(hits(&store, space, markup).is_empty(), "{markup}");
+    }
+
+    assert_eq!(store.get(page.id).unwrap().unwrap().body, body);
+    assert_eq!(store.backlinks(target).unwrap(), [page.id]);
+
+    let job = store.next_attachment().unwrap().unwrap();
+    let scanned = format!(
+        "{}Rechnung Nr. 4711\nBetrag:\n120 Euro\n\u{c}{}",
+        FILLER.repeat(8),
+        FILLER.repeat(12)
+    );
+
+    store.finish_attachment(&job, "ready", &scanned).unwrap();
+    let found = hits(&store, space, "Betrag");
+
+    assert_eq!(found.len(), 1);
+    let excerpt = &found[0].snippet;
+
+    assert!(
+        excerpt.starts_with("… Absatz") && excerpt.ends_with(" …"),
+        "{excerpt}"
+    );
+    assert!(
+        excerpt.contains("Rechnung Nr. 4711 Betrag: 120 Euro Absatz"),
+        "{excerpt}"
+    );
+    assert!(!excerpt.contains(['\n', '\u{c}']));
+    assert_eq!(found[0].matched, "Betrag");
+    assert_eq!(found[0].page, 0);
+
+    let named = hits(&store, space, "Scan");
+
+    assert_eq!(named.len(), 1);
+    assert_eq!(named[0].file, Some(file.to_string()));
+    assert_eq!(named[0].snippet, "");
+
+    drop(store);
+    as_older_index(&path);
+    let store = Store::open(&path, &KEY).unwrap();
+
+    assert!(hits(&store, space, "kladde").is_empty());
+    assert_eq!(hits(&store, space, "Heizung").len(), 1);
+}

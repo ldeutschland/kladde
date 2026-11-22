@@ -1,0 +1,137 @@
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+}
+.meter span {
+  flex: none;
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--red);
+  transform-origin: center;
+}
+.recordclock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.panel.recorder {
+  width: min(520px, calc(100% - 32px));
+}
+.recordhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+.recordhead .recordclock {
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.recordhead[data-phase="recording"] .recorddot {
+  animation: recordpulse 1.2s ease-in-out infinite;
+}
+.recordhead:not([data-phase="recording"]) .recorddot {
+  background: var(--light);
+}
+.recordhead .recordstatus {
+  min-height: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.select.recordlanguage {
+  flex: none;
+  max-width: 55%;
+  min-height: 28px;
+  margin-left: auto;
+  padding: 2px 8px 2px 12px;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+}
+.recordwave .meter {
+  gap: 3px;
+  height: 48px;
+  margin: 14px 0 12px;
+}
+.recordwave .meter span {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 2px;
+}
+.recordwave:not([data-phase="recording"]) .meter span {
+  background: var(--light);
+}
+.recordstatus {
+  min-height: 20px;
+  margin: 0;
+  color: var(--muted);
+}
+.panel.recorder .recordtext {
+  min-height: 72px;
+  margin: 0 0 8px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.recordtext {
+  min-height: 96px;
+  max-height: 32dvh;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: var(--field);
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pendingtext {
+  color: var(--muted);
+}
+.recordnote {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.switchitem.recordkeep {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.panel footer.recordactions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.panel footer.recordactions button {
+  justify-content: center;
+  min-height: 36px;
+  border-radius: 999px;
+}
+.recorddot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+}
+@keyframes recordpulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recordhead[data-phase="recording"] .recorddot {
+    animation: none;
+  }
+}

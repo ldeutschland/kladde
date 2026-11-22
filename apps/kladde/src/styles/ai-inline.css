@@ -1,0 +1,216 @@
+.askbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -8px 0 32px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--card-shadow);
+}
+.askbox:focus-within {
+  box-shadow:
+    var(--card-shadow),
+    0 0 0 2px rgba(127, 99, 217, 0.25);
+}
+.askbox input {
+  flex: 1;
+  min-height: 32px;
+  font-size: 15px;
+}
+.inlineai {
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+.inlineresult,
+.inlineinput,
+.inlinemenu,
+.inlinesetup {
+  border-radius: 8px;
+  background: var(--popover);
+  box-shadow: var(--shadow);
+}
+.inlineresult {
+  max-height: 50vh;
+  overflow: auto;
+  padding: 12px 14px;
+  line-height: 1.6;
+}
+.inlineinput,
+.inlinesetup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+}
+.inlineinput input {
+  flex: 1;
+  min-height: 28px;
+  font-size: 15px;
+}
+.inlinemenu {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: min(300px, 100%);
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px;
+}
+.inlinemenu small {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.inlinemenu button {
+  min-height: 30px;
+}
+.inlinemenu button[data-active="true"] {
+  background: var(--hover);
+}
+.inlineai [role="alert"],
+.ainote {
+  margin: 0;
+  padding: 0 6px;
+}
+.ainote {
+  font-size: 12px;
+  color: var(--light);
+}
+.markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown pre,
+.markdown blockquote,
+.markdown .mdtable {
+  margin: 0 0 8px;
+}
+.markdown h3,
+.markdown h4,
+.markdown h5 {
+  margin: 14px 0 6px;
+  font-weight: 600;
+}
+.markdown h3 {
+  font-size: 1.25em;
+}
+.markdown h4 {
+  font-size: 1.1em;
+}
+.markdown h5 {
+  font-size: 1em;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 22px;
+}
+.markdown li.task {
+  list-style: none;
+  margin-left: -22px;
+}
+.markdown li.task input {
+  margin: 0 8px 0 0;
+  vertical-align: -2px;
+}
+.markdown code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--hover-strong);
+  color: var(--red);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+}
+.markdown pre {
+  overflow: auto;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--side);
+}
+.markdown pre code {
+  padding: 0;
+  background: none;
+  color: inherit;
+}
+.markdown blockquote {
+  padding-left: 14px;
+  border-left: 3px solid currentColor;
+}
+.markdown hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+}
+.mdtable {
+  overflow: auto;
+}
+.mdtable table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.mdtable th,
+.mdtable td {
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  text-align: left;
+}
+.mdlink {
+  display: inline;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  .mdlink:hover {
+    background: var(--hover);
+  }
+}
+.mdurl {
+  color: var(--muted);
+  text-decoration: underline dotted;
+}
+.blockchange {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+.blockchange del,
+.blockchange ins {
+  display: block;
+  white-space: pre-wrap;
+}
+.blockchange del {
+  color: var(--muted);
+}
+.blockchange ins {
+  text-decoration: none;
+}
+.phrase {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--side);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  line-height: 1.7;
+  word-spacing: 4px;
+}

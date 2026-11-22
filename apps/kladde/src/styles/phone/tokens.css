@@ -1,0 +1,50 @@
+:root:has(.phone) {
+  --top-space: calc(env(safe-area-inset-top) + 52px);
+  --bar-space: calc(max(env(safe-area-inset-bottom), 24px) + 62px);
+  --sheet-bottom: var(--keyboard, 0px);
+  --glass: color-mix(in srgb, var(--popover) 72%, transparent);
+  --glass-edge:
+    inset 0 0 0 0.5px var(--border-strong), 0 8px 24px rgba(0, 0, 0, 0.12);
+  --glass-blur: blur(20px) saturate(180%);
+  --sheet-glass: color-mix(in srgb, var(--popover) 86%, transparent);
+  --sheet-gap: 8px;
+  --sheet-radius: 32px;
+  --sheet-lift: calc(var(--sheet-bottom) + var(--sheet-gap));
+  --sheet-room: calc(
+    var(--app-height, 100dvh) - env(safe-area-inset-top) - 2 * var(--sheet-gap)
+  );
+}
+html:has(.phone),
+body:has(.phone) {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+body:has(.phone) {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+body:has(.phone) :where(button, summary, label, nav, header, .menu) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+:where(body:has(.phone) :is(button, summary):not(.tabs > *)) {
+  position: relative;
+}
+:where(body:has(.phone) :is(button, summary):not(.tabs > *))::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  transform: translate(-50%, -50%);
+}
+body:has(.phone) svg.lucide {
+  width: 20px;
+  height: 20px;
+}

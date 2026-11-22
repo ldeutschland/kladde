@@ -1,0 +1,125 @@
+.pagesview {
+  padding: calc(var(--top-space) + 8px) 12px calc(var(--bar-space) + 32px);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 17px;
+}
+.pagesview > h1 {
+  margin: 0 8px 16px;
+}
+.pagesview .brand {
+  width: 100%;
+  height: 56px;
+  margin-bottom: 8px;
+  padding: 0 14px;
+  gap: 12px;
+  border-radius: 16px;
+  background: var(--side);
+  font-size: 17px;
+}
+.pagesview .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+.pagesview .treewrap {
+  flex: none;
+  overflow: visible;
+  padding: 4px 0 12px;
+}
+.pagesview .sectionhead {
+  height: 44px;
+  margin-top: 8px;
+  padding-left: 12px;
+}
+.pagesview .sectionhead h3 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pagesview .sectionlink {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.pagesview .sectionhead button {
+  width: 44px;
+  height: 44px;
+  opacity: 1;
+  color: var(--muted);
+}
+.pagesview .tree {
+  gap: 2px;
+}
+.pagesview .treerow,
+.pagesview .pageitem,
+.pagesview .addpage,
+.pagesview .railnav button {
+  min-height: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 17px;
+  color: var(--text);
+}
+.pagesview .treerow button {
+  height: 48px;
+}
+.pagesview .disclose {
+  width: 40px;
+}
+.pagesview .disclose .icon {
+  display: inline-grid;
+}
+.pagesview .disclose:not(:disabled) .chevron {
+  display: block;
+  position: absolute;
+  left: -2px;
+  width: 14px;
+  height: 14px;
+}
+.pagesview .disclose:not(:disabled) .icon {
+  margin-left: 10px;
+}
+.pagesview .icon {
+  width: 24px;
+  height: 24px;
+  font-size: 20px;
+}
+.pagesview .rowtools {
+  display: flex;
+  gap: 0;
+}
+.pagesview .rowtools button {
+  width: 40px;
+  color: var(--light);
+}
+.pagesview .treemark {
+  display: grid;
+}
+.pagesview .addpage {
+  color: var(--muted);
+}
+.pagesview .railnav {
+  gap: 2px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+}
+.pagesview .railnav button {
+  gap: 14px;
+  padding: 0 12px;
+  font-weight: 400;
+}
+.pagesview .railnav b {
+  margin-left: auto;
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  text-align: center;
+}

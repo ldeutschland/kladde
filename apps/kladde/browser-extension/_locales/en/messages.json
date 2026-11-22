@@ -1,0 +1,77 @@
+{
+  "name": {
+    "message": "Kladde"
+  },
+  "description": {
+    "message": "Saves pages, selections, images and screenshots to Kladde, encrypted – even behind a login."
+  },
+  "clipArticle": {
+    "message": "Clip article"
+  },
+  "clipPage": {
+    "message": "Clip whole page"
+  },
+  "clipScreenshot": {
+    "message": "Clip visible area as image"
+  },
+  "clipSelection": {
+    "message": "Clip selection"
+  },
+  "clipImage": {
+    "message": "Clip image"
+  },
+  "clipLink": {
+    "message": "Clip linked page"
+  },
+  "article": {
+    "message": "Save article"
+  },
+  "page": {
+    "message": "Whole page"
+  },
+  "selection": {
+    "message": "Selection"
+  },
+  "screenshot": {
+    "message": "Screenshot"
+  },
+  "notePlaceholder": {
+    "message": "Note (optional)"
+  },
+  "hint": {
+    "message": "Right-click images, links and selections to clip them directly. ⌘↩ saves the article."
+  },
+  "saving": {
+    "message": "Sending to Kladde…"
+  },
+  "saved": {
+    "message": "Saved to Kladde"
+  },
+  "error_not_connected": {
+    "message": "Kladde is not connected. Set up the web clipper in Kladde’s settings."
+  },
+  "error_not_set_up": {
+    "message": "The web clipper is not set up in Kladde yet."
+  },
+  "error_invalid": {
+    "message": "This page cannot be clipped."
+  },
+  "error_unsupported": {
+    "message": "This page cannot be clipped."
+  },
+  "error_full": {
+    "message": "Too many clips are waiting. Open Kladde to import them."
+  },
+  "error_storage": {
+    "message": "Kladde could not store the clip."
+  },
+  "error_no_selection": {
+    "message": "Nothing is selected."
+  },
+  "error_too_large": {
+    "message": "The page is too large."
+  },
+  "error_no_image": {
+    "message": "The image could not be loaded."
+  }
+}

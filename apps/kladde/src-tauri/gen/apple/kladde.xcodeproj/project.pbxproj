@@ -1,0 +1,791 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		158DCC7788F150771A7F1CB9 /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838C2143FA3FC8F3E4150BBB /* SharedInbox.swift */; };
+		349CAE0042E80AF868878849 /* ShareQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 235E0773048F8279425804E5 /* ShareQueue.swift */; };
+		41D7038D189DE880F52526A6 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6C317DC1C40660BD92884CC /* Security.framework */; };
+		4B9BAE5553BA436E3644CF44 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2BD2B584C920648BB60CF45 /* QuartzCore.framework */; };
+		5A3FF04E035AF077CDA09355 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 85A533BA7323D314F4D7D79F /* CoreGraphics.framework */; };
+		901DB060C86F8EE04ED5819A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 86E0E58C8D3A7271C41AC296 /* PrivacyInfo.xcprivacy */; };
+		867EBA57CE675528459619BD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A5E13B7D0CEF012385052FC6 /* PrivacyInfo.xcprivacy */; };
+		5D2B0F3C8E4A6B7192C3D4E5 /* ClipPage.js in Resources */ = {isa = PBXBuildFile; fileRef = 4C1A9E2B7D3F5A6081B2C3D4 /* ClipPage.js */; };
+		6336DF0D6B5AEF9A961DA536 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6AB530C8CA445A45EB2CE321 /* libapp.a */; };
+		68918F06814BFC6A03BCC4DD /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F46A9CF327FEFD3603E7505 /* Metal.framework */; };
+		82292C48BD5234E072D6922E /* KladdeShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9500DADC061257B7970CDEEB /* KladdeShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		89433B8562ED4B9332BF0533 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31DA638EE0FF42C73F8E785D /* WebKit.framework */; };
+		AA487290872CBD8D37D45B83 /* ShareController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B169BCB2F8E8CDF4E1EEC0F /* ShareController.swift */; };
+		AD5FB6E82CF1F8A7C3EF2A57 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AEC55CD01C43DF22E16F1E63 /* MetalKit.framework */; };
+		C53BC062774677F4D470801C /* Haptic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2A0CEF456C85B30A7B9372EC /* Haptic.mm */; };
+		CF9D4C185A8B0184A8DA2EA6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 749F78DD2EBD980DF56A7985 /* Assets.xcassets */; };
+		F56C3643553857D59E00605C /* ShareQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 235E0773048F8279425804E5 /* ShareQueue.swift */; };
+		F6D0BF205CD3C8EF97F40048 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = EC653D00FFF15DA31EC7CA87 /* main.mm */; };
+		F877B2A8667DC3051702B662 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = DF857B21012CF2074CE4CB10 /* assets */; };
+		F8A76419AB760DA16B392FE8 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1C31828498593B6B8B568C7B /* LaunchScreen.storyboard */; };
+		FB6F6C432B1760F101B25F82 /* NotebookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804A6CECAE1725A0526A3565 /* NotebookTests.swift */; };
+		FF3A2A9827A3622CE8447483 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BD843121156217F7D8DC6360 /* UIKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7CB11CCE3C592FF7367EB8CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 509243606300E0735AD4B208 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 00BF42A63B560B837C67846C;
+			remoteInfo = KladdeShare;
+		};
+		9B947081D0DC2D4EE2557008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 509243606300E0735AD4B208 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 10D74A815682E282A0A2E3D1;
+			remoteInfo = kladde_iOS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B3ECCD17C050AC238D562578 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				82292C48BD5234E072D6922E /* KladdeShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		02480A290027CEF8FD0AE779 /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
+		07623366A14EC0E979BD5E96 /* assets.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = assets.rs; sourceTree = "<group>"; };
+		11761590414C2E4DE2BE73AF /* backup.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = backup.rs; sourceTree = "<group>"; };
+		1BF3530A14249A17695500F6 /* privacy.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = privacy.rs; sourceTree = "<group>"; };
+		1C31828498593B6B8B568C7B /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		235E0773048F8279425804E5 /* ShareQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareQueue.swift; sourceTree = "<group>"; };
+		27F70DD510BBCA7787BD5F2C /* kladde_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = kladde_iOS.entitlements; sourceTree = "<group>"; };
+		2A0CEF456C85B30A7B9372EC /* Haptic.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Haptic.mm; sourceTree = "<group>"; };
+		31DA638EE0FF42C73F8E785D /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		32ACE9A4E705D103F8C085AD /* clip.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = clip.rs; sourceTree = "<group>"; };
+		35854871FF935A49DE8F9239 /* Kladde.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kladde.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		395B5DA669E69B2C7C4E00E0 /* recognition.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = recognition.m; sourceTree = "<group>"; };
+		3E57B8EB45B98AF0D4265FE0 /* search.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = search.rs; sourceTree = "<group>"; };
+		3F46A9CF327FEFD3603E7505 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		44B9596EEB58E8A7FB7951F9 /* Share.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Share.entitlements; sourceTree = "<group>"; };
+		86E0E58C8D3A7271C41AC296 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = ../../../PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A5E13B7D0CEF012385052FC6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4C1A9E2B7D3F5A6081B2C3D4 /* ClipPage.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = ClipPage.js; sourceTree = "<group>"; };
+		5B169BCB2F8E8CDF4E1EEC0F /* ShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareController.swift; sourceTree = "<group>"; };
+		5C829D4DE7A2A51DB03E84F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		6102A2A6D0591CADA7D32E41 /* ai.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = ai.rs; sourceTree = "<group>"; };
+		6AB530C8CA445A45EB2CE321 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		749F78DD2EBD980DF56A7985 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		754DFE6D0D0047509113A4AA /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		7AC3E2418815EC686CB0888C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7F92D826854CA0A16A7DC0BA /* syncing.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = syncing.rs; sourceTree = "<group>"; };
+		804A6CECAE1725A0526A3565 /* NotebookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookTests.swift; sourceTree = "<group>"; };
+		814679EEB4ADE4A725F84D92 /* extract.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = extract.rs; sourceTree = "<group>"; };
+		838C2143FA3FC8F3E4150BBB /* SharedInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedInbox.swift; sourceTree = "<group>"; };
+		85A533BA7323D314F4D7D79F /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		8F1D718547A201AC57AFBB2E /* capture.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = capture.m; sourceTree = "<group>"; };
+		9500DADC061257B7970CDEEB /* KladdeShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KladdeShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1F63EA24DDC60AF69658D2E /* capture.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = capture.rs; sourceTree = "<group>"; };
+		AEC55CD01C43DF22E16F1E63 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		BD843121156217F7D8DC6360 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		D2BD2B584C920648BB60CF45 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		DE3BF9C8CABE346A6DD98220 /* NotebookUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NotebookUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEBAE2094A39B185270B5212 /* vault.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = vault.rs; sourceTree = "<group>"; };
+		DF857B21012CF2074CE4CB10 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
+		EC653D00FFF15DA31EC7CA87 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		F6C317DC1C40660BD92884CC /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		F799CA261806FCC6E180A07A /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
+		FE10720B96E8C02FD141DB4B /* updates.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = updates.rs; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		39E5EDC52C7C56DA8DD1FE5D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6336DF0D6B5AEF9A961DA536 /* libapp.a in Frameworks */,
+				5A3FF04E035AF077CDA09355 /* CoreGraphics.framework in Frameworks */,
+				68918F06814BFC6A03BCC4DD /* Metal.framework in Frameworks */,
+				AD5FB6E82CF1F8A7C3EF2A57 /* MetalKit.framework in Frameworks */,
+				4B9BAE5553BA436E3644CF44 /* QuartzCore.framework in Frameworks */,
+				41D7038D189DE880F52526A6 /* Security.framework in Frameworks */,
+				FF3A2A9827A3622CE8447483 /* UIKit.framework in Frameworks */,
+				89433B8562ED4B9332BF0533 /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4FCF2E08F6B85290001950CD /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				85A533BA7323D314F4D7D79F /* CoreGraphics.framework */,
+				6AB530C8CA445A45EB2CE321 /* libapp.a */,
+				3F46A9CF327FEFD3603E7505 /* Metal.framework */,
+				AEC55CD01C43DF22E16F1E63 /* MetalKit.framework */,
+				D2BD2B584C920648BB60CF45 /* QuartzCore.framework */,
+				F6C317DC1C40660BD92884CC /* Security.framework */,
+				BD843121156217F7D8DC6360 /* UIKit.framework */,
+				31DA638EE0FF42C73F8E785D /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		52C5FA4F752069BE7544A2F6 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				2A0CEF456C85B30A7B9372EC /* Haptic.mm */,
+				838C2143FA3FC8F3E4150BBB /* SharedInbox.swift */,
+				ADB1CD8C1D526837293AD0C1 /* kladde */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		6EE233526F918C80CBE8C659 /* Externals */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Externals;
+			sourceTree = "<group>";
+		};
+		7FABB08BB1C5CE4A64157A4B /* kladde_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				5C829D4DE7A2A51DB03E84F1 /* Info.plist */,
+				27F70DD510BBCA7787BD5F2C /* kladde_iOS.entitlements */,
+				86E0E58C8D3A7271C41AC296 /* PrivacyInfo.xcprivacy */,
+			);
+			path = kladde_iOS;
+			sourceTree = "<group>";
+		};
+		8658FE256D4B631CC8CDF99F /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				235E0773048F8279425804E5 /* ShareQueue.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		90ECAEBF3E4A8EEE34ACB48C /* src */ = {
+			isa = PBXGroup;
+			children = (
+				6102A2A6D0591CADA7D32E41 /* ai.rs */,
+				07623366A14EC0E979BD5E96 /* assets.rs */,
+				11761590414C2E4DE2BE73AF /* backup.rs */,
+				8F1D718547A201AC57AFBB2E /* capture.m */,
+				A1F63EA24DDC60AF69658D2E /* capture.rs */,
+				32ACE9A4E705D103F8C085AD /* clip.rs */,
+				814679EEB4ADE4A725F84D92 /* extract.rs */,
+				02480A290027CEF8FD0AE779 /* lib.rs */,
+				F799CA261806FCC6E180A07A /* main.rs */,
+				1BF3530A14249A17695500F6 /* privacy.rs */,
+				395B5DA669E69B2C7C4E00E0 /* recognition.m */,
+				3E57B8EB45B98AF0D4265FE0 /* search.rs */,
+				7F92D826854CA0A16A7DC0BA /* syncing.rs */,
+				FE10720B96E8C02FD141DB4B /* updates.rs */,
+				DEBAE2094A39B185270B5212 /* vault.rs */,
+			);
+			name = src;
+			path = ../../src;
+			sourceTree = "<group>";
+		};
+		ADB1CD8C1D526837293AD0C1 /* kladde */ = {
+			isa = PBXGroup;
+			children = (
+				EC653D00FFF15DA31EC7CA87 /* main.mm */,
+				E63A224C6F9D7BDDB0A15081 /* bindings */,
+			);
+			path = kladde;
+			sourceTree = "<group>";
+		};
+		C7C65005BEDDED4DE00A17CA /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				804A6CECAE1725A0526A3565 /* NotebookTests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		C86A65C21CC96EB3F6AB61D4 = {
+			isa = PBXGroup;
+			children = (
+				DF857B21012CF2074CE4CB10 /* assets */,
+				749F78DD2EBD980DF56A7985 /* Assets.xcassets */,
+				1C31828498593B6B8B568C7B /* LaunchScreen.storyboard */,
+				6EE233526F918C80CBE8C659 /* Externals */,
+				7FABB08BB1C5CE4A64157A4B /* kladde_iOS */,
+				DF5F2384C1B7A3171DABFFD7 /* Share */,
+				8658FE256D4B631CC8CDF99F /* Shared */,
+				52C5FA4F752069BE7544A2F6 /* Sources */,
+				90ECAEBF3E4A8EEE34ACB48C /* src */,
+				C7C65005BEDDED4DE00A17CA /* UITests */,
+				4FCF2E08F6B85290001950CD /* Frameworks */,
+				D727448244D5CE3DFA75AB12 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D727448244D5CE3DFA75AB12 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				35854871FF935A49DE8F9239 /* Kladde.app */,
+				9500DADC061257B7970CDEEB /* KladdeShare.appex */,
+				DE3BF9C8CABE346A6DD98220 /* NotebookUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DF5F2384C1B7A3171DABFFD7 /* Share */ = {
+			isa = PBXGroup;
+			children = (
+				4C1A9E2B7D3F5A6081B2C3D4 /* ClipPage.js */,
+				7AC3E2418815EC686CB0888C /* Info.plist */,
+				A5E13B7D0CEF012385052FC6 /* PrivacyInfo.xcprivacy */,
+				44B9596EEB58E8A7FB7951F9 /* Share.entitlements */,
+				5B169BCB2F8E8CDF4E1EEC0F /* ShareController.swift */,
+			);
+			path = Share;
+			sourceTree = "<group>";
+		};
+		E63A224C6F9D7BDDB0A15081 /* bindings */ = {
+			isa = PBXGroup;
+			children = (
+				754DFE6D0D0047509113A4AA /* bindings.h */,
+			);
+			path = bindings;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		00BF42A63B560B837C67846C /* KladdeShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6ECFD777B1041F70007504B1 /* Build configuration list for PBXNativeTarget "KladdeShare" */;
+			buildPhases = (
+				68637B03F111AFBF2C01C0BD /* Sources */,
+				6E3C1A4D9F5B7C82A3D4E5F6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KladdeShare;
+			packageProductDependencies = (
+			);
+			productName = KladdeShare;
+			productReference = 9500DADC061257B7970CDEEB /* KladdeShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		10D74A815682E282A0A2E3D1 /* kladde_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0984FCBAB60BEE1EEC0B753F /* Build configuration list for PBXNativeTarget "kladde_iOS" */;
+			buildPhases = (
+				FCC58813FBD4A1DAD336627C /* Build Rust Code */,
+				AB6964CEE5BE92D2C2C028C3 /* Sources */,
+				D68F557F4912C7ECC878BB66 /* Resources */,
+				39E5EDC52C7C56DA8DD1FE5D /* Frameworks */,
+				B3ECCD17C050AC238D562578 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				89E927066507F4FB368AD6B9 /* PBXTargetDependency */,
+			);
+			name = kladde_iOS;
+			packageProductDependencies = (
+			);
+			productName = kladde_iOS;
+			productReference = 35854871FF935A49DE8F9239 /* Kladde.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DACDBC4804D9E76A2EE6BD38 /* NotebookUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0AD23636F8DCF83C07E09383 /* Build configuration list for PBXNativeTarget "NotebookUITests" */;
+			buildPhases = (
+				522B969617E11AABDAB2E071 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				52FFB032BEF58B9FB4794845 /* PBXTargetDependency */,
+			);
+			name = NotebookUITests;
+			packageProductDependencies = (
+			);
+			productName = NotebookUITests;
+			productReference = DE3BF9C8CABE346A6DD98220 /* NotebookUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		509243606300E0735AD4B208 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					DACDBC4804D9E76A2EE6BD38 = {
+						TestTargetID = 10D74A815682E282A0A2E3D1;
+					};
+				};
+			};
+			buildConfigurationList = F2B42FE9A53568B0C5EA7AF9 /* Build configuration list for PBXProject "kladde" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C86A65C21CC96EB3F6AB61D4;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D727448244D5CE3DFA75AB12 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				10D74A815682E282A0A2E3D1 /* kladde_iOS */,
+				00BF42A63B560B837C67846C /* KladdeShare */,
+				DACDBC4804D9E76A2EE6BD38 /* NotebookUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6E3C1A4D9F5B7C82A3D4E5F6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D2B0F3C8E4A6B7192C3D4E5 /* ClipPage.js in Resources */,
+				867EBA57CE675528459619BD /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D68F557F4912C7ECC878BB66 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF9D4C185A8B0184A8DA2EA6 /* Assets.xcassets in Resources */,
+				F8A76419AB760DA16B392FE8 /* LaunchScreen.storyboard in Resources */,
+				F877B2A8667DC3051702B662 /* assets in Resources */,
+				901DB060C86F8EE04ED5819A /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FCC58813FBD4A1DAD336627C /* Build Rust Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"$SRCROOT/../../../../../scripts/xcode-rust.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		522B969617E11AABDAB2E071 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB6F6C432B1760F101B25F82 /* NotebookTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		68637B03F111AFBF2C01C0BD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA487290872CBD8D37D45B83 /* ShareController.swift in Sources */,
+				F56C3643553857D59E00605C /* ShareQueue.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB6964CEE5BE92D2C2C028C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C53BC062774677F4D470801C /* Haptic.mm in Sources */,
+				349CAE0042E80AF868878849 /* ShareQueue.swift in Sources */,
+				158DCC7788F150771A7F1CB9 /* SharedInbox.swift in Sources */,
+				F6D0BF205CD3C8EF97F40048 /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		52FFB032BEF58B9FB4794845 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 10D74A815682E282A0A2E3D1 /* kladde_iOS */;
+			targetProxy = 9B947081D0DC2D4EE2557008 /* PBXContainerItemProxy */;
+		};
+		89E927066507F4FB368AD6B9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 00BF42A63B560B837C67846C /* KladdeShare */;
+			targetProxy = 7CB11CCE3C592FF7367EB8CF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		15DC83047C5C6E4155CED472 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Share/Share.entitlements;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = Share/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = de.kladde.notebook.share;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = debug;
+		};
+		57AA59E52B0E506720BB7CD0 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = debug;
+		};
+		7DCC249EB7695C7D49EE3E46 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = kladde_iOS/kladde_iOS.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = kladde_iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION)",
+					"$(SDKROOT)/usr/lib/swift",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION)",
+					"$(SDKROOT)/usr/lib/swift",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					PDFKit,
+					"-framework",
+					Vision,
+					"-framework",
+					ImageIO,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = de.kladde.notebook;
+				PRODUCT_NAME = "Kladde";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALID_ARCHS = arm64;
+			};
+			name = debug;
+		};
+		8E0BBD5DBD027C7C1D62206D /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = de.kladde.notebook.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = kladde_iOS;
+			};
+			name = debug;
+		};
+		901DE21564ED534A1FFBF103 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Share/Share.entitlements;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = Share/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = de.kladde.notebook.share;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = release;
+		};
+		A03C80B5473BE3FA65E441E3 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = kladde_iOS/kladde_iOS.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = kladde_iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION)",
+					"$(SDKROOT)/usr/lib/swift",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION)",
+					"$(SDKROOT)/usr/lib/swift",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)",
+					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					PDFKit,
+					"-framework",
+					Vision,
+					"-framework",
+					ImageIO,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = de.kladde.notebook;
+				PRODUCT_NAME = "Kladde";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALID_ARCHS = arm64;
+			};
+			name = release;
+		};
+		A9D89B6F64C8E798E085FCD6 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = release;
+		};
+		C628D45AB674ECDCCA58D295 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = de.kladde.notebook.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = kladde_iOS;
+			};
+			name = release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0984FCBAB60BEE1EEC0B753F /* Build configuration list for PBXNativeTarget "kladde_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7DCC249EB7695C7D49EE3E46 /* debug */,
+				A03C80B5473BE3FA65E441E3 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		0AD23636F8DCF83C07E09383 /* Build configuration list for PBXNativeTarget "NotebookUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E0BBD5DBD027C7C1D62206D /* debug */,
+				C628D45AB674ECDCCA58D295 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		6ECFD777B1041F70007504B1 /* Build configuration list for PBXNativeTarget "KladdeShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				15DC83047C5C6E4155CED472 /* debug */,
+				901DE21564ED534A1FFBF103 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		F2B42FE9A53568B0C5EA7AF9 /* Build configuration list for PBXProject "kladde" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				57AA59E52B0E506720BB7CD0 /* debug */,
+				A9D89B6F64C8E798E085FCD6 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 509243606300E0735AD4B208 /* Project object */;
+}

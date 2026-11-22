@@ -1,0 +1,126 @@
+.phone .top {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 4;
+  height: var(--top-space);
+  gap: 8px;
+  padding: env(safe-area-inset-top) 16px 0;
+  background: linear-gradient(var(--bg) 30%, transparent);
+  pointer-events: none;
+}
+.toptitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phone .top:not(:has(.glassbutton:first-child)) .toptitle {
+  margin-left: 52px;
+}
+.phone .work:has(.document) {
+  timeline-scope: --page;
+}
+.phone .document {
+  scroll-timeline: --page block;
+}
+.phone .toptitle {
+  opacity: 0;
+}
+.phone .work:has(.document) .toptitle {
+  animation: titlein linear both;
+  animation-timeline: --page;
+  animation-range: 56px 112px;
+}
+@keyframes titlein {
+  to {
+    opacity: 1;
+  }
+}
+.glassbutton,
+.glassgroup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 22px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+  color: var(--text);
+  pointer-events: auto;
+}
+.phone .top .glassbutton {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 11px;
+  color: var(--text);
+}
+.glassgroup button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 22px;
+  color: var(--text);
+}
+.glassgroup button[aria-pressed="true"] {
+  color: var(--star);
+}
+.glassgroup button[aria-pressed="true"] svg.lucide {
+  fill: currentColor;
+}
+.phone .top svg.lucide {
+  width: 22px;
+  height: 22px;
+}
+.native .top .glassbutton,
+.native .top .glassgroup {
+  visibility: hidden;
+  pointer-events: none;
+}
+.saveerror {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 4px);
+  left: 76px;
+  right: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px 0 10px;
+  border-radius: 22px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--red) 55%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: left;
+  pointer-events: auto;
+}
+.saveerror span {
+  display: grid;
+  min-width: 0;
+}
+.phone .top:has(.saveerror) .toptitle {
+  visibility: hidden;
+}
+.saveerror small {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+}

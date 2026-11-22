@@ -1,0 +1,51 @@
+body:has(.phone) .clear {
+  background: var(--shade);
+}
+body:has(.phone) .popover {
+  inset: auto var(--sheet-gap) var(--sheet-lift);
+  width: auto;
+  max-width: none;
+  max-height: min(78dvh, var(--sheet-room));
+  padding: 10px 8px 12px;
+  border-radius: var(--sheet-radius);
+  background: var(--sheet-glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+  font-size: 17px;
+  overscroll-behavior: contain;
+}
+body:has(.phone) .menu > button,
+body:has(.phone) .menuitem,
+body:has(.phone) .menurow {
+  min-height: 52px;
+  gap: 14px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 17px;
+}
+body:has(.phone) .menu svg.lucide {
+  width: 22px;
+  height: 22px;
+}
+body:has(.phone) .menu small {
+  font-size: 15px;
+}
+body:has(.phone) .menu footer {
+  padding: 12px 14px 4px;
+  font-size: 13px;
+}
+body:has(.phone) .menunote {
+  padding: 0 14px 8px;
+  font-size: 14px;
+}
+body:has(.phone) .renameform input {
+  min-height: 48px;
+}
+body:has(.phone) .swatches {
+  gap: 12px;
+  padding: 8px 14px 12px;
+}
+body:has(.phone) .swatch {
+  min-height: 56px;
+}

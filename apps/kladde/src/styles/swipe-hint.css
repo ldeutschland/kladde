@@ -1,0 +1,48 @@
+.swipehint {
+  position: fixed;
+  top: 50%;
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease;
+}
+.swipehint[data-side="back"] {
+  left: -40px;
+  transform: translateX(calc(var(--pull, 0) * 1px));
+}
+.swipehint[data-side="forward"] {
+  right: -40px;
+  transform: translateX(calc(var(--pull, 0) * -1px));
+}
+.swipehint::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: translateX(2px) rotate(45deg);
+}
+.swipehint[data-side="forward"]::before {
+  transform: translateX(-2px) rotate(-135deg);
+}
+.swipehint[data-ready="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .swipehint {
+    transition: none;
+  }
+}

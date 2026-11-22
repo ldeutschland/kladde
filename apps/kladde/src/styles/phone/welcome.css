@@ -1,0 +1,12 @@
+.welcome {
+  padding-top: calc(32px + env(safe-area-inset-top));
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+}
+@media (pointer: coarse) {
+  .welcomeactions button,
+  .welcome button.primary {
+    min-height: 52px;
+    border-radius: 26px;
+    font-size: 17px;
+  }
+}

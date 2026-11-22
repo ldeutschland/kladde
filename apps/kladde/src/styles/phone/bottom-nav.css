@@ -1,0 +1,77 @@
+.bottom {
+  position: absolute;
+  inset: auto 16px max(12px, calc(env(safe-area-inset-bottom) - 12px));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.native .bottom,
+.phone:has(input:focus, textarea:focus, [contenteditable="true"]:focus)
+  .bottom {
+  display: none;
+}
+.bottomtabs {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  height: 62px;
+  padding: 4px;
+  border-radius: 31px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+  pointer-events: auto;
+}
+.bottomtabs button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border-radius: 27px;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 500;
+}
+.bottomtabs button[data-current] {
+  background: var(--hover-strong);
+  color: var(--accent-text);
+}
+.bottomtabs svg.lucide,
+.bottomadd svg.lucide {
+  width: 23px;
+  height: 23px;
+}
+.bottomadd {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 8px 24px rgba(127, 99, 217, 0.35);
+  color: var(--on-accent);
+  pointer-events: auto;
+}
+.phone .toastarea {
+  bottom: calc(var(--bar-space) + 16px);
+  max-width: calc(100% - 32px);
+}
+.phone .toast {
+  min-height: 48px;
+  border-radius: 24px;
+  white-space: normal;
+}
+.phone .toast button {
+  min-height: 36px;
+  border-radius: 18px;
+}

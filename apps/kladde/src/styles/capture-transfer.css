@@ -1,0 +1,169 @@
+.panel.capture {
+  width: min(600px, calc(100% - 32px));
+}
+.captureshared {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.composer.capturebox {
+  margin: 0;
+  padding: 10px 10px 8px 14px;
+}
+.capturebox textarea {
+  min-height: 120px;
+  max-height: 50dvh;
+  resize: none;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.capturebox .chip .grow {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.capturebox .composerbar {
+  min-height: 28px;
+  margin-left: -4px;
+}
+.panel.capture footer {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.captureplace {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+.panel footer .captureplace .select {
+  min-height: 28px;
+  padding: 0 6px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  color: var(--text);
+}
+@media (hover: hover) {
+  .panel footer .captureplace .select:hover {
+    background: var(--hover);
+  }
+}
+.captureplace > svg.lucide {
+  margin-right: 2px;
+}
+.captureplace .placename {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.capturebox .keyboardoff {
+  margin-left: auto;
+}
+.settingnote {
+  margin: 0 8px 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.settings > label > .select {
+  min-width: 0;
+  max-width: 60%;
+}
+.panel.transferpanel {
+  width: min(520px, calc(100% - 32px));
+}
+.transfer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.transfer section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.transfer h3 {
+  margin: 0 8px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.transfer section > p.muted {
+  margin: 0 8px 8px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.actionrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.actionrow > svg.lucide {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+}
+.actionrow > .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.actionrow small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.transfer .switchitem {
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 8px;
+  text-align: left;
+}
+.transfer .primary {
+  align-self: flex-start;
+  margin: 6px 8px 0;
+}
+.transferstatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--hover);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.transferstatus svg.lucide {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.transfermove {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px;
+}
+.transfermove .select {
+  width: 100%;
+}
+.transfermove .actionrow {
+  padding-left: 0;
+}
+.panel.capture footer button.primary kbd {
+  margin-left: 8px;
+  font: inherit;
+  font-size: 11px;
+  opacity: 0.7;
+}

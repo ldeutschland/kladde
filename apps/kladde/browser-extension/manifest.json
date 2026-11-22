@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_name__",
+  "description": "__MSG_description__",
+  "version": "0.1.0",
+  "default_locale": "en",
+  "minimum_chrome_version": "121",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxDKxruvalyRbR9eDnI17wLjRemRgc25l0VsUA9g4bgdX8xVsnkm6x0MYWTGSf7w7VYrfqjsJ0FpdkXKD4jiTeem6dneQSq1oXDKxerXkBGljqJZGtV6O9wsaDzy5BLPaR0Jdwnxrgs+ZQInId6iJ+l0ZBeUcfqpyENuYqto7h2q51vhV52Fb5iEjXlaILq9eoT2ZJoT4iue4cRqTgqx44jkV9PhwwiOx096POLg6SfACyESmXc3fYFZMn820RfD72rKL3mMNeoD+m/dTSq9iKHGD47B47sA9qkeyT3p2jKgBpSg8YGDSpiyeo/JGcVIZxl2uIa0AQS8X1prxtrD+fwIDAQAB",
+  "permissions": ["activeTab", "contextMenus", "nativeMessaging", "scripting"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "__MSG_name__",
+    "default_icon": { "32": "icons/32.png", "128": "icons/128.png" }
+  },
+  "icons": { "32": "icons/32.png", "128": "icons/128.png" },
+  "commands": {
+    "clip-article": {
+      "suggested_key": { "default": "Alt+Shift+K" },
+      "description": "__MSG_clipArticle__"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  }
+}

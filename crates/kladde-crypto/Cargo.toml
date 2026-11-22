@@ -1,0 +1,27 @@
+[package]
+name = "kladde-crypto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kladde-protocol.workspace = true
+uuid.workspace = true
+serde.workspace = true
+postcard.workspace = true
+serde_bytes.workspace = true
+chacha20poly1305.workspace = true
+sha2.workspace = true
+hkdf.workspace = true
+argon2.workspace = true
+opaque-ke.workspace = true
+ed25519-dalek.workspace = true
+bip39.workspace = true
+rand.workspace = true
+zeroize.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile.workspace = true

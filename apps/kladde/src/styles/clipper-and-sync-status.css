@@ -1,0 +1,88 @@
+.clipperpanel > p.muted {
+  margin: 0 0 12px;
+}
+.clipperbrowsers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.clipperbrowsers li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.clipperbrowsers svg.lucide {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+.clippersteps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+.clippersteps code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--side);
+  font-size: 13px;
+}
+.clippersteps > li > button {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.clippersteps .syncactions {
+  margin: 8px 0 0;
+}
+.syncstate.auth svg.lucide,
+.syncstate.outdated svg.lucide,
+.syncstate.error svg.lucide {
+  color: var(--star);
+}
+.syncstate.offline svg.lucide {
+  color: var(--light);
+}
+.syncstatus {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.syncstatus strong {
+  color: var(--text);
+  font-size: 14px;
+}
+.syncstatus.auth,
+.syncstatus.outdated,
+.syncstatus.error {
+  background: rgba(233, 168, 32, 0.12);
+}
+.syncstatus button {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+.syncbadge {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+.syncbadge.auth,
+.syncbadge.outdated,
+.syncbadge.error {
+  color: var(--star);
+}

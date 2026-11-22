@@ -1,0 +1,58 @@
+.ruleeditor,
+.automationform,
+.automationform label:not(.menurow) {
+  display: grid;
+  gap: 8px;
+}
+.ruleline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ruleline input {
+  min-width: 65px;
+  flex: 1;
+}
+.dbmenu fieldset {
+  min-width: 0;
+}
+.dbsummary {
+  margin: 8px 4px;
+  color: var(--muted);
+}
+input[type="file"] {
+  padding: 3px 10px 3px 3px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--hover-strong);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  input[type="file"]::file-selector-button:hover {
+    background: var(--border-strong);
+  }
+}
+.automationform label:not(.menurow) {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.automationform label select {
+  color: var(--text);
+}
+.automationform footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

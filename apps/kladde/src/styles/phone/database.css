@@ -1,0 +1,90 @@
+.phone .dbbar {
+  row-gap: 4px;
+}
+.phone .tabs {
+  scrollbar-width: none;
+  padding: 6px 0;
+}
+.phone .tabs > button {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 20px;
+  font-size: 15px;
+}
+.phone .dbtools {
+  gap: 0;
+  width: 100%;
+  margin-left: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.phone .dbtools > button.primary {
+  position: sticky;
+  right: 0;
+  flex: none;
+  margin-left: auto;
+  padding: 0 12px;
+  box-shadow: -12px 0 12px var(--bg);
+}
+body:has(.phone) .rowviewport {
+  max-height: none;
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+}
+body:has(.phone) .rowviewport.list .datarow {
+  height: auto;
+  min-height: 48px;
+  font-size: 16px;
+}
+body:has(.phone) .rowviewport.table .datarow {
+  height: 44px;
+}
+.phone .dbtools button {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 20px;
+  font-size: 15px;
+}
+.phone .dbsearch {
+  height: 40px;
+  padding: 0 4px;
+}
+.phone .dbsearch input {
+  width: 48px;
+  transition: width 0.2s ease;
+}
+.phone .dbsearch input:focus,
+.phone .dbsearch input:not(:placeholder-shown) {
+  width: 140px;
+}
+.phone .board {
+  gap: 10px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.phone .column {
+  flex-basis: min(280px, 78vw);
+  scroll-snap-align: start;
+}
+.phone .boardcard {
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+.phone .calendar .blank,
+.phone .calendar section {
+  min-height: 64px;
+  padding: 2px;
+}
+.phone .dayadd {
+  display: none;
+}
+.phone .event {
+  padding: 2px 4px;
+  font-size: 11px;
+}
+.phone .rowopen {
+  height: 28px;
+  opacity: 1;
+}

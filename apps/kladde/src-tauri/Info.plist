@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Kladde nimmt Audionotizen auf, wenn du eine Aufnahme startest.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Kladde wandelt deine Aufnahmen auf diesem Gerät in Text um.</string>
+</dict>
+</plist>

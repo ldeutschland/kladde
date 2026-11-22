@@ -1,0 +1,535 @@
+.database {
+  margin: 12px 0 24px;
+  font-size: 14px;
+}
+.dbbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 6px 0 7px;
+}
+.tabs > button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tabs > button[aria-pressed="true"] {
+  color: var(--text);
+}
+.tabs > button[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -7px;
+  height: 2px;
+  background: var(--text);
+}
+.tabs svg.lucide,
+.dbtools svg.lucide,
+.menu svg.lucide,
+.addrow svg.lucide,
+.columnadd svg.lucide,
+.calhead svg.lucide,
+.datarow svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+.addview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--light);
+}
+@media (hover: hover) {
+  .addview:hover {
+    background: var(--hover);
+  }
+}
+.dbtools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding: 4px 0;
+}
+.dbtools > button {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  color: var(--muted);
+}
+.dbtools > button[data-active="true"] {
+  color: var(--text);
+  background: var(--hover);
+}
+.dbtools > button.primary {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 0 12px;
+  min-height: 28px;
+  color: var(--on-ink);
+}
+.dbsearch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.dbsearch:focus-within {
+  background: var(--hover);
+}
+.dbsearch input {
+  width: 110px;
+  min-height: 0;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dbsearch input:focus-visible {
+  box-shadow: none;
+}
+.rowviewport {
+  position: relative;
+  max-height: min(65vh, 640px);
+  overflow: auto;
+}
+.rowspace {
+  position: relative;
+}
+.table .rowspace,
+.table .rowlist {
+  width: max-content;
+  min-width: 100%;
+}
+.datarow {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 36px;
+  padding: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.table .datarow {
+  width: max-content;
+  min-width: 100%;
+}
+.datarow strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+}
+.datarow .cell:last-child {
+  border-right: 0;
+}
+.titlecell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.table .titlecell {
+  width: 280px;
+}
+.datarow.head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 34px;
+  background: var(--bg);
+  color: var(--muted);
+}
+.datarow.head .cell {
+  height: 100%;
+  border-radius: 0;
+}
+@media (hover: hover) {
+  .datarow.head button.cell:hover {
+    background: var(--hover);
+  }
+}
+.datarow.head .cell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cellvalue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wrap .datarow:not(.head) {
+  height: auto;
+  min-height: 36px;
+  align-items: stretch;
+}
+.wrap .datarow:not(.head) .cell,
+.wrap .datarow:not(.head) .titlecell {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.wrap .datarow strong {
+  white-space: normal;
+}
+.wrap.list .datarow {
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.wrap.list .values {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+.addfield {
+  width: 40px;
+  justify-content: center;
+}
+.list .datarow {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 6px;
+  border-bottom: 0;
+  border-radius: 6px;
+}
+.list .titlecell {
+  flex: 1;
+}
+.values {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.list .values {
+  flex: none;
+  max-width: 50%;
+}
+.grouprow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--light);
+}
+.rowviewport.gallery {
+  padding: 4px;
+}
+.cardgrid {
+  display: grid;
+  gap: 12px;
+  grid-auto-rows: 168px;
+}
+.gallerycard {
+  display: flex;
+  flex-direction: column;
+  height: 168px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+}
+@media (hover: hover) {
+  .gallerycard:hover {
+    background: var(--card);
+    box-shadow:
+      var(--card-shadow),
+      rgba(15, 15, 15, 0.08) 0 4px 10px;
+  }
+}
+.preview {
+  display: grid;
+  place-items: center;
+  flex: none;
+  height: 100px;
+  background: var(--side);
+  border-bottom: 1px solid var(--border);
+}
+.preview .icon {
+  width: 40px;
+  height: 40px;
+  font-size: 34px;
+}
+.preview .icon svg.lucide {
+  width: 30px;
+  height: 30px;
+}
+.gallerycard .titlecell {
+  padding: 8px 10px 0;
+}
+.gallerycard strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.gallerycard .values {
+  padding: 4px 10px;
+}
+.addrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 0;
+  font-size: 14px;
+  color: var(--light);
+}
+.board {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px 0 8px;
+  overflow-x: auto;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 260px;
+  padding-bottom: 8px;
+}
+.column header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 2px;
+}
+.boardcard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.boardcard[data-lifted] {
+  opacity: 0.35;
+}
+.boardcard.floating {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  rotate: 2deg;
+  scale: 1.02;
+  box-shadow: var(--shadow);
+  cursor: grabbing;
+}
+.board[data-dragging],
+.board[data-dragging] * {
+  cursor: grabbing;
+}
+.column {
+  border-radius: 10px;
+}
+.cardslot {
+  height: 44px;
+  border: 1.5px dashed var(--accent);
+  border-radius: 8px;
+  background: var(--drop);
+}
+.datarow.head .cell[data-drop] {
+  box-shadow: inset 2px 0 0 var(--accent);
+  background: var(--drop);
+}
+.column[data-over] {
+  background: var(--hover);
+  box-shadow: inset 0 0 0 1px var(--focus);
+}
+@media (hover: hover) {
+  .boardcard:hover {
+    background: var(--card);
+    box-shadow:
+      var(--card-shadow),
+      rgba(15, 15, 15, 0.08) 0 4px 10px;
+  }
+}
+.boardcard strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.boardcard .values {
+  flex-wrap: wrap;
+}
+.columnadd,
+.column .more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  color: var(--light);
+}
+.calendarview {
+  padding-top: 8px;
+}
+.calhead {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+}
+.calhead strong {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+.calhead button {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--muted);
+}
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-left: 1px solid var(--border);
+}
+.weekday {
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.calendar .blank,
+.calendar section {
+  min-width: 0;
+  min-height: 112px;
+  padding: 4px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.calendar .blank {
+  background: var(--side);
+}
+.calendar section header {
+  display: flex;
+  align-items: center;
+  height: 24px;
+}
+.daynumber {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.calendar section[data-today="true"] .daynumber {
+  background: var(--red);
+  color: #ffffff;
+}
+.dayadd {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  opacity: 0;
+  color: var(--muted);
+}
+.dayadd svg.lucide {
+  width: 14px;
+  height: 14px;
+}
+.dayadd:focus-visible {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .calendar section:hover .dayadd {
+    opacity: 1;
+  }
+}
+.event {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 3px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  font-size: 12px;
+  font-weight: 500;
+}
+@media (hover: hover) {
+  .event:hover {
+    background: var(--card);
+  }
+}

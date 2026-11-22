@@ -1,0 +1,23 @@
+{
+  "name": "kladde-workspace",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "pnpm --filter kladde dev",
+    "build": "pnpm --filter kladde build",
+    "test": "vitest run",
+    "lint": "eslint apps/kladde/src apps/kladde/tests",
+    "e2e": "playwright test",
+    "tauri": "pnpm --filter kladde tauri"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "eslint": "10.15.0",
+    "prettier": "3.10.1",
+    "typescript-eslint": "8.72.2",
+    "vitest": "5.1.0"
+  }
+}

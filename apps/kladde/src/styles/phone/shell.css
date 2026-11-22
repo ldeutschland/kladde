@@ -1,0 +1,21 @@
+.phone {
+  position: fixed;
+  inset: 0 0 auto;
+  height: var(--app-height, 100dvh);
+}
+.phone .work {
+  position: relative;
+}
+.phone .home,
+.phone .document,
+.pagesview {
+  flex: 1;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: var(--top-space) 0 var(--bar-space);
+  padding-bottom: calc(var(--bar-space) + 32px);
+}
+.phone:has(.writing:focus-within) .document {
+  padding-bottom: 96px;
+}

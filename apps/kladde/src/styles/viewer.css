@@ -1,0 +1,321 @@
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.viewer:focus {
+  outline: none;
+}
+.viewer ~ .shade {
+  z-index: 46;
+}
+.viewer ~ .panel {
+  z-index: 47;
+}
+.viewerbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+.viewertitle,
+.viewercenter,
+.viewerend,
+.viewergroup {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.viewertitle {
+  gap: 6px;
+}
+.viewertitle h2 {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viewercenter {
+  gap: 16px;
+}
+.viewerend {
+  justify-content: flex-end;
+  gap: 6px;
+}
+.viewergroup {
+  gap: 2px;
+}
+.viewer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.viewericon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--muted);
+}
+.viewericon[aria-pressed="true"],
+.thickness[aria-pressed="true"] {
+  background: var(--hover-strong);
+  color: var(--text);
+}
+.viewertext,
+.viewer .primary {
+  min-height: 30px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.viewertext svg.lucide,
+.viewer .primary svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+.viewertext svg.lucide {
+  color: var(--muted);
+}
+.viewerpager > span,
+.zoomvalue {
+  min-width: 60px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.zoomvalue {
+  min-height: 30px;
+  padding: 0 6px;
+}
+.viewertools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.viewertools .viewergroup + .viewergroup {
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+.viewerhint {
+  margin-right: auto;
+  color: var(--muted);
+}
+.colordot,
+.thickness {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+.colordot > span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.colordot[aria-pressed="true"] > span {
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+.thickness > span {
+  border-radius: 50%;
+  background: var(--muted);
+}
+.thickness[aria-pressed="true"] > span {
+  background: var(--text);
+}
+.viewerbody {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.viewerstage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--side);
+  outline: none;
+  touch-action: pan-x pan-y;
+}
+.viewerpaper {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+}
+.viewerpaper > .sheet {
+  margin: auto;
+}
+.viewernote {
+  margin: 0;
+  padding: 48px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+.sheet {
+  position: relative;
+  flex: none;
+  background: #ffffff;
+  box-shadow: var(--card-shadow);
+}
+.sheet > svg {
+  display: block;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sheet[data-tool] > svg {
+  cursor: crosshair;
+  touch-action: none;
+}
+.sheet[data-tool="hand"] > svg {
+  cursor: grab;
+  touch-action: pan-x pan-y;
+}
+.sheet[data-tool="hand"] .mark {
+  cursor: move;
+  touch-action: none;
+}
+.sheet[data-tool="text"] > svg {
+  cursor: text;
+}
+.sheet[data-tool="eraser"] > svg {
+  cursor: cell;
+}
+.sheet[data-tool="crop"] > svg {
+  overflow: visible;
+  cursor: default;
+}
+.markerstroke {
+  mix-blend-mode: multiply;
+}
+.viewer textarea.sheettext {
+  position: absolute;
+  z-index: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0.085em 0.1em 0;
+  overflow: hidden;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: 0 0 0 1px var(--accent);
+  font-family: Helvetica, Arial, sans-serif;
+  line-height: 1.05;
+  white-space: pre;
+  resize: none;
+}
+.cropshade {
+  fill: rgba(15, 15, 15, 0.5);
+  pointer-events: none;
+}
+.cropbody {
+  fill: transparent;
+  stroke: #ffffff;
+  cursor: move;
+}
+.crophandle {
+  fill: #ffffff;
+  stroke: rgba(15, 15, 15, 0.45);
+}
+.crophandle:is(.nw, .se) {
+  cursor: nwse-resize;
+}
+.crophandle:is(.ne, .sw) {
+  cursor: nesw-resize;
+}
+.crophandle:is(.n, .s) {
+  cursor: ns-resize;
+}
+.crophandle:is(.e, .w) {
+  cursor: ew-resize;
+}
+.pdfcolumn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: max-content;
+  min-width: 100%;
+}
+.pdfsheet {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pageactions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.pageactions > span {
+  flex: 1;
+}
+.viewerside {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 140px;
+  overflow: auto;
+  padding: 12px 8px;
+  border-right: 1px solid var(--border);
+}
+.pdfthumb {
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.pdfthumb .sheet {
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+.pdfthumb .sheet > svg {
+  pointer-events: none;
+}
+.pdfthumb[aria-current="page"] .sheet {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.pdfthumb[aria-current="page"] small {
+  color: var(--accent-text);
+}
+.pdfthumb.dropmark {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.viewerpill {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--toast);
+  color: #ffffff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.pdfpage[data-opens] {
+  cursor: zoom-in;
+}

@@ -1,0 +1,54 @@
+{
+  "productName": "Kladde",
+  "version": "0.1.0",
+  "identifier": "de.kladde.notebook",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Kladde",
+        "width": 1150,
+        "height": 780,
+        "minWidth": 640,
+        "minHeight": 450,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src ipc: http://ipc.localhost; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'none'; base-uri 'none'; form-action 'none'",
+      "capabilities": [
+        "main"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Productivity",
+    "targets": [
+      "app"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "26.0",
+      "entitlements": "macos.entitlements",
+      "files": {
+        "Resources/PrivacyInfo.xcprivacy": "PrivacyInfo.xcprivacy",
+        "Resources/container-migration.plist": "container-migration.plist"
+      }
+    },
+    "iOS": {
+      "minimumSystemVersion": "26.0"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "name": {
+    "message": "Kladde"
+  },
+  "description": {
+    "message": "Speichert Webseiten, Auswahlen, Bilder und Screenshots verschlüsselt in Kladde – auch hinter einem Login."
+  },
+  "clipArticle": {
+    "message": "Artikel clippen"
+  },
+  "clipPage": {
+    "message": "Ganze Seite clippen"
+  },
+  "clipScreenshot": {
+    "message": "Sichtbaren Bereich als Bild"
+  },
+  "clipSelection": {
+    "message": "Auswahl clippen"
+  },
+  "clipImage": {
+    "message": "Bild clippen"
+  },
+  "clipLink": {
+    "message": "Verlinkte Seite clippen"
+  },
+  "article": {
+    "message": "Artikel speichern"
+  },
+  "page": {
+    "message": "Ganze Seite"
+  },
+  "selection": {
+    "message": "Auswahl"
+  },
+  "screenshot": {
+    "message": "Screenshot"
+  },
+  "notePlaceholder": {
+    "message": "Notiz (optional)"
+  },
+  "hint": {
+    "message": "Rechtsklick auf Bilder, Links und Auswahl clippt direkt. ⌘↩ speichert den Artikel."
+  },
+  "saving": {
+    "message": "Wird an Kladde übergeben …"
+  },
+  "saved": {
+    "message": "In Kladde gespeichert"
+  },
+  "error_not_connected": {
+    "message": "Kladde ist nicht verbunden. Richte den Web-Clipper in Kladde unter Einstellungen ein."
+  },
+  "error_not_set_up": {
+    "message": "Der Web-Clipper ist in Kladde noch nicht eingerichtet."
+  },
+  "error_invalid": {
+    "message": "Diese Seite lässt sich nicht clippen."
+  },
+  "error_unsupported": {
+    "message": "Diese Seite lässt sich nicht clippen."
+  },
+  "error_full": {
+    "message": "Zu viele Clips warten. Öffne Kladde, damit sie übernommen werden."
+  },
+  "error_storage": {
+    "message": "Kladde konnte den Clip nicht ablegen."
+  },
+  "error_no_selection": {
+    "message": "Es ist nichts markiert."
+  },
+  "error_too_large": {
+    "message": "Die Seite ist zu groß."
+  },
+  "error_no_image": {
+    "message": "Das Bild lässt sich nicht laden."
+  }
+}

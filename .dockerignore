@@ -1,0 +1,12 @@
+.git
+.tools
+target
+node_modules
+**/node_modules
+**/dist
+artifacts
+.env*
+**/target
+**/Externals
+**/xcuserdata
+**/.env*

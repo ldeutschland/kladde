@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kladde
+      POSTGRES_USER: kladde
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set password}
+    networks: [private]
+    volumes: [database:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U kladde -d kladde]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  setup:
+    image: kladde-relay
+    profiles: [init]
+    command: [init-setup, /data/opaque.setup]
+    volumes: [data:/data]
+    network_mode: none
+  relay:
+    image: kladde-relay
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    environment:
+      DATABASE_URL: postgresql://kladde:${POSTGRES_PASSWORD}@postgres/kladde
+      TRUST_FORWARDED_FOR: "1"
+    volumes: [data:/data]
+    networks: [private, edge]
+    depends_on:
+      postgres: {condition: service_healthy}
+  caddy:
+    image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set hostname}
+    ports: ["80:80","443:443"]
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro","caddy:/data"]
+    networks: [edge]
+networks:
+  private: {internal: true}
+  edge: {}
+volumes:
+  database: {}
+  data: {}
+  caddy: {}

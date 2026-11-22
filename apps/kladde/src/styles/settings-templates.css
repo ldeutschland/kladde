@@ -1,0 +1,49 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  padding: 0 8px;
+}
+.settings > button,
+.actionlist button,
+.templates summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-weight: 400;
+}
+.settings > button svg.lucide,
+.templates summary svg.lucide {
+  color: var(--muted);
+}
+.settings > button.primary {
+  justify-content: center;
+}
+.templates summary {
+  list-style: none;
+}
+.templates summary::-webkit-details-marker {
+  display: none;
+}
+@media (hover: hover) {
+  .templates summary:hover {
+    background: var(--hover);
+  }
+}
+.actionlist {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 28px;
+}
