@@ -33,12 +33,68 @@ fn scripts_styles_and_event_handlers_never_reach_the_markdown() {
 #[test]
 fn hidden_and_dialog_content_is_dropped() {
     let clip = whole(&page(
-        "<p>Offen</p><div hidden>Versteckt</div><p aria-hidden=\"true\">Unsichtbar</p>\
+        "<p>Offen</p><div hidden>Versteckt</div>\
          <div role=\"dialog\">Dialog</div><div role=\"navigation\">Menü</div>\
          <dialog open>Fenster</dialog><aside>Randnotiz</aside>",
     ));
 
     assert_eq!(clip.markdown, "Offen");
+}
+
+#[test]
+fn aria_hidden_text_is_kept_because_it_is_still_visible() {
+    let clip = whole(&page(
+        "<a href=\"/neu\" aria-label=\"Neuigkeit\"><div aria-hidden=\"true\">Kartentext</div></a>",
+    ));
+
+    assert_eq!(
+        clip.markdown,
+        "[Kartentext](<https://news.example.com/neu>)"
+    );
+}
+
+#[test]
+fn article_choice_skips_aria_hidden_duplicates() {
+    let slide = "<p>Spendenaufruf, Spendenaufruf, Spendenaufruf, immer wieder derselbe Text.</p>";
+    let html = page(&format!(
+        "<div aria-hidden=\"true\"><div>{}</div></div>\
+         <div><p>Der eigentliche Artikel beginnt hier, mit genug Text.</p>\
+         <p>Und er geht weiter, ebenfalls lang genug für die Bewertung.</p></div>",
+        slide.repeat(6)
+    ));
+    let clip = read_html(&html, PAGE, Extract::Article).unwrap();
+
+    assert!(clip.markdown.starts_with("Der eigentliche Artikel"));
+    assert!(!clip.markdown.contains("Spendenaufruf"));
+}
+
+#[test]
+fn article_choice_falls_back_to_aria_hidden_content_behind_a_modal() {
+    let html = page(
+        "<div id=\"app\" aria-hidden=\"true\"><main><div>\
+         <p>Der Artikel liegt hinter einem offenen Dialog, bleibt aber lesbar.</p>\
+         <p>Auch der zweite Absatz muss im Clip ankommen, nicht nur Bilder.</p>\
+         </div></main></div><div role=\"dialog\"><p>Cookies erlauben?</p></div>",
+    );
+    let clip = read_html(&html, PAGE, Extract::Article).unwrap();
+
+    assert!(clip.markdown.contains("Der Artikel liegt"));
+    assert!(clip.markdown.contains("zweite Absatz"));
+    assert!(!clip.markdown.contains("Cookies"));
+}
+
+#[test]
+fn a_tiny_article_choice_falls_back_to_the_whole_page() {
+    let description =
+        "<span>Eine App-Beschreibung, die in Divs statt Absätzen steht.</span> ".repeat(30);
+    let html = page(&format!(
+        "<h1>Hex</h1><div>{description}</div>\
+         <div><p>Das Entwicklungsteam hat Angaben zum Datenschutz gemacht.</p></div>"
+    ));
+    let clip = read_html(&html, PAGE, Extract::Article).unwrap();
+
+    assert!(clip.markdown.starts_with("# Hex"));
+    assert!(clip.markdown.contains("in Divs statt"));
 }
 
 #[test]

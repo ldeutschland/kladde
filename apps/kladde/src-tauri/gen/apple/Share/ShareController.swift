@@ -104,9 +104,24 @@ enum SharedLoader {
             return .page(page)
         }
         for provider in providers {
+            if let address = try? await sharedAddress(from: provider) { return link(address) }
+        }
+        for provider in providers {
             if let shared = try await other(from: provider) { return shared }
         }
         throw ShareFailure.unsupported
+    }
+
+    private static func sharedAddress(from provider: NSItemProvider) async throws -> URL? {
+        if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier),
+           let url = try await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL,
+           let web = webAddress(url.absoluteString) {
+            return web
+        }
+        guard provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier),
+              let text = try await provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) as? String,
+              text.utf8.count <= maxText else { return nil }
+        return webAddress(text)
     }
 
     private static func page(from provider: NSItemProvider) async throws -> WebPage? {
@@ -134,18 +149,13 @@ enum SharedLoader {
     }
 
     private static func other(from provider: NSItemProvider) async throws -> Shared? {
-        if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier),
-           let url = try await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL,
-           let web = webAddress(url.absoluteString) {
-            return link(web)
-        }
         for type in [UTType.pdf, .image] where provider.hasItemConformingToTypeIdentifier(type.identifier) {
             return try await file(from: provider, type: type)
         }
         guard provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier),
               let text = try await provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) as? String else { return nil }
         guard text.utf8.count <= maxText else { throw CocoaError(.fileReadTooLarge) }
-        return webAddress(text).map(link) ?? .text(text)
+        return .text(text)
     }
 
     private static func file(from provider: NSItemProvider, type: UTType) async throws -> Shared {
