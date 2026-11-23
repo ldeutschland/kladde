@@ -72,7 +72,7 @@ enum ClipMode: String {
         case .selection: words("Auswahl", "Selection")
         case .article: words("Artikel", "Article")
         case .page: words("Ganze Seite", "Whole page")
-        case .link: words("Nur Link", "Link only")
+        case .link: words("Link", "Link")
         }
     }
 
@@ -81,8 +81,8 @@ enum ClipMode: String {
         case .selection: words("Nur der Text, den du markiert hast", "Only the text you selected")
         case .article: words("Haupttext mit Bildern, ohne Menüs und Werbung", "Main text with images, without menus and ads")
         case .page: words("Alles, was die Seite gerade zeigt", "Everything the page shows right now")
-        case .link: words("Speichert nur die Adresse. Kladde lädt die Seite später.",
-                          "Saves just the address. Kladde loads the page later.")
+        case .link: words("Speichert die Adresse. Beim nächsten Öffnen holt Kladde den Artikel, sofern die Seite es zulässt.",
+                          "Saves the address. Next time you open Kladde, it fetches the article if the page allows it.")
         }
     }
 
