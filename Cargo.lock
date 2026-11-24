@@ -2432,7 +2432,7 @@ dependencies = [
 
 [[package]]
 name = "kladde"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "base64 0.22.1",
  "cc",
@@ -2465,7 +2465,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-ai"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "eventsource-stream",
  "futures-util",
@@ -2480,7 +2480,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-clip"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "dom_query 0.28.0",
  "futures-util",
@@ -2495,7 +2495,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-crypto"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "argon2",
  "bip39",
@@ -2519,7 +2519,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-protocol"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "postcard",
  "proptest",
@@ -2532,7 +2532,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-server"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -2559,7 +2559,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-store"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "hex",
  "kladde-protocol",
@@ -2576,7 +2576,7 @@ dependencies = [
 
 [[package]]
 name = "kladde-sync"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "ed25519-dalek",
  "futures-util",
