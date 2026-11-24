@@ -6,6 +6,7 @@ import { syntaxHighlighter } from "@blocknote/code-block";
 import { localFile } from "../files/attachments";
 import { schema } from "../editor/schema";
 import { setFileContext } from "../editor/FileBlock";
+import { setPageLinkContext } from "../editor/pageLinkSpec";
 import { isValidLink } from "../notebook/links";
 import type { Entry, Notebook } from "../notebook/notebook";
 import type { T } from "../locale/locale";
@@ -50,6 +51,7 @@ export function VersionPreview({
   );
 
   setFileContext(editor, { book, entry: old, t });
+  setPageLinkContext(editor, { book, t });
   useEffect(
     () => () => {
       for (const url of files.values()) URL.revokeObjectURL(url);

@@ -457,12 +457,14 @@ export async function mock<T>(
     }
     case "open_web_source": {
       const url = new URL(String(args.address));
-
-      if (
+      const webPage =
         ["https:", "http:"].includes(url.protocol) &&
         !url.username &&
-        !url.password
-      )
+        !url.password;
+      const mailAddress =
+        url.protocol === "mailto:" && url.pathname.includes("@");
+
+      if (webPage || mailAddress)
         window.open(url.href, "_blank", "noopener,noreferrer");
       break;
     }

@@ -1,7 +1,6 @@
 import { useState, type DragEvent, type RefObject } from "react";
 import type { BlockNoteEditor } from "@blocknote/core";
 import type { Entry, Notebook, Page } from "../notebook/notebook";
-import type { T } from "../locale/locale";
 import {
   allowDrop,
   carriesFiles,
@@ -10,7 +9,7 @@ import {
   droppedPage,
 } from "../ui/dragDrop";
 import { appendFiles } from "./fileBlocks";
-import { pageLinkContent } from "./pageLinks";
+import { insertPageParagraph } from "./pageLinks";
 import { BLOCK_SELECTOR, findBlock } from "./selectionDom";
 
 export interface DropSpot {
@@ -23,7 +22,6 @@ interface DropOptions {
   editor: BlockNoteEditor;
   book: Notebook;
   entry: Entry;
-  t: T;
   section: RefObject<HTMLElement | null>;
 }
 
@@ -57,17 +55,18 @@ function insertPageBlock(
   page: Page,
   spot: DropSpot | null,
 ) {
-  const { editor, book, t } = options;
+  const { editor } = options;
   const reference = spot?.id ?? editor.document.at(-1)?.id;
 
   if (!reference) return;
-  const [inserted] = editor.insertBlocks(
-    [{ type: "paragraph", content: [pageLinkContent(book, t, page.id)] }],
+  const inserted = insertPageParagraph(
+    editor,
+    page.id,
     reference,
     spot?.place ?? "after",
   );
 
-  editor.setTextCursorPosition(inserted, "end");
+  editor.setTextCursorPosition(inserted.id, "end");
 }
 
 export function useEditorDrop(options: DropOptions) {

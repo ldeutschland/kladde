@@ -7,8 +7,9 @@ import { syntaxHighlighter } from "@blocknote/code-block";
 import type { Entry, Notebook } from "../notebook/notebook";
 import type { T } from "../locale/locale";
 import { localFile, saveFile } from "../files/attachments";
-import { isValidLink, linkedPage } from "../notebook/links";
+import { isValidLink } from "../notebook/links";
 import { schema } from "./schema";
+import { usePageLinkMigration } from "./usePageLinkMigration";
 
 const CURSOR_COLOR = "#7f63d9";
 
@@ -33,10 +34,10 @@ interface EditorOptions {
   notify: (text: string) => void;
 }
 
-function clickedPageLink(event: MouseEvent) {
+function clickedLink(event: MouseEvent) {
   const anchor = (event.target as Element | null)?.closest("a");
 
-  return !!linkedPage(anchor?.getAttribute("href") ?? "");
+  return isValidLink(anchor?.getAttribute("href") ?? "");
 }
 
 function editorDictionary(lang: string, t: T, aiReady: boolean) {
@@ -53,7 +54,7 @@ function editorDictionary(lang: string, t: T, aiReady: boolean) {
 export function useNotebookEditor(options: EditorOptions) {
   const { book, entry, lang, t, aiEnabled, excluded, notify } = options;
   const files = useMemo(() => new Map<string, string>(), [entry]);
-  const editor = useCreateBlockNote(
+  const created = useCreateBlockNote(
     {
       schema,
       dictionary: editorDictionary(lang, t, aiEnabled && !excluded),
@@ -64,7 +65,7 @@ export function useNotebookEditor(options: EditorOptions) {
           user: { name: "", color: CURSOR_COLOR },
         }),
       ],
-      links: { isValidLink, onClick: clickedPageLink },
+      links: { isValidLink, onClick: clickedLink },
       uploadFile: async (file: File, blockId?: string) => {
         try {
           return await saveFile(book, entry, file);
@@ -88,6 +89,9 @@ export function useNotebookEditor(options: EditorOptions) {
     },
     [entry, lang, aiEnabled, excluded],
   );
+  const editor = created as unknown as BlockNoteEditor;
+
+  usePageLinkMigration(editor);
 
   return { editor, files };
 }

@@ -973,6 +973,15 @@ const copy = {
     "Diese Seite gibt es nicht mehr.",
     "This page no longer exists.",
   ],
+  pageTrashed: [
+    "Diese Seite liegt im Papierkorb.",
+    "This page is in the trash.",
+  ],
+  pageMissing: ["Seite nicht gefunden", "Page not found"],
+  linkFailed: [
+    "Der Link konnte nicht geöffnet werden.",
+    "The link could not be opened.",
+  ],
   uploadFailed: [
     "Datei konnte nicht hinzugefügt werden.",
     "File could not be added.",

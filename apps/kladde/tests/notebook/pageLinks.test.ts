@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   isValidLink,
   linkedPage,
+  pageIdOf,
   pageLink,
   pagesLinkedIn,
+  webLink,
 } from "../../src/notebook/links";
 
 const ID = "3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f";
@@ -49,6 +51,47 @@ describe("links stored with a page", () => {
     const text = `kladde-file:${ID} kladde:${v1} kladde:${ID.toUpperCase()}`;
 
     expect(pagesLinkedIn(text)).toEqual([]);
+  });
+});
+
+describe("page ids stored in references", () => {
+  it("accepts exactly one page id and normalises its case", () => {
+    expect(pageIdOf(ID)).toBe(ID);
+    expect(pageIdOf(ID.toUpperCase())).toBe(ID);
+  });
+
+  it("refuses links, fragments and smuggled markup", () => {
+    for (const value of [
+      pageLink(ID),
+      ` ${ID}`,
+      ID.slice(1),
+      `${ID}) [x](https://example.org`,
+      `${ID}"><img src=x>`,
+      "",
+    ])
+      expect(pageIdOf(value), value).toBeNull();
+  });
+});
+
+describe("web addresses opened outside the app", () => {
+  it("trims web and mail addresses", () => {
+    expect(webLink(" https://example.org/a?b=c ")).toBe(
+      "https://example.org/a?b=c",
+    );
+    expect(webLink("mailto:someone@example.org")).toBe(
+      "mailto:someone@example.org",
+    );
+  });
+
+  it("refuses page links, scripts and local files", () => {
+    for (const href of [
+      pageLink(ID),
+      "javascript:alert(1)",
+      "file:///etc/passwd",
+      "https://exa mple.org",
+      "",
+    ])
+      expect(webLink(href), href).toBeNull();
   });
 });
 

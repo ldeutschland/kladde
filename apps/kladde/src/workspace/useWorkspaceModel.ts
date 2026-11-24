@@ -67,7 +67,7 @@ export function useWorkspaceModel(props: WorkspaceProps) {
     toast: toasts.setToast,
   };
 
-  useBookEvents(book);
+  useBookEvents(book, t);
   useQuickCapture(() => overlays.setModal("capture"));
   useClipInbox(
     book,
