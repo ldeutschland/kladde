@@ -30,6 +30,7 @@ const LISTED_MAP = "versions";
 const MAX_LABEL_CHARS = 80;
 const UNVERSIONED_KIND = "index";
 const REQUESTED_CAUSES = ["ai", "restore", "file"];
+const SINGLE_MAILBOX = /^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 const INVALID = "Invalid notebook data";
 
 interface SimulatedVersion {
@@ -462,10 +463,11 @@ export async function mock<T>(
         !url.username &&
         !url.password;
       const mailAddress =
-        url.protocol === "mailto:" && url.pathname.includes("@");
+        url.protocol === "mailto:" && SINGLE_MAILBOX.test(url.pathname);
 
-      if (webPage || mailAddress)
-        window.open(url.href, "_blank", "noopener,noreferrer");
+      if (webPage) window.open(url.href, "_blank", "noopener,noreferrer");
+      else if (mailAddress)
+        window.open("mailto:" + url.pathname, "_blank", "noopener,noreferrer");
       break;
     }
     case "add_file": {
