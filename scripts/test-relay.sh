@@ -23,4 +23,4 @@ else
   pg_dump --data-only "$TEST_DATABASE_URL" > "$work/dump"
 fi
 test -s "$work/dump"
-if grep -aqE 'KLADDE_PRIVATE_CANARY_84191|zweite Notiz|test-only-long-password|Offline am iPhone|offline ergänzt|Nach Erneuerung|ruhig|eins zwei|Seite 3 neu|vom Telefon|eigen neu|fremd neu|phone3|wiederbelebt|bleibt liegen|geht raus|im Verzeichnis|nur das Neue|unterwegs ergänzt|während des Abrufs|zurückgeholt|xxxxxxxxxxxxxxxx' "$work/dump"; then exit 1; fi
+if grep -aqE 'KLADDE_PRIVATE_CANARY_84191|zweite Notiz|test-only-long-password|Offline am iPhone|offline ergänzt|Nach Erneuerung|ruhig|eins zwei|Seite 3 neu|vom Telefon|eigen neu|fremd neu|phone3|wiederbelebt|bleibt liegen|geht raus|im Verzeichnis|nur das Neue|unterwegs ergänzt|während des Abrufs|zurückgeholt|vor dem Wechsel|nur am Telefon|und ergänzt|ungesichert|überlebt den Wechsel|im neuen Konto gelöscht|xxxxxxxxxxxxxxxx' "$work/dump"; then exit 1; fi

@@ -12,6 +12,7 @@ mod remote_removals;
 mod report;
 mod space_state;
 mod space_sync;
+mod untracked_docs;
 
 #[cfg(test)]
 mod tests;

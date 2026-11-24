@@ -9,6 +9,7 @@ use super::relay_link::Link;
 use super::remote_removals::remove_deleted;
 use super::report::{Report, error_code};
 use super::space_state::remote_changes;
+use super::untracked_docs::{has_untracked_docs, queue_untracked_docs};
 use crate::{Error, account::Access};
 use kladde_protocol::account::SpaceState;
 use std::collections::{BTreeMap, BTreeSet};
@@ -42,7 +43,7 @@ pub async fn sync_latest(
     agree_on_format(local, client, access, &relay, report).await?;
     let after = known_mark(local, access)?;
 
-    if after > 0 {
+    if after > 0 && !has_untracked_docs(local, access)? {
         let state = remote_changes(client, access, after, &relay).await?;
 
         if state.mark.is_some_and(|mark| mark >= after) {
@@ -180,6 +181,7 @@ async fn sync_all(
     tombstones: &BTreeSet<Uuid>,
     report: &mut Report,
 ) -> Result<(), Error> {
+    queue_untracked_docs(local, access, tombstones)?;
     let mut link = Link::open(local, access)?;
     let outbox = outbox_docs(local, access)?;
     let listings = wanted_listings(local, access, |_| true)?;

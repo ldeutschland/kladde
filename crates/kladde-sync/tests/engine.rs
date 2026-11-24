@@ -46,9 +46,14 @@ fn open_store() -> (Store, tempfile::TempDir) {
     (store, dir)
 }
 
-async fn device(origin: &Origin, user: &str) -> Device {
+async fn signed_in(origin: &Origin, user: &str) -> Access {
     let http = kladde_sync::http().unwrap();
-    let access = login(&http, origin, user, PASSWORD, None).await.unwrap();
+
+    login(&http, origin, user, PASSWORD, None).await.unwrap()
+}
+
+async fn device(origin: &Origin, user: &str) -> Device {
+    let access = signed_in(origin, user).await;
     let (store, dir) = open_store();
 
     Device {
@@ -194,15 +199,21 @@ fn assert_clean(report: &Report) {
     assert_eq!(report.waiting, 0);
 }
 
-async fn setup() -> (Origin, String) {
-    let base = std::env::var("KLADDE_TEST_RELAY").unwrap();
-    let origin = Origin::parse(&base).unwrap();
+async fn register_for(origin: &Origin, space: Uuid) -> String {
     let user = format!("engine-{}", Uuid::new_v4());
     let http = kladde_sync::http().unwrap();
 
-    register(&http, &origin, &user, PASSWORD, Uuid::new_v4(), &c::key())
+    register(&http, origin, &user, PASSWORD, space, &c::key())
         .await
         .unwrap();
+    user
+}
+
+async fn setup() -> (Origin, String) {
+    let base = std::env::var("KLADDE_TEST_RELAY").unwrap();
+    let origin = Origin::parse(&base).unwrap();
+    let user = register_for(&origin, Uuid::new_v4()).await;
+
     (origin, user)
 }
 
@@ -1353,4 +1364,174 @@ async fn purge_signed(access: &Access, doc: Uuid) {
         .unwrap();
 
     assert!(purged.status().is_success());
+}
+
+async fn erase_account(device: &Device) {
+    let http = kladde_sync::http().unwrap();
+    let origin = Origin::parse(&device.access.origin).unwrap();
+
+    kladde_sync::account::erase(&http, &origin, &device.access, PASSWORD)
+        .await
+        .unwrap();
+}
+
+async fn moved_to_new_account(origin: &Origin, device: Device) -> (Device, String) {
+    let space = device.access.space;
+
+    erase_account(&device).await;
+    let user = register_for(origin, space).await;
+    let access = signed_in(origin, &user).await;
+
+    (Device { access, ..device }, user)
+}
+
+async fn joined(origin: &Origin, user: &str, device: Device) -> Device {
+    let access = signed_in(origin, user).await;
+
+    Device { access, ..device }
+}
+
+fn listed_pages(device: &Device) -> Vec<String> {
+    let (doc, _) = load_doc(device, device.access.space);
+    let pages = doc.get_or_insert_map("pages");
+    let mut listed: Vec<String> = pages.keys(&doc.transact()).map(str::to_string).collect();
+
+    listed.sort();
+    listed
+}
+
+async fn remember_mark_like_an_older_app(device: &Device) {
+    let http = kladde_sync::http().unwrap();
+    let a = &device.access;
+    let mark = engine::remote_state(&http, a).await.unwrap().mark.unwrap();
+    let bytes = kladde_protocol::encode(&(mark, a.epoch())).unwrap();
+
+    assert!(mark > 0);
+    device
+        .with(|s| s.set_state(&format!("relay:{}:{}:mark", a.account, a.space), &bytes))
+        .unwrap();
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_device_uploads_its_whole_notebook_to_a_new_account() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let pages: Vec<Uuid> = (0..3).map(|_| Uuid::new_v4()).collect();
+
+    list_pages(&mac, &pages, &[]);
+
+    for (index, id) in pages.iter().enumerate() {
+        write_text(&mac, *id, &format!("vor dem Wechsel {index}"));
+    }
+
+    assert_clean(&sync_latest(&mac).await);
+    let (mac, user) = moved_to_new_account(&origin, mac).await;
+
+    assert_clean(&sync_latest(&mac).await);
+    let phone = device(&origin, &user).await;
+
+    assert_clean(&sync_latest(&phone).await);
+    assert_eq!(listed_pages(&phone), listed_pages(&mac));
+
+    for (index, id) in pages.iter().enumerate() {
+        assert_eq!(read_text(&phone, *id), format!("vor dem Wechsel {index}"));
+    }
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_device_with_an_older_copy_uploads_what_only_it_has() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let phone = device(&origin, &user).await;
+    let (shared, own) = (Uuid::new_v4(), Uuid::new_v4());
+
+    list_pages(&mac, &[shared], &[]);
+    write_text(&mac, shared, "gemeinsam");
+    assert_clean(&sync_latest(&mac).await);
+    assert_clean(&sync_latest(&phone).await);
+    list_pages(&phone, &[own], &[]);
+    write_text(&phone, own, "nur am Telefon");
+    write_text(&phone, shared, " und ergänzt");
+    assert_clean(&sync_latest(&phone).await);
+    let (mac, user) = moved_to_new_account(&origin, mac).await;
+    let phone = joined(&origin, &user, phone).await;
+
+    assert_clean(&sync_latest(&mac).await);
+    assert_clean(&sync_latest(&phone).await);
+    assert_clean(&sync_latest(&mac).await);
+    assert_eq!(read_text(&mac, own), "nur am Telefon");
+    assert_eq!(read_text(&mac, shared), "gemeinsam und ergänzt");
+    assert_eq!(listed_pages(&mac), listed_pages(&phone));
+    let tablet = device(&origin, &user).await;
+
+    assert_clean(&sync_latest(&tablet).await);
+    assert_eq!(listed_pages(&tablet), listed_pages(&phone));
+    assert_eq!(read_text(&tablet, own), "nur am Telefon");
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_device_that_already_remembers_a_mark_still_uploads_everything() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let (edited, untouched) = (Uuid::new_v4(), Uuid::new_v4());
+
+    list_pages(&mac, &[edited, untouched], &[]);
+    write_text(&mac, edited, "ungesichert eins");
+    write_text(&mac, untouched, "ungesichert zwei");
+    assert_clean(&sync_latest(&mac).await);
+    let (mac, user) = moved_to_new_account(&origin, mac).await;
+
+    write_text(&mac, edited, " neu");
+    assert_clean(&sync_quick(&mac, &[]).await);
+    remember_mark_like_an_older_app(&mac).await;
+    assert_clean(&sync_latest(&mac).await);
+
+    for id in [mac.access.space, edited, untouched] {
+        assert!(remote_has(&mac, id).await, "{id} was not uploaded");
+    }
+
+    let phone = device(&origin, &user).await;
+
+    assert_clean(&sync_latest(&phone).await);
+    assert_eq!(read_text(&phone, edited), "ungesichert eins neu");
+    assert_eq!(read_text(&phone, untouched), "ungesichert zwei");
+    let again = sync_latest(&mac).await;
+
+    assert_clean(&again);
+    assert!(again.changed.is_empty(), "changed: {:?}", again.changed);
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_page_deleted_in_the_new_account_is_not_brought_back_by_an_older_copy() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let phone = device(&origin, &user).await;
+    let (kept, doomed) = (Uuid::new_v4(), Uuid::new_v4());
+
+    list_pages(&mac, &[kept, doomed], &[]);
+    write_text(&mac, kept, "überlebt den Wechsel");
+    write_text(&mac, doomed, "im neuen Konto gelöscht");
+    assert_clean(&sync_latest(&mac).await);
+    assert_clean(&sync_latest(&phone).await);
+    let (mac, user) = moved_to_new_account(&origin, mac).await;
+
+    assert_clean(&sync_latest(&mac).await);
+    erase(&mac, doomed);
+    assert_clean(&sync_latest(&mac).await);
+    assert!(!remote_has(&mac, doomed).await);
+    let phone = joined(&origin, &user, phone).await;
+    let report = sync_latest(&phone).await;
+
+    assert_clean(&report);
+    assert!(report.rescue.is_empty(), "rescue: {:?}", report.rescue);
+    assert_eq!(report.removed, vec![doomed]);
+    assert!(phone.with(|s| s.get(doomed)).unwrap().is_none());
+    assert!(!remote_has(&phone, doomed).await);
+    assert_eq!(read_text(&phone, kept), "überlebt den Wechsel");
+    assert_clean(&sync_latest(&mac).await);
+    assert_eq!(listed_pages(&mac), listed_pages(&phone));
 }
