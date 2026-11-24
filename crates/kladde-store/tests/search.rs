@@ -34,15 +34,26 @@ fn hits(store: &Store, space: Uuid, query: &str) -> Vec<SearchHit> {
     store.search_content(space, query, None).unwrap()
 }
 
-fn as_older_index(path: &Path) {
+fn opened_raw(path: &Path) -> rusqlite::Connection {
     let raw = rusqlite::Connection::open(path).unwrap();
     let key = format!("PRAGMA key=\"x'{}'\"", hex::encode(KEY));
 
     raw.execute_batch(&key).unwrap();
-    raw.execute_batch(
-        "DELETE FROM words; INSERT INTO words SELECT id,space,title,body FROM notes; PRAGMA user_version=5;",
-    )
-    .unwrap();
+    raw
+}
+
+fn as_older_index(path: &Path) {
+    opened_raw(path)
+        .execute_batch(
+            "DELETE FROM words; INSERT INTO words SELECT id,space,title,body FROM notes; PRAGMA user_version=5;",
+        )
+        .unwrap();
+}
+
+fn as_version_six(path: &Path) {
+    opened_raw(path)
+        .execute_batch("PRAGMA user_version=6;")
+        .unwrap();
 }
 
 #[test]
@@ -110,4 +121,33 @@ fn excerpts_read_like_text_while_the_body_keeps_links_and_files() {
 
     assert!(hits(&store, space, "kladde").is_empty());
     assert_eq!(hits(&store, space, "Heizung").len(), 1);
+}
+
+#[test]
+fn media_an_older_app_skipped_is_queued_once_more() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("notebook");
+    let mut store = Store::open(&path, &KEY).unwrap();
+    let (space, file) = (Uuid::new_v4(), Uuid::new_v4());
+    let body = format!("<audio src=\"kladde-file:{file}\"></audio>");
+    let page = page_with_file(space, &body, file, "Memo.m4a", vec![]);
+
+    store.save(&[page], false).unwrap();
+    let skipped = store.next_attachment().unwrap().unwrap();
+
+    store
+        .finish_attachment(&skipped, "unsupported", "")
+        .unwrap();
+    assert!(store.next_attachment().unwrap().is_none());
+    drop(store);
+    as_version_six(&path);
+    let mut store = Store::open(&path, &KEY).unwrap();
+    let again = store.next_attachment().unwrap().unwrap();
+
+    assert_eq!(again.file, file);
+    store.finish_attachment(&again, "unsupported", "").unwrap();
+    drop(store);
+    let store = Store::open(&path, &KEY).unwrap();
+
+    assert!(store.next_attachment().unwrap().is_none());
 }
