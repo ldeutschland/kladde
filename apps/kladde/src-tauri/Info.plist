@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
+	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Kladde nimmt Audionotizen auf, wenn du eine Aufnahme startest.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

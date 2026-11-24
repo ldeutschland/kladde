@@ -51,7 +51,7 @@ targets:
         NSSpeechRecognitionUsageDescription: "Kladde wandelt deine Aufnahmen auf diesem Gerät in Text um."
         NSCameraUsageDescription: "Kladde verwendet die Kamera, wenn du ein Foto aufnimmst, um es in eine Notiz einzufügen."
         NSPhotoLibraryAddUsageDescription: "Kladde legt Bilder in deiner Fotomediathek ab, wenn du „Bild sichern“ wählst."
-        ITSAppUsesNonExemptEncryption: true
+        ITSAppUsesNonExemptEncryption: false
         UIBackgroundModes: [audio]
         LSRequiresIPhoneOS: true
         UILaunchStoryboardName: LaunchScreen
