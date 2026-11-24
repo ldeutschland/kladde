@@ -195,3 +195,18 @@ pub fn discard_rescued(
 
     engine::discard_rescued(&local, &access, id).map_err(|e| sync_error(&e))
 }
+
+#[tauri::command]
+pub async fn repair_sync(space: Uuid, app: AppHandle) -> Result<(), String> {
+    let sync = app.state::<SyncState>();
+    let _guard = sync.lock.lock().await;
+    let vault = app.state::<Vault>();
+    let access = for_space(&vault, &app, space)?;
+    let local = Device {
+        vault: &vault,
+        app: &app,
+        space,
+    };
+
+    engine::resync(&local, &access).map_err(|e| sync_error(&e))
+}

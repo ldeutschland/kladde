@@ -5,9 +5,10 @@ import {
   LogIn,
   MonitorSmartphone,
   RefreshCw,
+  Wrench,
 } from "lucide-react";
 import { Select } from "../ui/Select";
-import { syncDetails, syncLabel } from "./sync";
+import { needsRepair, syncDetails, syncLabel } from "./sync";
 import type { AccountInfo, SyncPanelProps } from "./accountTypes";
 import type { SyncAccount } from "./useSyncAccount";
 import type { AccountManagement } from "./useAccountManagement";
@@ -69,6 +70,16 @@ function SyncState({ panel, account }: OverviewProps) {
           {t("signInAgain")}
         </button>
       )}
+      {needsRepair(status) && (
+        <button
+          className="outline"
+          disabled={account.busy}
+          onClick={account.repair}
+        >
+          <Wrench />
+          {t("repairSync")}
+        </button>
+      )}
     </div>
   );
 }
@@ -100,6 +111,10 @@ function AccountButtons({ panel, account, management }: OverviewProps) {
       >
         <KeyRound />
         {t("changePassword")}
+      </button>
+      <button disabled={account.busy} onClick={account.repair}>
+        <Wrench />
+        {t("repairSync")}
       </button>
     </div>
   );

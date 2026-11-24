@@ -1550,6 +1550,24 @@ fn file_rows(device: &Device, database: Uuid, rows: &[Uuid]) {
     save(device, index);
 }
 
+fn move_cursor_ahead(device: &Device, id: Uuid, by: i64) {
+    let a = &device.access;
+    let head = format!("head:{}:{}:{id}", a.account, a.space);
+    let stored = device.with(|s| s.state(&head)).unwrap().unwrap();
+    let mut cursor = kladde_sync::Cursor::decode(&stored).unwrap();
+
+    cursor.seq += by;
+    let bytes = kladde_protocol::encode(&cursor).unwrap();
+
+    device.with(|s| s.set_state(&head, &bytes)).unwrap();
+}
+
+async fn repaired(device: &Device) -> Report {
+    engine::resync(device, &device.access).unwrap();
+
+    sync_latest(device).await
+}
+
 #[tokio::test]
 #[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
 async fn rows_of_a_database_deleted_elsewhere_never_count_as_failed() {
@@ -1573,4 +1591,37 @@ async fn rows_of_a_database_deleted_elsewhere_never_count_as_failed() {
     assert_eq!(full.rescue, vec![database]);
     assert!(full.failed.is_empty(), "failed: {:?}", full.failed);
     assert!(phone.with(|s| s.get(rows[1])).unwrap().is_some());
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_repair_brings_every_device_back_in_step_after_a_relay_restore() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let phone = device(&origin, &user).await;
+    let (restored, untouched) = (Uuid::new_v4(), Uuid::new_v4());
+
+    list_pages(&mac, &[restored, untouched], &[]);
+    write_text(&mac, restored, "vor der Wiederherstellung");
+    write_text(&mac, untouched, "unberührt");
+    assert_clean(&sync_latest(&mac).await);
+    assert_clean(&sync_latest(&phone).await);
+    move_cursor_ahead(&mac, restored, 5);
+    move_cursor_ahead(&phone, restored, 5);
+    write_text(&mac, restored, " und danach");
+    assert_eq!(sync(&mac).await.failed, vec![restored]);
+    assert_eq!(sync(&phone).await.failed, vec![restored]);
+    assert_clean(&repaired(&mac).await);
+    assert_clean(&repaired(&phone).await);
+    assert_clean(&sync_latest(&mac).await);
+    let expected = "vor der Wiederherstellung und danach";
+
+    assert_eq!(read_text(&mac, restored), expected);
+    assert_eq!(read_text(&phone, restored), expected);
+    let fresh = device(&origin, &user).await;
+
+    assert_clean(&sync_latest(&fresh).await);
+    assert_eq!(read_text(&fresh, restored), expected);
+    assert_eq!(read_text(&fresh, untouched), "unberührt");
+    assert_clean(&sync_latest(&phone).await);
 }

@@ -55,6 +55,7 @@
     "allow-account-info",
     "allow-device-action",
     "allow-discard-rescued",
+    "allow-repair-sync",
     "allow-sync-watch",
     "allow-export-backup",
     "allow-add-file",

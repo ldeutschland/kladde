@@ -226,6 +226,7 @@ fn build_tauri() {
         "account_info",
         "device_action",
         "discard_rescued",
+        "repair_sync",
         "sync_watch",
         "export_backup",
         "add_file",

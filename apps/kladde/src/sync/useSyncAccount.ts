@@ -69,6 +69,19 @@ export function useSyncAccount(props: SyncPanelProps) {
     }
   }
 
+  async function repair() {
+    const confirmed = await props.ask(t("repairSyncQuestion"), undefined, {
+      detail: t("repairSyncDetail"),
+      action: t("repairSync"),
+    });
+
+    if (!confirmed) return;
+    await attempt(async () => {
+      await command("repair_sync", { space: book.id });
+      await syncInto(book.id);
+    });
+  }
+
   function chooseAction(next: SyncAction) {
     setAction(next);
     setPhrase(null);
@@ -90,6 +103,7 @@ export function useSyncAccount(props: SyncPanelProps) {
     syncInto,
     sync,
     attempt,
+    repair,
     chooseAction,
   };
 }

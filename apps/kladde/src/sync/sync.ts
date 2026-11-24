@@ -171,6 +171,12 @@ export function statusFromReport(
   };
 }
 
+export function needsRepair(status: SyncStatus) {
+  if (status.problem === "full") return false;
+
+  return status.failed.some((id) => !status.newer.includes(id));
+}
+
 export function withFiles(status: SyncStatus): SyncStatus {
   if (!status.files || status.phase !== "synced") return status;
 

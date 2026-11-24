@@ -132,6 +132,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         sync::devices::account_info,
         sync::devices::device_action,
         sync::document_sync::discard_rescued,
+        sync::document_sync::repair_sync,
         sync::live_watch::sync_watch,
         notebook::backup::export_backup,
         attachments::encrypted_files::add_file,

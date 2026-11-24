@@ -619,6 +619,15 @@ const copy = {
     "Nicht synchronisiert ({n}): {titles}",
     "Not synced ({n}): {titles}",
   ],
+  repairSync: ["Sync reparieren", "Repair sync"],
+  repairSyncQuestion: [
+    "Notizbuch komplett neu abgleichen?",
+    "Sync this notebook again from scratch?",
+  ],
+  repairSyncDetail: [
+    "Kladde lädt alle Seiten neu vom Sync-Server, führt sie mit diesem Gerät zusammen und überträgt alles erneut. Das hilft, wenn der Server zurückgesetzt oder aus einer Sicherung wiederhergestellt wurde – dann am besten auf jedem Gerät. Auf diesem Gerät geht dabei nichts verloren.",
+    "Kladde fetches all pages from the sync server again, merges them with this device and uploads everything again. This helps if the server was reset or restored from a backup – ideally on every device. Nothing on this device is lost.",
+  ],
   syncOfflineDetail: [
     "Server nicht erreichbar. Deine Änderungen bleiben auf diesem Gerät und werden automatisch übertragen, sobald die Verbindung wieder steht.",
     "Server unreachable. Your changes stay on this device and are sent automatically once the connection is back.",

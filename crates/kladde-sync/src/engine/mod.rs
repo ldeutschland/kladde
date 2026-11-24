@@ -10,6 +10,7 @@ mod relay_link;
 mod relay_requests;
 mod remote_removals;
 mod report;
+mod resync;
 mod space_state;
 mod space_sync;
 mod untracked_docs;
@@ -21,6 +22,7 @@ pub use relay_features::{Relay, handshake};
 pub use relay_requests::{call, require_success};
 pub use remote_removals::discard_rescued;
 pub use report::{Report, error_code};
+pub use resync::resync;
 pub use space_state::{remote_blobs, remote_state};
 pub use space_sync::{sync_changes, sync_changes_except, sync_latest, sync_space};
 
