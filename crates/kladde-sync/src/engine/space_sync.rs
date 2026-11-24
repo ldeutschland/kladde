@@ -6,7 +6,7 @@ use super::listings::{listings_current, sync_listings, wanted_listings};
 use super::marks::{has_mark, known_mark, remember_mark};
 use super::relay_features::{agree_on_format, handshake, remember_checkpoints};
 use super::relay_link::Link;
-use super::remote_removals::remove_deleted;
+use super::remote_removals::{orphans_of, remove_deleted};
 use super::report::{Report, error_code};
 use super::space_state::remote_changes;
 use super::untracked_docs::{has_untracked_docs, queue_untracked_docs};
@@ -184,12 +184,13 @@ async fn sync_all(
     queue_untracked_docs(local, access, tombstones)?;
     let mut link = Link::open(local, access)?;
     let outbox = outbox_docs(local, access)?;
-    let listings = wanted_listings(local, access, |_| true)?;
-
-    sync_listings(local, &mut link, &listings, remote, &outbox, report).await?;
     let mut doomed = local.with(|store| store.ids(access.space))?;
 
     doomed.retain(|id| tombstones.contains(id));
+    let orphans = orphans_of(local, access, doomed.iter().copied())?;
+    let listings = wanted_listings(local, access, |id| !orphans.contains(id))?;
+
+    sync_listings(local, &mut link, &listings, remote, &outbox, report).await?;
 
     if listings_current(local, access, &listings, remote)? {
         remove_deleted(local, access, doomed, report)?;
@@ -199,7 +200,12 @@ async fn sync_all(
     let mut docs: BTreeSet<Uuid> = remote.keys().copied().collect();
 
     docs.extend(local.with(|store| store.ids(access.space))?);
-    docs.retain(|id| !listings.contains(id) && !tombstones.contains(id) && !held.contains(id));
+    docs.retain(|id| {
+        !listings.contains(id)
+            && !tombstones.contains(id)
+            && !held.contains(id)
+            && !orphans.contains(id)
+    });
 
     sync_docs(local, &mut link, &docs, remote, &outbox, report).await
 }
@@ -215,10 +221,11 @@ async fn sync_some(
     let mut link = Link::open(local, access)?;
     let outbox = outbox_docs(local, access)?;
     let held = held_back_docs(local, access)?;
+    let orphans = orphans_of(local, access, gone.iter().copied())?;
     let mut docs: BTreeSet<Uuid> = remote.keys().copied().collect();
 
     docs.extend(outbox.iter().filter(|id| !stuck.contains(id)).copied());
-    docs.retain(|id| !held.contains(id) && !gone.contains(id));
+    docs.retain(|id| !held.contains(id) && !gone.contains(id) && !orphans.contains(id));
     let listings = wanted_listings(local, access, |id| docs.contains(id))?;
 
     docs.retain(|id| !listings.contains(id));

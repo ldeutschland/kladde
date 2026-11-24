@@ -1535,3 +1535,42 @@ async fn a_page_deleted_in_the_new_account_is_not_brought_back_by_an_older_copy(
     assert_clean(&sync_latest(&mac).await);
     assert_eq!(listed_pages(&mac), listed_pages(&phone));
 }
+
+fn file_rows(device: &Device, database: Uuid, rows: &[Uuid]) {
+    let directory = Doc::new();
+    let listed = directory.get_or_insert_map("pages");
+
+    for row in rows {
+        listed.insert(&mut directory.transact_mut(), row.to_string(), "row");
+    }
+
+    let mut index = note(device.access.space, Uuid::new_v4(), "index", &directory, 0);
+
+    index.parent = Some(database);
+    save(device, index);
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn rows_of_a_database_deleted_elsewhere_never_count_as_failed() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let phone = device(&origin, &user).await;
+    let (database, rows) = database_with_rows(&mac, 3);
+
+    file_rows(&mac, database, &rows);
+    assert_clean(&sync_latest(&mac).await);
+    assert_clean(&sync_latest(&phone).await);
+    edit_row(&phone, database, rows[1], "unterwegs gerettet");
+    forget_database(&mac, database);
+    assert_clean(&sync_latest(&mac).await);
+    let marked = sync_latest(&phone).await;
+
+    assert_eq!(marked.rescue, vec![database]);
+    assert!(marked.failed.is_empty(), "failed: {:?}", marked.failed);
+    let full = sync(&phone).await;
+
+    assert_eq!(full.rescue, vec![database]);
+    assert!(full.failed.is_empty(), "failed: {:?}", full.failed);
+    assert!(phone.with(|s| s.get(rows[1])).unwrap().is_some());
+}

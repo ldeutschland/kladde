@@ -3,7 +3,22 @@ use super::doc_state_keys::DocKeys;
 use super::report::Report;
 use crate::{Error, account::Access};
 use kladde_store::Store;
+use std::collections::BTreeSet;
 use uuid::Uuid;
+
+pub(super) fn orphans_of(
+    local: &impl Local,
+    access: &Access,
+    deleted: impl IntoIterator<Item = Uuid>,
+) -> Result<BTreeSet<Uuid>, Error> {
+    let mut orphans = BTreeSet::new();
+
+    for owner in deleted {
+        orphans.extend(local.with(|store| store.owned_by(access.space, owner))?);
+    }
+
+    Ok(orphans)
+}
 
 pub(super) fn remove_deleted(
     local: &impl Local,

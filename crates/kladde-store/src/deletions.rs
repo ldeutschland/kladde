@@ -96,6 +96,18 @@ impl Store {
         Ok(())
     }
 
+    pub fn owned_by(&self, space: Uuid, owner: Uuid) -> Result<Vec<Uuid>, Error> {
+        Ok(self
+            .0
+            .prepare(
+                "SELECT id FROM notes WHERE space=?1 AND parent=?2 AND kind IN ('row','index')",
+            )?
+            .query_map(params![space.to_string(), owner.to_string()], |r| {
+                uuid_col(r, 0)
+            })?
+            .collect::<Result<_, _>>()?)
+    }
+
     pub fn rows_waiting(&self, database: Uuid) -> Result<bool, Error> {
         Ok(self.0.query_row(
             "SELECT exists(SELECT 1 FROM outbox JOIN notes ON notes.id=outbox.id WHERE parent=?1 AND kind='row')",
