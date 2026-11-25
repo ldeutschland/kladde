@@ -3,6 +3,7 @@ import type { Notebook } from "../notebook/notebook";
 import type { T } from "../locale/locale";
 import { SYNC_OFF, withFiles, type SyncStatus } from "../sync/sync";
 import { startSyncLoop } from "../sync/syncLoop";
+import { mergeAiTrees } from "../ai/aiPages";
 
 function recoveredText(titles: string[], t: T) {
   return t("syncRecovered").replace(
@@ -30,6 +31,7 @@ export function useSyncStatus(
         result: (report) => {
           if (report.recovered.length)
             notify(recoveredText(report.recovered, t));
+          if (report.changed.length) void mergeAiTrees(book).catch(() => {});
           onRemoved.current(report.removed);
         },
       }),

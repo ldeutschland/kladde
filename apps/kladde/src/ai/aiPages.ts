@@ -1,6 +1,11 @@
 import { markdown, writeMarkdown } from "../notebook/content";
 import { pageLink } from "../notebook/links";
-import type { Entry, Notebook, Page } from "../notebook/notebook";
+import {
+  mayMove,
+  type Entry,
+  type Notebook,
+  type Page,
+} from "../notebook/notebook";
 import type { T, Word } from "../locale/locale";
 
 export const AI_ROLES = ["instructions", "template", "memory"] as const;
@@ -34,24 +39,42 @@ export const ROLE_BUDGETS: Record<AiRole, number> = {
 const ROLE_PAGE_LIMIT = 10;
 const ROOT_KEY = "aiRoot";
 const FOLDER_PREFIX = "aiFolder:";
+const TREE_PREFIX = "aiTree:";
+const ROOT_SLOT = "root";
 const MEMORY_PAGE_KEY = "aiMemoryPage";
 const MEMORY_AUTO_KEY = "aiMemoryAuto";
 const LEGACY_TEMPLATES_KEY = "agentTemplates";
 const ROLE_KINDS: Page["kind"][] = ["page", "row"];
 
+type Slot = AiRole | typeof ROOT_SLOT;
+
+function isRole(value: unknown): value is AiRole {
+  return (AI_ROLES as readonly unknown[]).includes(value);
+}
+
 function explicitRole(page: Page): AiRole | null {
-  return (AI_ROLES as readonly unknown[]).includes(page.ai)
-    ? (page.ai as AiRole)
-    : null;
+  return isRole(page.ai) ? page.ai : null;
+}
+
+function slotOf(book: Notebook, id: string): Slot | null {
+  const slot = book.settings.get(TREE_PREFIX + id);
+
+  return slot === ROOT_SLOT || isRole(slot) ? slot : null;
+}
+
+function pointerKey(slot: Slot) {
+  return slot === ROOT_SLOT ? ROOT_KEY : FOLDER_PREFIX + slot;
 }
 
 function folderRole(book: Notebook, parent: string | null) {
   if (!parent) return null;
+  const slot = slotOf(book, parent);
+
+  if (isRole(slot)) return slot;
 
   return (
-    AI_ROLES.find(
-      (role) => book.settings.get(FOLDER_PREFIX + role) === parent,
-    ) ?? null
+    AI_ROLES.find((role) => book.settings.get(pointerKey(role)) === parent) ??
+    null
   );
 }
 
@@ -69,8 +92,35 @@ function livePage(book: Notebook, id: unknown) {
   return page && !page.archived && page.kind === "page" ? page : undefined;
 }
 
+function slotPages(book: Notebook, slot: Slot) {
+  const registered = [...book.settings.keys()]
+    .filter((key) => key.startsWith(TREE_PREFIX))
+    .map((key) => key.slice(TREE_PREFIX.length))
+    .filter((id) => slotOf(book, id) === slot);
+  const ids = new Set<unknown>([
+    ...registered,
+    book.settings.get(pointerKey(slot)),
+  ]);
+
+  return [...ids].flatMap((id) => livePage(book, id) ?? []);
+}
+
+function firstById(pages: Page[]) {
+  return pages.map((page) => page.id).sort()[0];
+}
+
 export function aiRootId(book: Notebook) {
-  return livePage(book, book.settings.get(ROOT_KEY))?.id ?? null;
+  const pointed = livePage(book, book.settings.get(ROOT_KEY));
+
+  return pointed?.id ?? firstById(slotPages(book, ROOT_SLOT)) ?? null;
+}
+
+function folderId(book: Notebook, root: string, role: AiRole) {
+  const pointed = livePage(book, book.settings.get(pointerKey(role)));
+
+  if (pointed?.parent === root) return pointed.id;
+
+  return firstById(slotPages(book, role).filter((p) => p.parent === root));
 }
 
 type PageLookup = { get: (id: string) => Page | undefined };
@@ -151,7 +201,7 @@ export function aiProtected(book: Notebook, id: unknown) {
   if (pageRole(book, page)) return true;
 
   for (let depth = 0; page && depth < MAX_DEPTH; depth++) {
-    if (page.id === root) return true;
+    if (page.id === root || slotOf(book, page.id)) return true;
     page = page.parent ? book.pages.get(page.parent) : undefined;
   }
 
@@ -166,40 +216,94 @@ export function rolePages(book: Notebook, role: AiRole) {
     .sort((a, b) => book.editedAt(b) - book.editedAt(a));
 }
 
-export function ensureAiRoot(book: Notebook, t: T) {
+function claim(book: Notebook, id: string, slot: Slot) {
+  const { settings } = book;
+
+  if (settings.get(TREE_PREFIX + id) !== slot)
+    settings.set(TREE_PREFIX + id, slot);
+  if (settings.get(pointerKey(slot)) !== id) settings.set(pointerKey(slot), id);
+}
+
+function liveChildren(book: Notebook, parent: string) {
+  return [...book.pages.values()].filter(
+    (page) => page.parent === parent && !page.archived,
+  );
+}
+
+async function mergeInto(book: Notebook, from: string, into: string) {
+  const children = liveChildren(book, from);
+  const movable = children.filter((c) => mayMove(book.pages, c.id, into));
+  const keptOut = aiExcluded(book, from) && !aiExcluded(book, into);
+  const patch = keptOut ? { parent: into, aiExcluded: true } : { parent: into };
+
+  for (const child of movable) await book.change(child.id, patch);
+  book.settings.delete(TREE_PREFIX + from);
+  if (movable.length === children.length)
+    await book.change(from, { archived: Date.now() });
+}
+
+async function mergeSlot(book: Notebook, pages: Page[], slot: Slot) {
+  const kept = firstById(pages);
+
+  if (!kept) return null;
+  for (const page of pages)
+    if (page.id !== kept) await mergeInto(book, page.id, kept);
+  claim(book, kept, slot);
+
+  return kept;
+}
+
+export async function mergeAiTrees(book: Notebook) {
+  await book.pages.whole();
+  const root = await mergeSlot(book, slotPages(book, ROOT_SLOT), ROOT_SLOT);
+
+  if (!root) return;
+
+  for (const role of AI_ROLES) {
+    const folders = slotPages(book, role).filter((p) => p.parent === root);
+
+    await mergeSlot(book, folders, role);
+  }
+}
+
+async function ensureAiRoot(book: Notebook, t: T) {
   const existing = aiRootId(book);
 
-  if (existing) return existing;
+  if (existing) {
+    claim(book, existing, ROOT_SLOT);
+
+    return existing;
+  }
+
   const root = book.add(t("aiTree"), "page", null);
 
-  void book.change(root.id, { icon: "✨" });
-  book.settings.set(ROOT_KEY, root.id);
+  await book.change(root.id, { icon: "✨" });
+  claim(book, root.id, ROOT_SLOT);
 
   return root.id;
 }
 
 function ensureFolder(book: Notebook, root: string, role: AiRole, t: T) {
-  const key = FOLDER_PREFIX + role;
-  const existing = livePage(book, book.settings.get(key));
+  const id =
+    folderId(book, root, role) ??
+    book.add(t(ROLE_LABELS[role]), "page", root).id;
 
-  if (existing && existing.parent === root) return existing.id;
-  const folder = book.add(t(ROLE_LABELS[role]), "page", root);
+  claim(book, id, role);
 
-  book.settings.set(key, folder.id);
-
-  return folder.id;
+  return id;
 }
 
-export function ensureAiTree(book: Notebook, t: T) {
-  const root = ensureAiRoot(book, t);
+export async function ensureAiTree(book: Notebook, t: T) {
+  await mergeAiTrees(book);
+  const root = await ensureAiRoot(book, t);
 
   return Object.fromEntries(
     AI_ROLES.map((role) => [role, ensureFolder(book, root, role, t)]),
   ) as Record<AiRole, string>;
 }
 
-export function ensureRoleFolder(book: Notebook, role: AiRole, t: T) {
-  return ensureAiTree(book, t)[role];
+export async function ensureRoleFolder(book: Notebook, role: AiRole, t: T) {
+  return (await ensureAiTree(book, t))[role];
 }
 
 function homeText(t: T, folders: Record<AiRole, string>) {
@@ -217,7 +321,7 @@ function homeText(t: T, folders: Record<AiRole, string>) {
 }
 
 export async function prepareAiHome(book: Notebook, t: T) {
-  const folders = ensureAiTree(book, t);
+  const folders = await ensureAiTree(book, t);
   const root = aiRootId(book);
 
   if (!root) throw Error("AI page unavailable");
@@ -251,11 +355,8 @@ export async function createRolePage(
   title = "",
   text = "",
 ): Promise<Entry> {
-  const entry = book.add(
-    title.slice(0, 200),
-    "page",
-    ensureRoleFolder(book, role, t),
-  );
+  const folder = await ensureRoleFolder(book, role, t);
+  const entry = book.add(title.slice(0, 200), "page", folder);
 
   if (text) writeMarkdown(entry, text);
   await book.change(entry.id, { ai: role });
@@ -309,7 +410,7 @@ export async function memoryPage(book: Notebook, t: T) {
   const usable = known && !known.archived && pageRole(book, known) === "memory";
 
   if (usable && !aiExcluded(book, known.id)) return book.load(known.id);
-  if (aiExcluded(book, ensureRoleFolder(book, "memory", t)))
+  if (aiExcluded(book, await ensureRoleFolder(book, "memory", t)))
     throw Error("The memory folder is excluded from AI");
   const entry = await createRolePage(book, "memory", t, t("aiMemoryLearned"));
 
