@@ -9,6 +9,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 pub const MAX_EPOCHS: usize = 64;
 const KEY: usize = 32;
 const EPOCH: usize = 2 * KEY;
+const FIRST_EPOCH: u32 = 1;
+const TEXT_ID_PURPOSE: &[u8] = b"kladde/v1/file-text";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Ring {
@@ -69,6 +71,17 @@ impl Access {
         let identity = VerifyingKey::from_bytes(entry[KEY..].try_into().map_err(|_| Error::Auth)?)
             .map_err(|_| Error::Auth)?;
         Ok((key, identity))
+    }
+
+    pub fn text_id(&self, doc: Uuid, file: Uuid) -> Result<Uuid, Error> {
+        let (first, _) = self.epoch_keys(FIRST_EPOCH)?;
+        let context = [doc.as_bytes().as_slice(), file.as_bytes().as_slice()].concat();
+        let derived = c::derive(first.as_ref(), &context, TEXT_ID_PURPOSE)?;
+        let mut bytes = [0u8; 16];
+
+        bytes.copy_from_slice(&derived[..16]);
+
+        Ok(uuid::Builder::from_random_bytes(bytes).into_uuid())
     }
 }
 

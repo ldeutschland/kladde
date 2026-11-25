@@ -286,13 +286,13 @@ async fn share_texts(
             return Ok(());
         };
 
-        let file = item.file;
+        let (doc, file) = (item.doc, item.file);
         let (id, body) = job
             .uploads
             .while_leased(&job.lease, || shared_texts::sealed_text(access, item))?;
 
         shared_outcome(send_blob(client, access, id, body).await?)?;
-        shared_texts::mark_shared(job.app, vault, access, file)?;
+        shared_texts::mark_uploaded(job.app, vault, access, doc, file, id)?;
     }
 
     Ok(())
@@ -419,6 +419,13 @@ async fn upload_one(
     let status = send_blob(client, access, local.id, body).await?;
 
     check_upload_status(client, access, &local, status).await?;
+
+    if vault.access(app, |store| {
+        store.erase_if_orphaned(access.space, local.doc, local.id)
+    })? {
+        return Ok(());
+    }
+
     local.uploaded = true;
     store_locally(app, vault, access.space, &local)?;
 

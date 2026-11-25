@@ -1,8 +1,16 @@
-use crate::{Error, Store, listing, uuid_col};
+use crate::{
+    Error, Store, listing, parts,
+    shared_versions::{self, LISTED_MAP},
+    uuid_col,
+};
+
 use rusqlite::{Connection, OptionalExtension, params};
 use uuid::Uuid;
 
 const DISCARD_BATCH: i64 = 2000;
+const FORGOTTEN_NOTES: &str =
+    "SELECT id,data FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row'))";
+const ERASE_TEXT: &str = "INSERT OR IGNORE INTO erased_texts VALUES(?1,?2,?3,?4)";
 const CHILDREN_LEFT: &str = "SELECT exists(SELECT 1 FROM notes c JOIN notes p ON p.id=c.parent WHERE c.parent=?1 AND c.kind!='index' AND NOT (c.kind='row' AND p.kind='database'))";
 
 const DISCARD_ROWS: [&str; 3] = [
@@ -47,10 +55,6 @@ impl Store {
     }
 
     pub fn forget(&mut self, id: Uuid) -> Result<(), Error> {
-        self.forget_with(id, &[])
-    }
-
-    pub fn forget_with(&mut self, id: Uuid, blobs: &[Uuid]) -> Result<(), Error> {
         let (space, kind) = self.erasable(id)?.ok_or(Error::Invalid)?;
         let tx = self.0.transaction()?;
 
@@ -62,6 +66,7 @@ impl Store {
             "INSERT INTO deletions(space,id) VALUES(?1,?2)",
             params![space.to_string(), id.to_string()],
         )?;
+        Self::erase_referenced(&tx, space, id)?;
 
         if kind == "database" {
             Self::discard_rows(&tx, id)?;
@@ -75,7 +80,6 @@ impl Store {
             "INSERT OR IGNORE INTO erased_file_docs SELECT id,doc FROM file_owners WHERE doc=?1",
             [id.to_string()],
         )?;
-        Self::erase_blobs(&tx, space, id, blobs)?;
 
         if Self::remove_note(&tx, id, space)? != 1 {
             return Err(Error::Invalid);
@@ -86,27 +90,64 @@ impl Store {
         Ok(())
     }
 
-    fn erase_blobs(tx: &Connection, space: Uuid, doc: Uuid, blobs: &[Uuid]) -> Result<(), Error> {
-        for blob in blobs {
-            tx.execute(
-                "INSERT OR IGNORE INTO erased_files VALUES(?1,?2)",
-                params![blob.to_string(), space.to_string()],
-            )?;
-            tx.execute(
-                "INSERT OR IGNORE INTO erased_file_docs VALUES(?1,?2)",
-                params![blob.to_string(), doc.to_string()],
-            )?;
+    fn erase_referenced(tx: &Connection, space: Uuid, owner: Uuid) -> Result<(), Error> {
+        let mut statement = tx.prepare(FORGOTTEN_NOTES)?;
+        let notes = statement.query_map(params![owner.to_string(), space.to_string()], |r| {
+            Ok((uuid_col(r, 0)?, r.get::<_, Vec<u8>>(1)?))
+        })?;
+
+        for note in notes {
+            let (doc, data) = note?;
+
+            Self::erase_files_of(tx, space, owner, doc, &data)?;
         }
 
         Ok(())
     }
 
-    pub fn attached_files(&self, doc: Uuid) -> Result<Vec<(Uuid, Uuid)>, Error> {
-        Ok(self
-            .0
-            .prepare("SELECT doc,file FROM page_files WHERE doc=?1 UNION SELECT f.doc,f.file FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row'")?
-            .query_map([doc.to_string()], |r| Ok((uuid_col(r, 0)?, uuid_col(r, 1)?)))?
-            .collect::<Result<_, _>>()?)
+    fn erase_files_of(
+        tx: &Connection,
+        space: Uuid,
+        owner: Uuid,
+        doc: Uuid,
+        data: &[u8],
+    ) -> Result<(), Error> {
+        let files = parts::file_blobs(data).unwrap_or_default();
+        let versions = parts::listed_ids(data, LISTED_MAP).unwrap_or_default();
+        let (space, owner, doc) = (space.to_string(), owner.to_string(), doc.to_string());
+
+        for (file, _) in &files {
+            tx.execute(ERASE_TEXT, params![doc, file.to_string(), space, owner])?;
+        }
+
+        for blob in files.iter().flat_map(|(_, blobs)| blobs).chain(&versions) {
+            Self::erase_blob(tx, &space, &owner, &doc, &blob.to_string())?;
+        }
+
+        Ok(())
+    }
+
+    fn erase_blob(
+        tx: &Connection,
+        space: &str,
+        owner: &str,
+        doc: &str,
+        blob: &str,
+    ) -> Result<(), Error> {
+        if shared_versions::owned_elsewhere(tx, doc, blob)? {
+            return Ok(());
+        }
+
+        tx.execute(
+            "INSERT OR IGNORE INTO erased_files VALUES(?1,?2)",
+            params![blob, space],
+        )?;
+        tx.execute(
+            "INSERT OR IGNORE INTO erased_file_docs VALUES(?1,?2)",
+            params![blob, owner],
+        )?;
+
+        Ok(())
     }
 
     fn discard_rows(tx: &Connection, database: Uuid) -> Result<(), Error> {
@@ -204,6 +245,10 @@ impl Store {
             params![id, space],
         )?;
         tx.execute("DELETE FROM erased_file_docs WHERE doc=?1", [&id])?;
+        tx.execute(
+            "DELETE FROM erased_texts WHERE owner=?1 AND space=?2",
+            params![id, space],
+        )?;
         tx.execute("DELETE FROM discards WHERE owner=?1", [&id])?;
         tx.commit()?;
 

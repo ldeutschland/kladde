@@ -15,8 +15,6 @@ use uuid::Uuid;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 const SHARED_STATUSES: [&str; 2] = ["ready", "partial"];
-const TEXT_ID_PURPOSE: &[u8] = b"kladde/v1/file-text";
-const FIRST_EPOCH: u32 = 1;
 
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 struct SharedText {
@@ -26,18 +24,6 @@ struct SharedText {
 
 pub fn is_shared(status: &str) -> bool {
     SHARED_STATUSES.contains(&status)
-}
-
-fn text_id(access: &Access, doc: Uuid, file: Uuid) -> Result<Uuid, String> {
-    let (first, _) = access.epoch_keys(FIRST_EPOCH).map_err(|e| e.to_string())?;
-    let context = [doc.as_bytes().as_slice(), file.as_bytes().as_slice()].concat();
-    let derived =
-        c::derive(first.as_ref(), &context, TEXT_ID_PURPOSE).map_err(|e| e.to_string())?;
-    let mut bytes = [0u8; 16];
-
-    bytes.copy_from_slice(&derived[..16]);
-
-    Ok(uuid::Builder::from_random_bytes(bytes).into_uuid())
 }
 
 fn marker(access: &Access) -> String {
@@ -65,8 +51,29 @@ pub fn mark_shared(
     vault.access(app, |store| store.set_state(&marker, &[1]))
 }
 
+pub fn mark_uploaded(
+    app: &AppHandle,
+    vault: &Vault,
+    access: &Access,
+    doc: Uuid,
+    file: Uuid,
+    id: Uuid,
+) -> Result<(), String> {
+    let marker = format!("{}{file}", marker(access));
+
+    vault.access(app, |store| {
+        if store.erase_if_orphaned(access.space, doc, id)? {
+            return Ok(());
+        }
+
+        store.set_state(&marker, &[1])
+    })
+}
+
 pub fn sealed_text(access: &Access, item: ExtractedText) -> Result<(Uuid, Vec<u8>), String> {
-    let id = text_id(access, item.doc, item.file)?;
+    let id = access
+        .text_id(item.doc, item.file)
+        .map_err(|e| e.to_string())?;
     let shared = SharedText {
         status: item.status,
         text: item.text,
@@ -87,29 +94,13 @@ pub fn sealed_text(access: &Access, item: ExtractedText) -> Result<(Uuid, Vec<u8
     Ok((id, seal_for_upload(access, &local)?))
 }
 
-pub fn text_ids_of(app: &AppHandle, vault: &Vault, doc: Uuid) -> Result<Vec<Uuid>, String> {
-    let Some((space, _, _)) = vault.access(app, |store| store.revision(doc))? else {
-        return Ok(Vec::new());
-    };
-
-    let Ok(access) = for_space(vault, app, space) else {
-        return Ok(Vec::new());
-    };
-
-    vault
-        .access(app, |store| store.attached_files(doc))?
-        .into_iter()
-        .map(|(owner, file)| text_id(&access, owner, file))
-        .collect()
-}
-
 pub async fn received_text(
     app: &AppHandle,
     vault: &Vault,
     job: &AttachmentJob,
 ) -> Option<Extraction> {
     let access = for_space(vault, app, job.space).ok()?;
-    let id = text_id(&access, job.doc, job.file).ok()?;
+    let id = access.text_id(job.doc, job.file).ok()?;
     let client = kladde_sync::http().ok()?;
     let local = download_blob(&client, &access, id, job.doc).await.ok()?;
     let plain = decrypt_local(&local, job.doc, id).ok()?;

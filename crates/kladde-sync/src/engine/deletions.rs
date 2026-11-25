@@ -98,6 +98,21 @@ async fn purge_singly(
     purge_all(client, access, ids, Erased::Docs, done, local).await
 }
 
+fn locate_texts(local: &impl Local, access: &Access) -> Result<(), Error> {
+    let texts = local.with(|store| store.erased_texts(access.space))?;
+
+    if texts.is_empty() {
+        return Ok(());
+    }
+
+    let blobs = texts
+        .into_iter()
+        .map(|(doc, file)| Ok((doc, file, access.text_id(doc, file)?)))
+        .collect::<Result<Vec<_>, Error>>()?;
+
+    local.with(|store| store.erase_text_blobs(access.space, &blobs))
+}
+
 fn publishable_deletions(local: &impl Local, space: Uuid) -> Result<Vec<Uuid>, Error> {
     if local.with(|store| store.listing_waits(space))? {
         return Ok(Vec::new());
@@ -145,6 +160,7 @@ pub(super) async fn push_deletions(
     .await?;
 
     refused.extend(discard_rows(local, client, access).await?);
+    locate_texts(local, access)?;
     let files = local.with(|store| store.erased_files(space))?;
     let erase = |store: &mut Store, id| store.file_erased(space, id);
 
