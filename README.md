@@ -204,7 +204,7 @@ Variables of the `relay` service (set in `docker-compose.yml`, defaults come fro
 To set a quota of 5 GiB, add it to the `environment` of the `relay` service:
 
 ```yaml
-      ACCOUNT_QUOTA_BYTES: "5368709120"
+ACCOUNT_QUOTA_BYTES: "5368709120"
 ```
 
 ### Restricting registration
