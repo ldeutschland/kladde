@@ -82,8 +82,9 @@ If you lose **both** the password and the recovery phrase, the data on the serve
   - The header (workspace, page, epoch, device, counter, hash of the previous envelope, nonce) is authenticated as additional data.
   - Header and ciphertext are signed by the device key.
 - When receiving an envelope, the app checks the device certificate against the identity key, the signature, the expected workspace, page and epoch, the per-device counter and the hash chain. A server cannot forge, replay, reorder, drop single updates from the middle of a chain or move them to another page without the app noticing.
-- Attachments uploaded to the relay contain the encrypted file plus its file key, encrypted with the page key.
-- Text a device recognizes in an attachment (OCR, PDF and Office text) is uploaded the same way as an extra encrypted attachment, so your other devices can search the file without downloading and recognizing it again. Its ID is derived from the workspace key, so the relay cannot link it to the file by its ID.
+- Attachments uploaded to the relay contain the encrypted file plus its file key, encrypted with the page key. Shared page versions are stored the same way.
+- The page lists the SHA-256 of every attachment part and shared version in its own signed content. A download has to match that hash before it is stored, shown or indexed, so replacing an attachment requires a device that can sign page changes; the workspace keys of a removed device are not enough. A download that neither the page nor its local history lists is refused. Files attached with version 1.1.0 or earlier carry no hash and are still accepted without one.
+- Text a device recognizes in an attachment (OCR, PDF and Office text) is uploaded as an extra encrypted attachment, so your other devices can search the file without downloading and recognizing it again. It is signed by the device key and carries the device certificate. Other devices only accept it if the certificate is valid for the current identity key and the signature covers this workspace, page, file and epoch; otherwise they recognize the text themselves. After a key rotation, devices upload their texts again under the new identity. Its ID is derived from the workspace key, so the relay cannot link it to the file by its ID.
 
 ### Devices and sessions
 

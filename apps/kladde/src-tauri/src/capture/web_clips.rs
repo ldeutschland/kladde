@@ -16,6 +16,7 @@ pub struct StoredImage {
     id: Uuid,
     mime: &'static str,
     size: usize,
+    sha256: String,
 }
 
 #[tauri::command]
@@ -41,6 +42,7 @@ pub async fn clip_image(
         id,
         mime: image.mime,
         size: bytes.len(),
+        sha256: hex::encode(encrypted_files::content_hash(&bytes)),
     })
 }
 

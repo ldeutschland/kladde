@@ -198,6 +198,20 @@ pub fn device_key(
     VerifyingKey::from_bytes(&cert.public).map_err(|_| Invalid)
 }
 
+pub fn verify_certified(
+    identity: &VerifyingKey,
+    account: Uuid,
+    cert: &Certificate,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<(), Invalid> {
+    let signature = Signature::from_slice(signature).map_err(|_| Invalid)?;
+
+    device_key(identity, account, cert)?
+        .verify_strict(message, &signature)
+        .map_err(|_| Invalid)
+}
+
 const TAG: usize = 16;
 pub const MAX_PLAIN: usize = 7_208_956;
 

@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { contentHash } from "../files/attachments";
 import type { Stored } from "../notebook/notebook";
 
 interface SimulatedSync {
@@ -499,10 +500,15 @@ export async function mock<T>(
 
       if (!bytes || !isSimulatedPdf(bytes)) throw new Error("Invalid file");
       const id = crypto.randomUUID();
+      const copy = bytes.slice();
 
-      simulatedFiles.set(id, bytes.slice());
+      simulatedFiles.set(id, copy);
       simulatedPdfEdits.push(args.edit);
-      result = { parts: [id], size: bytes.length };
+      result = {
+        parts: [id],
+        sha256: [await contentHash(new Blob([copy]))],
+        size: bytes.length,
+      };
       break;
     }
     case "save_download":
@@ -659,7 +665,11 @@ export async function mock<T>(
       const id = crypto.randomUUID();
 
       simulatedFiles.set(id, SIMULATED_RECORDING);
-      result = { parts: [id], size: SIMULATED_RECORDING.length };
+      result = {
+        parts: [id],
+        sha256: [await contentHash(new Blob([SIMULATED_RECORDING]))],
+        size: SIMULATED_RECORDING.length,
+      };
       break;
     }
     case "audio_transcribe":

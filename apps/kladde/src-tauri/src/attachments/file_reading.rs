@@ -6,6 +6,7 @@ use super::{
 
 use crate::{notebook::vault::Vault, sync::stored_account::for_space};
 use kladde_protocol::decode_attachment;
+use kladde_store::Listing;
 use tauri::{AppHandle, State, ipc::Response};
 use uuid::Uuid;
 use zeroize::Zeroizing;
@@ -135,8 +136,14 @@ async fn fetch_part(
         return Err(FileReadError::Invalid);
     }
 
+    let listing = vault.access(app, |store| store.blob_listing(space, doc, id))?;
+
+    if listing == Listing::Unlisted {
+        return Err(FileReadError::Invalid);
+    }
+
     let http = kladde_sync::http().map_err(|e| e.to_string())?;
-    let item = download_blob(&http, &access, id, doc).await?;
+    let item = download_blob(&http, &access, id, doc, listing).await?;
 
     keep_fetched(app, vault, &access, &item)?;
 

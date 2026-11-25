@@ -4,7 +4,7 @@ use uuid::Uuid;
 use yrs::{Any, Doc, Map, Out, Transact, Update};
 
 pub const MAX_FILE_PARTS: usize = 65_536;
-const FILES: &str = "files";
+pub(crate) const FILES: &str = "files";
 
 pub(crate) fn file_id(key: &str) -> Result<Uuid, Error> {
     let id: Uuid = key.parse().map_err(|_| Error::Invalid)?;
@@ -23,7 +23,7 @@ fn part_id(item: &Any) -> Result<Uuid, Error> {
     }
 }
 
-fn listed_parts(meta: &Out) -> Result<Option<Vec<Uuid>>, Error> {
+pub(crate) fn listed_parts(meta: &Out) -> Result<Option<Vec<Uuid>>, Error> {
     let Out::Any(Any::Map(fields)) = meta else {
         return Ok(None);
     };
@@ -50,7 +50,7 @@ fn listed_parts(meta: &Out) -> Result<Option<Vec<Uuid>>, Error> {
     Ok(Some(parts))
 }
 
-fn opened(data: &[u8], map: &str) -> Result<(Doc, yrs::MapRef), Error> {
+pub(crate) fn opened(data: &[u8], map: &str) -> Result<(Doc, yrs::MapRef), Error> {
     let doc = Doc::new();
     let entries = doc.get_or_insert_map(map);
     let update = Update::decode_complete_v1(data).map_err(|_| Error::Invalid)?;

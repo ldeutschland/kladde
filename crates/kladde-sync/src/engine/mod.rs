@@ -18,6 +18,7 @@ mod untracked_docs;
 #[cfg(test)]
 mod tests;
 
+pub use deletions::erase_blob;
 pub use relay_features::{Relay, handshake};
 pub use relay_requests::{call, require_success};
 pub use remote_removals::discard_rescued;

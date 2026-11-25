@@ -31,6 +31,24 @@ impl Erased {
     }
 }
 
+async fn erase(
+    client: &reqwest::Client,
+    access: &Access,
+    erased: Erased,
+    id: Uuid,
+) -> Result<(), Error> {
+    let path = erased.path(access, id);
+    let message = erased.message(access, id)?;
+
+    signed_call(client, access, Method::DELETE, &path, &message).await?;
+
+    Ok(())
+}
+
+pub async fn erase_blob(client: &reqwest::Client, access: &Access, id: Uuid) -> Result<(), Error> {
+    erase(client, access, Erased::Blobs, id).await
+}
+
 async fn purge_all(
     client: &reqwest::Client,
     access: &Access,
@@ -42,11 +60,8 @@ async fn purge_all(
     let mut refused = Vec::new();
 
     for id in ids {
-        let path = erased.path(access, id);
-        let message = erased.message(access, id)?;
-
-        match signed_call(client, access, Method::DELETE, &path, &message).await {
-            Ok(_) => local.with(|store| done(store, id))?,
+        match erase(client, access, erased, id).await {
+            Ok(()) => local.with(|store| done(store, id))?,
             Err(Error::Denied) => refused.push(id),
             Err(e) => return Err(e),
         }

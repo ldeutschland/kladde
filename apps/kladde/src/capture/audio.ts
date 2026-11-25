@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { command } from "../platform/native";
-import { recordFile } from "../files/attachments";
+import { recordFile, storedParts } from "../files/attachments";
 import type { Entry, Notebook } from "../notebook/notebook";
 
 export type RecorderPhase =
@@ -27,6 +27,7 @@ export interface Recording {
 
 interface SavedRecording {
   parts: string[];
+  sha256: string[];
   size: number;
 }
 
@@ -160,7 +161,7 @@ export function useRecorder() {
       });
 
       active.current = false;
-      const id = recordFile(entry, saved.parts, {
+      const id = recordFile(entry, storedParts(saved), {
         type: AUDIO_TYPE,
         name,
         size: saved.size,

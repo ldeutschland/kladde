@@ -1,6 +1,6 @@
 use super::{
     encrypted_files::{Local, seal_for_upload, store_locally},
-    relay_blobs::{download_blob, endpoint, transfer_time},
+    relay_blobs::{endpoint, fetch_blob, transfer_time},
     shared_texts,
 };
 
@@ -291,11 +291,37 @@ async fn share_texts(
             .uploads
             .while_leased(&job.lease, || shared_texts::sealed_text(access, item))?;
 
-        shared_outcome(send_blob(client, access, id, body).await?)?;
+        shared_outcome(send_text(client, access, doc, file, id, body).await?)?;
         shared_texts::mark_uploaded(job.app, vault, access, doc, file, id)?;
     }
 
     Ok(())
+}
+
+async fn send_text(
+    client: &reqwest::Client,
+    access: &Access,
+    doc: Uuid,
+    file: Uuid,
+    id: Uuid,
+    body: Vec<u8>,
+) -> Result<reqwest::StatusCode, String> {
+    let status = send_blob(client, access, id, body.clone()).await?;
+
+    if status != reqwest::StatusCode::CONFLICT
+        || shared_texts::relay_holds_valid(client, access, doc, file).await
+    {
+        return Ok(status);
+    }
+
+    kladde_sync::engine::erase_blob(client, access, id)
+        .await
+        .map_err(|e| match e {
+            kladde_sync::Error::Auth => UPLOAD_DENIED.to_string(),
+            _ => "Upload failed".to_string(),
+        })?;
+
+    send_blob(client, access, id, body).await
 }
 
 fn shared_outcome(status: reqwest::StatusCode) -> Result<(), String> {
@@ -449,7 +475,7 @@ async fn check_upload_status(
 
     match status {
         StatusCode::CONFLICT => {
-            let existing = download_blob(client, access, local.id, local.doc).await?;
+            let existing = fetch_blob(client, access, local.id, local.doc).await?;
 
             if existing.key != local.key || existing.file != local.file {
                 return Err("Blob conflict".into());
