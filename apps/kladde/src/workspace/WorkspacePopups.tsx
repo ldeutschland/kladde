@@ -59,6 +59,7 @@ function pageMenuActionsFor(workspace: WorkspaceScope): PopupActions["page"] {
     create: (kind, parent) => workspace.create(kind, parent),
     record: workspace.startRecording,
     history: (target) => void showHistory(context, target),
+    find: workspace.findInPage,
     export: (target) => {
       overlays.setPopup(null);
       void exportPage(book, t, target);

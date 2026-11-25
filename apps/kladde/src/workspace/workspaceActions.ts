@@ -1,5 +1,6 @@
 import type { Reveal } from "../search/reveal";
 import type { SearchHit } from "../search/search";
+import { selectedQuery } from "../search/FindBar";
 import type { AiView } from "../agentPanel/types";
 import { prepareAiHome } from "../ai/aiPages";
 import { clipWebPage, importPages } from "./commands";
@@ -42,6 +43,20 @@ function pageActionsFor(model: WorkspaceModel) {
     overlays.setModal("search");
   }
 
+  function findInPage() {
+    const page = navigation.page;
+
+    if (!page || page.kind === "database" || overlays.modal) return;
+    const selected = selectedQuery();
+
+    overlays.setPopup(null);
+    model.setFinding((finding) => ({
+      page: page.id,
+      query: selected || finding.query,
+      requested: finding.requested + 1,
+    }));
+  }
+
   function startRecording() {
     if (!model.editor.markRecordingSpot()) return;
     overlays.setPopup(null);
@@ -61,6 +76,9 @@ function pageActionsFor(model: WorkspaceModel) {
     go,
     openFound,
     showSearch,
+    findInPage,
+    closeFind: () =>
+      model.setFinding((finding) => ({ ...finding, page: null })),
     startRecording,
     moveTo,
     create: (kind?: "page" | "database", parent?: string | null) =>

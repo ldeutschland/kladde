@@ -13,6 +13,7 @@ Planned: Windows, Android
 - **Pages & editor**: blocks, `/` menu, formatting bar, history and versioning
 - **Databases**: views with AND/OR filter groups, multi-key sorting and automations
 - **Full-text search** (`⌘P`), including PDFs, scans, images and Office files, with on-device text recognition
+- **Find in page** (`⌘F`), with every match highlighted
 - **Attachments**, with a viewer and editing for images and PDFs
 - **Quick notes & web clips**: global `⌘⌥⇧N` on the Mac, "Share → Kladde" on the iPhone, plus a browser extension
 - **Audio notes** with on-device transcription

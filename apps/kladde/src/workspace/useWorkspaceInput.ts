@@ -45,6 +45,7 @@ function runShortcut(
   key: string,
 ) {
   if (key === "p" || key === "k") actions.showSearch();
+  if (key === "f") actions.findInPage();
   if (key === "n") actions.create();
   if (key === "[") model.navigation.nav(-1);
   if (key === "]") model.navigation.nav(1);

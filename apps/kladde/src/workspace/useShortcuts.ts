@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { closeTab, cycleTab, type TabSet } from "./tabs";
 
-const SHORTCUT_KEYS = ["p", "k", "n", "[", "]", "\\", "j", "l"];
+const SHORTCUT_KEYS = ["p", "k", "f", "n", "[", "]", "\\", "j", "l"];
 
 export interface Shortcuts {
   tabs: TabSet | null;

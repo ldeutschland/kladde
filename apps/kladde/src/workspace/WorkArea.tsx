@@ -1,4 +1,5 @@
 import type { Entry, Page } from "../notebook/notebook";
+import { FindBar } from "../search/FindBar";
 import { DesktopHeader, PhoneHeader } from "./Headers";
 import { HomeContent, RootView } from "./HomeView";
 import { PageView } from "./PageView";
@@ -82,32 +83,45 @@ function OpenPage({
   page: Page;
   entry: Entry;
 }) {
-  const { navigation, coverTools, setCoverTools } = workspace;
+  const { navigation, coverTools, setCoverTools, finding } = workspace;
 
   return (
-    <PageView
-      key={page.id}
-      book={workspace.book}
-      entry={entry}
-      page={page}
-      all={workspace.all}
-      database={workspace.database}
-      backlinks={workspace.links}
-      viewRef={navigation.view}
-      tab={navigation.tab}
-      small={workspace.small}
-      coverTools={coverTools === page.id}
-      toggleCoverTools={() =>
-        setCoverTools(coverTools === page.id ? null : page.id)
-      }
-      showMenu={workspace.overlays.showPopup}
-      link={workspace.link}
-      drops={workspace.drops}
-      editor={workspace.editor}
-      setup={workspace.setup}
-      dbProps={workspace.dbProps}
-      openPage={navigation.open}
-    />
+    <>
+      {finding.page === page.id && (
+        <FindBar
+          root={navigation.view}
+          finding={finding}
+          setQuery={(query) =>
+            workspace.setFinding((current) => ({ ...current, query }))
+          }
+          t={workspace.t}
+          close={workspace.closeFind}
+        />
+      )}
+      <PageView
+        key={page.id}
+        book={workspace.book}
+        entry={entry}
+        page={page}
+        all={workspace.all}
+        database={workspace.database}
+        backlinks={workspace.links}
+        viewRef={navigation.view}
+        tab={navigation.tab}
+        small={workspace.small}
+        coverTools={coverTools === page.id}
+        toggleCoverTools={() =>
+          setCoverTools(coverTools === page.id ? null : page.id)
+        }
+        showMenu={workspace.overlays.showPopup}
+        link={workspace.link}
+        drops={workspace.drops}
+        editor={workspace.editor}
+        setup={workspace.setup}
+        dbProps={workspace.dbProps}
+        openPage={navigation.open}
+      />
+    </>
   );
 }
 

@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { Notebook } from "../notebook/notebook";
+import type { Finding } from "../search/FindBar";
 import { useAsk } from "../ui/dialog";
 import { openRow, type WorkspaceContext } from "./pageActions";
 import { useRail } from "./Rail";
@@ -40,6 +41,11 @@ export function useWorkspaceModel(props: WorkspaceProps) {
   const [side, setSide] = useState(!mobile);
   const [nativeChrome, setNativeChrome] = useState(false);
   const [coverTools, setCoverTools] = useState<string | null>(null);
+  const [finding, setFinding] = useState<Finding>({
+    page: null,
+    query: "",
+    requested: 0,
+  });
   const photoPicker = useRef<HTMLInputElement>(null);
   const toasts = useToast();
   const search = useSearch(book, overlays.modal === "search");
@@ -93,6 +99,8 @@ export function useWorkspaceModel(props: WorkspaceProps) {
     setNativeChrome,
     coverTools,
     setCoverTools,
+    finding,
+    setFinding,
     photoPicker,
     toasts,
     search,
