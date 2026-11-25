@@ -21,7 +21,7 @@ pub use database_rows::{ROW_PAGE, RowChange, RowRecord};
 pub use history::Version;
 pub use merge::{Incoming, wire_form};
 pub use parts::MAX_FILE_PARTS;
-pub use search::{Attachment, AttachmentJob, Passage, SearchHit};
+pub use search::{Attachment, AttachmentJob, ExtractedText, Passage, SearchHit};
 pub use shared_versions::{SharedVersion, Shares};
 
 use rusqlite::Connection;

@@ -1,12 +1,14 @@
 use super::{
-    file_reading::{FileReadError, file_bytes, keep_offline},
+    file_reading::{FileReadError, file_bytes, is_offline, keep_offline},
+    shared_texts,
     text_and_previews::{self, Extraction},
+    uploads::start_upload,
 };
 
-use crate::notebook::vault::Vault;
+use crate::{notebook::vault::Vault, sync::stored_account::for_space};
 use kladde_store::{AttachmentJob, SearchHit, Store};
 use serde::Serialize;
-use std::time::Duration;
+use std::{collections::BTreeSet, time::Duration};
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::Notify;
 use uuid::Uuid;
@@ -44,6 +46,14 @@ async fn index_media(app: &AppHandle, vault: &Vault, job: &AttachmentJob) -> Ind
 }
 
 async fn index_text(app: &AppHandle, vault: &Vault, job: &AttachmentJob) -> Indexed {
+    let stored = is_offline(app, vault, job.space, job.doc, job.file);
+
+    if !matches!(stored, Ok(true))
+        && let Some(received) = shared_texts::received_text(app, vault, job).await
+    {
+        return Indexed::Extracted(received);
+    }
+
     let name = job.name.clone();
 
     match file_bytes(app, vault, job.space, job.doc, job.file).await {
@@ -78,12 +88,19 @@ pub async fn index_files(app: AppHandle) {
     let vault = app.state::<Vault>();
 
     loop {
+        let mut shareable = BTreeSet::new();
+
         while let Ok(Some(job)) = vault.access(&app, |store| store.next_attachment()) {
             let indexed = if plays_media(&job.name) {
                 index_media(&app, &vault, &job).await
             } else {
                 index_text(&app, &vault, &job).await
             };
+
+            if matches!(&indexed, Indexed::Extracted(found) if shared_texts::is_shared(found.status))
+            {
+                shareable.insert(job.space);
+            }
 
             if vault
                 .access(&app, |store| record(store, &job, indexed))
@@ -93,9 +110,19 @@ pub async fn index_files(app: AppHandle) {
             }
         }
 
+        share_found_texts(&app, &vault, shareable);
+
         tokio::select! {
             _ = WORK.notified() => {}
             _ = tokio::time::sleep(Duration::from_secs(60)) => {}
+        }
+    }
+}
+
+fn share_found_texts(app: &AppHandle, vault: &Vault, spaces: BTreeSet<Uuid>) {
+    for space in spaces {
+        if for_space(vault, app, space).is_ok() {
+            start_upload(app, space);
         }
     }
 }

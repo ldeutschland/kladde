@@ -1,6 +1,7 @@
 use super::{
     encrypted_files::{Local, seal_for_upload, store_locally},
     relay_blobs::{download_blob, endpoint, transfer_time},
+    shared_texts,
 };
 
 use crate::{notebook::vault::Vault, sync::stored_account::for_space};
@@ -25,6 +26,7 @@ pub const ACCESS_CHANGED: &str = "Sync access changed";
 const UPLOADS_UNAVAILABLE: &str = "Uploads unavailable";
 const RETRY_SECONDS: [u64; 6] = [15, 30, 60, 120, 240, 300];
 const VERIFY_EVERY: Duration = Duration::from_secs(60 * 60);
+const TEXTS_PER_ROUND: usize = 64;
 
 #[derive(Default)]
 struct Pause {
@@ -264,7 +266,66 @@ async fn upload_all(job: &Job<'_>, space: Uuid) -> Result<(), String> {
         }
     }
 
+    if let Err(problem) = share_texts(job, &vault, &access, &client).await
+        && ends_job(&problem)
+    {
+        return Err(problem);
+    }
+
     outcome
+}
+
+async fn share_texts(
+    job: &Job<'_>,
+    vault: &Vault,
+    access: &Access,
+    client: &reqwest::Client,
+) -> Result<(), String> {
+    for _ in 0..TEXTS_PER_ROUND {
+        let Some(item) = shared_texts::next_unshared(job.app, vault, access)? else {
+            return Ok(());
+        };
+
+        let file = item.file;
+        let (id, body) = job
+            .uploads
+            .while_leased(&job.lease, || shared_texts::sealed_text(access, item))?;
+
+        shared_outcome(send_blob(client, access, id, body).await?)?;
+        shared_texts::mark_shared(job.app, vault, access, file)?;
+    }
+
+    Ok(())
+}
+
+fn shared_outcome(status: reqwest::StatusCode) -> Result<(), String> {
+    use reqwest::StatusCode;
+
+    match status {
+        StatusCode::CONFLICT => Ok(()),
+        StatusCode::INSUFFICIENT_STORAGE => Err(STORAGE_FULL.into()),
+        StatusCode::UNAUTHORIZED => Err(UPLOAD_DENIED.into()),
+        status if status.is_success() => Ok(()),
+        _ => Err("Upload refused".into()),
+    }
+}
+
+async fn send_blob(
+    client: &reqwest::Client,
+    access: &Access,
+    id: Uuid,
+    body: Vec<u8>,
+) -> Result<reqwest::StatusCode, String> {
+    let response = client
+        .put(endpoint(access, id)?)
+        .bearer_auth(&access.token)
+        .timeout(transfer_time(body.len()))
+        .body(body)
+        .send()
+        .await
+        .map_err(|_| "Upload failed")?;
+
+    Ok(response.status())
 }
 
 pub fn upload_marker(access: &Access, id: &str) -> String {
@@ -355,15 +416,9 @@ async fn upload_one(
     let body = job
         .uploads
         .while_leased(&job.lease, || seal_for_upload(access, &local))?;
-    let response = client
-        .put(endpoint(access, local.id)?)
-        .bearer_auth(&access.token)
-        .timeout(transfer_time(body.len()))
-        .body(body)
-        .send()
-        .await
-        .map_err(|_| "Upload failed")?;
-    check_upload_status(client, access, &local, response.status()).await?;
+    let status = send_blob(client, access, local.id, body).await?;
+
+    check_upload_status(client, access, &local, status).await?;
     local.uploaded = true;
     store_locally(app, vault, access.space, &local)?;
 

@@ -7,6 +7,7 @@ pub mod pdf_editing;
 pub mod previews;
 pub mod relay_blobs;
 pub mod search_index;
+pub mod shared_texts;
 pub mod text_and_previews;
 pub mod uploads;
 

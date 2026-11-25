@@ -160,6 +160,22 @@ async fn part_bytes(
     decrypt_local(&local, doc, id)
 }
 
+pub fn is_offline(
+    app: &AppHandle,
+    vault: &Vault,
+    space: Uuid,
+    doc: Uuid,
+    id: Uuid,
+) -> Result<bool, FileReadError> {
+    for part in parts_of(app, vault, space, doc, id)? {
+        if !is_stored(app, vault, space, part)? {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
 pub async fn keep_offline(
     app: &AppHandle,
     vault: &Vault,

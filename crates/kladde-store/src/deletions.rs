@@ -11,8 +11,11 @@ const DISCARD_ROWS: [&str; 3] = [
     "INSERT OR IGNORE INTO discards SELECT id,space,?1 FROM notes WHERE parent=?1 AND kind IN ('row','index')",
 ];
 
-const REMOVE_ROWS: [&str; 9] = [
+const SHARED_TEXT_MARKS: &str = "DELETE FROM private_state WHERE substr(id,1,12)='shared-text:' AND substr(id,-36) IN (SELECT file FROM page_files WHERE doc=?1)";
+
+const REMOVE_ROWS: [&str; 10] = [
     "DELETE FROM row_marks WHERE parent=?1",
+    "DELETE FROM private_state WHERE substr(id,1,12)='shared-text:' AND substr(id,-36) IN (SELECT f.file FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row')",
     "DELETE FROM file_words WHERE rowid IN (SELECT f.rowid FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row')",
     "DELETE FROM private_state WHERE id IN (SELECT 'asset:' || f.space || ':' || f.id FROM file_owners f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row')",
     "DELETE FROM private_state WHERE substr(id,1,5) IN ('head:','wire:') AND substr(id,-36) IN (SELECT id FROM notes WHERE parent=?1 AND kind IN ('row','index'))",
@@ -44,6 +47,10 @@ impl Store {
     }
 
     pub fn forget(&mut self, id: Uuid) -> Result<(), Error> {
+        self.forget_with(id, &[])
+    }
+
+    pub fn forget_with(&mut self, id: Uuid, blobs: &[Uuid]) -> Result<(), Error> {
         let (space, kind) = self.erasable(id)?.ok_or(Error::Invalid)?;
         let tx = self.0.transaction()?;
 
@@ -68,6 +75,7 @@ impl Store {
             "INSERT OR IGNORE INTO erased_file_docs SELECT id,doc FROM file_owners WHERE doc=?1",
             [id.to_string()],
         )?;
+        Self::erase_blobs(&tx, space, id, blobs)?;
 
         if Self::remove_note(&tx, id, space)? != 1 {
             return Err(Error::Invalid);
@@ -76,6 +84,29 @@ impl Store {
         tx.commit()?;
 
         Ok(())
+    }
+
+    fn erase_blobs(tx: &Connection, space: Uuid, doc: Uuid, blobs: &[Uuid]) -> Result<(), Error> {
+        for blob in blobs {
+            tx.execute(
+                "INSERT OR IGNORE INTO erased_files VALUES(?1,?2)",
+                params![blob.to_string(), space.to_string()],
+            )?;
+            tx.execute(
+                "INSERT OR IGNORE INTO erased_file_docs VALUES(?1,?2)",
+                params![blob.to_string(), doc.to_string()],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    pub fn attached_files(&self, doc: Uuid) -> Result<Vec<(Uuid, Uuid)>, Error> {
+        Ok(self
+            .0
+            .prepare("SELECT doc,file FROM page_files WHERE doc=?1 UNION SELECT f.doc,f.file FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row'")?
+            .query_map([doc.to_string()], |r| Ok((uuid_col(r, 0)?, uuid_col(r, 1)?)))?
+            .collect::<Result<_, _>>()?)
     }
 
     fn discard_rows(tx: &Connection, database: Uuid) -> Result<(), Error> {
@@ -212,6 +243,7 @@ impl Store {
         listing::mark_gone(tx, id)?;
         let id = id.to_string();
 
+        tx.execute(SHARED_TEXT_MARKS, [&id])?;
         tx.execute(
             "DELETE FROM file_words WHERE rowid IN (SELECT rowid FROM page_files WHERE doc=?1)",
             [&id],

@@ -1,4 +1,8 @@
-use crate::{attachments::search_index, notebook::vault::Vault};
+use crate::{
+    attachments::{search_index, shared_texts},
+    notebook::vault::Vault,
+};
+
 use kladde_store::Note;
 use tauri::{AppHandle, State};
 use uuid::Uuid;
@@ -119,5 +123,7 @@ pub fn backlinks(app: AppHandle, vault: State<Vault>, id: Uuid) -> Result<Vec<Uu
 
 #[tauri::command]
 pub fn forget(app: AppHandle, vault: State<Vault>, id: Uuid) -> Result<(), String> {
-    vault.access(&app, |store| store.forget(id))
+    let texts = shared_texts::text_ids_of(&app, &vault, id)?;
+
+    vault.access(&app, |store| store.forget_with(id, &texts))
 }

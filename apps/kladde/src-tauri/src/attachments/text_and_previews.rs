@@ -4,7 +4,7 @@ use zeroize::Zeroizing;
 
 pub const PREVIEW_EDGE: usize = 2400;
 pub const THUMBNAIL_EDGE: usize = 256;
-const TEXT_LIMIT: usize = 1_048_576;
+pub(super) const TEXT_LIMIT: usize = 1_048_576;
 const XML_LIMIT: u64 = 16 * 1024 * 1024;
 const MAX_FOUND_BOXES: usize = 64;
 
@@ -120,7 +120,7 @@ pub struct Extraction {
 }
 
 impl Extraction {
-    fn new(status: &'static str, text: String) -> Self {
+    pub(super) fn new(status: &'static str, text: String) -> Self {
         Self {
             status,
             text: Zeroizing::new(text.replace(['\0', '\u{1e}', '\u{1f}'], " ")),
