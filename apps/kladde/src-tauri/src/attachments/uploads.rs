@@ -419,10 +419,11 @@ async fn upload_one(
     let status = send_blob(client, access, local.id, body).await?;
 
     check_upload_status(client, access, &local, status).await?;
+    let kept = vault.access(app, |store| {
+        store.keep_sent(access.space, local.doc, local.id)
+    })?;
 
-    if vault.access(app, |store| {
-        store.erase_if_orphaned(access.space, local.doc, local.id)
-    })? {
+    if !kept {
         return Ok(());
     }
 

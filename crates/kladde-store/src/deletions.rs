@@ -11,6 +11,10 @@ const DISCARD_BATCH: i64 = 2000;
 const FORGOTTEN_NOTES: &str =
     "SELECT id,data FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row'))";
 const ERASE_TEXT: &str = "INSERT OR IGNORE INTO erased_texts VALUES(?1,?2,?3,?4)";
+const SENT_FILES: [&str; 2] = [
+    "INSERT OR IGNORE INTO erased_files SELECT id,?2 FROM sent_files WHERE doc IN (SELECT id FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row')))",
+    "INSERT OR IGNORE INTO erased_file_docs SELECT id,?1 FROM sent_files WHERE doc IN (SELECT id FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row')))",
+];
 const CHILDREN_LEFT: &str = "SELECT exists(SELECT 1 FROM notes c JOIN notes p ON p.id=c.parent WHERE c.parent=?1 AND c.kind!='index' AND NOT (c.kind='row' AND p.kind='database'))";
 
 const DISCARD_ROWS: [&str; 3] = [
@@ -67,6 +71,7 @@ impl Store {
             params![space.to_string(), id.to_string()],
         )?;
         Self::erase_referenced(&tx, space, id)?;
+        Self::erase_sent(&tx, space, id)?;
 
         if kind == "database" {
             Self::discard_rows(&tx, id)?;
@@ -122,6 +127,14 @@ impl Store {
 
         for blob in files.iter().flat_map(|(_, blobs)| blobs).chain(&versions) {
             Self::erase_blob(tx, &space, &owner, &doc, &blob.to_string())?;
+        }
+
+        Ok(())
+    }
+
+    fn erase_sent(tx: &Connection, space: Uuid, owner: Uuid) -> Result<(), Error> {
+        for statement in SENT_FILES {
+            tx.execute(statement, params![owner.to_string(), space.to_string()])?;
         }
 
         Ok(())
@@ -268,6 +281,8 @@ impl Store {
 
         let database = known.is_some_and(|(_, kind, _)| kind == "database");
         let tx = self.0.transaction()?;
+
+        Self::erase_sent(&tx, space, id)?;
 
         if database {
             Self::remove_rows(&tx, &id.to_string())?;

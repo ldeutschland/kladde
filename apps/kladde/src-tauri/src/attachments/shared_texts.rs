@@ -62,7 +62,7 @@ pub fn mark_uploaded(
     let marker = format!("{}{file}", marker(access));
 
     vault.access(app, |store| {
-        if store.erase_if_orphaned(access.space, doc, id)? {
+        if !store.keep_sent(access.space, doc, id)? {
             return Ok(());
         }
 

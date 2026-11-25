@@ -100,7 +100,7 @@ impl Store {
         Ok(())
     }
 
-    pub fn erase_if_orphaned(&mut self, space: Uuid, doc: Uuid, blob: Uuid) -> Result<bool, Error> {
+    pub fn keep_sent(&mut self, space: Uuid, doc: Uuid, blob: Uuid) -> Result<bool, Error> {
         let tx = self.0.transaction()?;
         let (space, doc, blob) = (space.to_string(), doc.to_string(), blob.to_string());
         let kept: bool = tx.query_row(
@@ -110,7 +110,13 @@ impl Store {
         )?;
 
         if kept {
-            return Ok(false);
+            tx.execute(
+                "INSERT OR IGNORE INTO sent_files VALUES(?1,?2)",
+                params![blob, doc],
+            )?;
+            tx.commit()?;
+
+            return Ok(true);
         }
 
         tx.execute(
@@ -120,6 +126,6 @@ impl Store {
         tx.execute(ORPHAN_OWNER, params![blob, doc])?;
         tx.commit()?;
 
-        Ok(true)
+        Ok(false)
     }
 }
