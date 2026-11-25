@@ -141,6 +141,9 @@
   margin-top: 8px;
   cursor: text;
 }
+.writing:has(~ .inlinedb) {
+  min-height: 0;
+}
 html .bn-root,
 html .bn-root[data-color-scheme] {
   --bn-colors-editor-text: var(--text);
