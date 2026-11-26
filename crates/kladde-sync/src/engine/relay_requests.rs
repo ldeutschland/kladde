@@ -59,7 +59,7 @@ pub(super) fn proof(access: &Access, message: &[u8]) -> String {
         .collect()
 }
 
-pub(super) async fn signed_call(
+pub(super) async fn signed_request(
     client: &reqwest::Client,
     access: &Access,
     method: Method,
@@ -70,13 +70,21 @@ pub(super) async fn signed_call(
         .0
         .join(path)
         .map_err(|_| Error::Url)?;
-    let sent = client
+    client
         .request(method, url)
         .bearer_auth(&access.token)
         .header(PROOF_HEADER, proof(access, message))
         .send()
         .await
-        .map_err(|_| Error::Network)?;
+        .map_err(|_| Error::Network)
+}
 
-    require_success(sent)
+pub(super) async fn signed_call(
+    client: &reqwest::Client,
+    access: &Access,
+    method: Method,
+    path: &str,
+    message: &[u8],
+) -> Result<reqwest::Response, Error> {
+    require_success(signed_request(client, access, method, path, message).await?)
 }

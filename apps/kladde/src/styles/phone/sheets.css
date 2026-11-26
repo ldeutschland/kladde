@@ -209,6 +209,10 @@ body:has(.phone) .syncbook > button.switchitem {
   width: 52px;
   height: 44px;
 }
+body:has(.phone) .syncbook > button.syncbookremove {
+  width: 44px;
+  height: 44px;
+}
 body:has(.phone) .settings > h3 {
   font-size: 13px;
   letter-spacing: 0.02em;

@@ -1,8 +1,9 @@
-import { LoaderCircle } from "lucide-react";
+import { CloudOff, LoaderCircle } from "lucide-react";
 import type { T, Word } from "../locale/locale";
 import { firstLetter } from "../workspace/commands";
 import {
   choiceState,
+  removable,
   syncsHere,
   type ChoiceState,
   type SyncBooks,
@@ -24,6 +25,7 @@ interface RowProps {
   locked: boolean;
   t: T;
   toggle: (choice: SyncChoice) => void;
+  remove: (choice: SyncChoice) => void;
 }
 
 function bookName(choice: SyncChoice, t: T) {
@@ -38,6 +40,24 @@ function stateText({ choice, open, pending, t }: RowProps) {
   return open ? state + " · " + t("bookOpen") : state;
 }
 
+function RemoveButton(props: RowProps & { name: string }) {
+  const { choice, name, pending, locked, t, remove } = props;
+
+  if (!removable(choice)) return null;
+
+  return (
+    <button
+      className="syncbookremove"
+      aria-label={t("removeBookLabel").replace("{name}", name)}
+      title={t("removeFromServer")}
+      disabled={pending || locked}
+      onClick={() => remove(choice)}
+    >
+      <CloudOff aria-hidden />
+    </button>
+  );
+}
+
 function BookRow(props: RowProps) {
   const { choice, pending, locked, t, toggle } = props;
   const name = bookName(choice, t);
@@ -50,6 +70,7 @@ function BookRow(props: RowProps) {
         <small>{stateText(props)}</small>
       </span>
       {pending && <LoaderCircle className="spin" aria-hidden />}
+      <RemoveButton {...props} name={name} />
       <button
         className="switchitem"
         aria-pressed={syncsHere(choice)}
@@ -89,6 +110,7 @@ export function SyncBookList({
               locked={locked}
               t={t}
               toggle={(next) => void books.toggle(next)}
+              remove={(next) => void books.remove(next)}
             />
           ))}
         </ul>

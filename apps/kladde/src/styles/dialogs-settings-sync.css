@@ -240,6 +240,26 @@ button.outline {
 .syncbook > button.switchitem .switch {
   margin: 0;
 }
+.syncbook > button.syncbookremove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.syncbook > button.syncbookremove svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+@media (hover: hover) {
+  .syncbook > button.syncbookremove:hover {
+    background: rgba(235, 87, 87, 0.1);
+    color: var(--red);
+  }
+}
 .syncpanel .line svg.lucide {
   width: 16px;
   color: var(--muted);

@@ -132,6 +132,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         sync::workspaces::remote_spaces,
         sync::space_choices::sync_choices,
         sync::space_choices::exclude_space,
+        sync::space_choices::remove_space,
         sync::devices::account_info,
         sync::devices::device_action,
         sync::document_sync::discard_rescued,

@@ -2,13 +2,14 @@ use ed25519_dalek::{Signer, SigningKey};
 use futures_util::{SinkExt, StreamExt};
 use kladde_crypto::{self as c};
 use kladde_protocol::account::{
-    NewSpace, PROOF_HEADER, erase_blob_message, purge_message, space_key_message,
+    NewSpace, PROOF_HEADER, erase_blob_message, purge_message, remove_space_message,
+    space_key_message,
 };
 
 use kladde_protocol::{self as p, Client, Server};
 use kladde_sync::{
     Cursor, Error, Origin, Writing,
-    account::{Access, Proof, login, new_space, prepare_rekey, register, rekey},
+    account::{Access, Proof, login, new_space, open_space, prepare_rekey, register, rekey},
 };
 
 use std::collections::BTreeSet;
@@ -965,4 +966,208 @@ async fn a_signed_out_session_closes_its_socket_at_the_next_ping() {
     .await;
 
     assert!(closed.is_ok());
+}
+
+async fn remove_notebook(http: &reqwest::Client, base: &str, a: &Access, space: Uuid) -> u16 {
+    let message = remove_space_message(a.account, space).unwrap();
+
+    status_of(
+        http.delete(format!("{base}v1/workspaces/{space}"))
+            .bearer_auth(&a.token)
+            .header(PROOF_HEADER, proof(a, &message)),
+    )
+    .await
+}
+
+async fn closes(wire: &mut Wire) -> bool {
+    let closed = tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        while let Some(Ok(frame)) = wire.next().await {
+            if frame.is_close() {
+                break;
+            }
+        }
+    });
+
+    closed.await.is_ok()
+}
+
+fn open_notebook(device: &mut Access, space: Uuid, wrapped: &[u8]) {
+    let keys = open_space(&device.master, &device.identity, space, wrapped).unwrap();
+
+    device.use_keyset(&keys).unwrap();
+    device.space = space;
+}
+
+async fn put_into(
+    http: &reqwest::Client,
+    base: &str,
+    a: &Access,
+    space: Uuid,
+    id: Uuid,
+    body: &[u8],
+) -> u16 {
+    status_of(
+        http.put(format!("{base}v1/spaces/{space}/blobs/{id}"))
+            .bearer_auth(&a.token)
+            .body(body.to_vec()),
+    )
+    .await
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn only_the_owner_removes_a_notebook_with_a_device_proof() {
+    let base = std::env::var("KLADDE_TEST_RELAY").unwrap();
+    let http = reqwest::Client::new();
+    let a = logged_in(&http, &base).await;
+    let stranger = logged_in(&http, &base).await;
+    let space = Uuid::new_v4();
+    let url = format!("{base}v1/workspaces/{space}");
+    let unrelated = remove_space_message(a.account, Uuid::new_v4()).unwrap();
+    let signed_by_owner = remove_space_message(a.account, space).unwrap();
+
+    assert!(add_space(&http, &base, &a, &new_space(&a, space).unwrap()).await);
+    assert_eq!(status_of(http.delete(&url)).await, 401);
+    assert_eq!(
+        status_of(http.delete(&url).bearer_auth(&a.token)).await,
+        401
+    );
+    assert_eq!(
+        status_of(
+            http.delete(&url)
+                .bearer_auth(&a.token)
+                .header(PROOF_HEADER, proof(&a, &unrelated))
+        )
+        .await,
+        401
+    );
+    assert_eq!(
+        status_of(
+            http.delete(&url)
+                .bearer_auth(&stranger.token)
+                .header(PROOF_HEADER, proof(&a, &signed_by_owner))
+        )
+        .await,
+        401
+    );
+    assert_eq!(remove_notebook(&http, &base, &stranger, space).await, 204);
+    assert!(space_ids(&http, &base, &a).await.contains(&space));
+    assert_eq!(remove_notebook(&http, &base, &a, a.space).await, 409);
+    assert!(space_ids(&http, &base, &a).await.contains(&a.space));
+    assert_eq!(remove_notebook(&http, &base, &a, space).await, 204);
+    assert!(!space_ids(&http, &base, &a).await.contains(&space));
+    assert_eq!(remove_notebook(&http, &base, &a, space).await, 204);
+}
+
+async fn notebook_on_two_devices(http: &reqwest::Client) -> (String, Access, Access, Uuid) {
+    let (base, origin, user, _) = fresh_account(http).await;
+    let a = login(http, &origin, &user, PASSWORD, None).await.unwrap();
+    let mut phone = login(http, &origin, &user, PASSWORD, None).await.unwrap();
+    let space = Uuid::new_v4();
+    let added = new_space(&a, space).unwrap();
+
+    assert!(add_space(http, &base, &a, &added).await);
+    open_notebook(&mut phone, space, &added.wrapped);
+
+    (base, a, phone, space)
+}
+
+async fn push_page(wire: &mut Wire, device: &Access, page: Uuid, text: &[u8]) {
+    let writing = Writing {
+        checkpoints: false,
+        format: p::compat::LEGACY_FORMAT,
+    };
+
+    let pushed = Cursor::default()
+        .push_as(device, page, text, writing)
+        .unwrap();
+
+    send(wire, &pushed).await;
+}
+
+async fn pushed_page(base: &str, device: &Access) -> (Wire, Uuid) {
+    let mut wire = connect(base, device).await;
+    let page = Uuid::new_v4();
+
+    push_page(&mut wire, device, page, b"bleibt liegen").await;
+    assert!(matches!(
+        receive(&mut wire).await,
+        Server::Ack { seq: 1, .. }
+    ));
+
+    (wire, page)
+}
+
+async fn watching(base: &str, a: &Access, space: Uuid) -> Wire {
+    let mut wire = connect(base, a).await;
+
+    send(&mut wire, &Client::Watch { space }).await;
+    assert!(matches!(receive(&mut wire).await, Server::Watching { .. }));
+
+    wire
+}
+
+async fn docs_in(
+    http: &reqwest::Client,
+    base: &str,
+    a: &Access,
+    space: Uuid,
+) -> Result<Vec<Uuid>, u16> {
+    let r = http
+        .get(format!("{base}v1/spaces/{space}/docs"))
+        .bearer_auth(&a.token)
+        .send()
+        .await
+        .unwrap();
+    match r.status().as_u16() {
+        200 => Ok(r.json().await.unwrap()),
+        status => Err(status),
+    }
+}
+
+fn stored_file(a: &Access, file: Uuid) -> bool {
+    let blob_dir = std::path::PathBuf::from(std::env::var("BLOB_DIR").unwrap());
+
+    blob_dir
+        .join(a.account.to_string())
+        .join(file.to_string())
+        .exists()
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_removed_notebook_frees_its_storage_and_files() {
+    let http = reqwest::Client::new();
+    let (base, a, phone, space) = notebook_on_two_devices(&http).await;
+    let _pushed = pushed_page(&base, &phone).await;
+    let file = Uuid::new_v4();
+    let large = vec![7u8; 5 * 1024 * 1024];
+
+    assert_eq!(put_into(&http, &base, &a, space, file, &large).await, 201);
+    let (_held, crowded) = put_held(&http, blob_url(&base, &a, Uuid::new_v4()), &a, large.len());
+
+    assert_eq!(finished(crowded).await, 507);
+    assert_eq!(remove_notebook(&http, &base, &a, space).await, 204);
+    assert!(!stored_file(&a, file));
+    assert_eq!(docs_in(&http, &base, &a, space).await, Err(401));
+    assert_eq!(
+        put_blob(&http, &base, &a, Uuid::new_v4(), &large).await,
+        201
+    );
+    assert!(add_space(&http, &base, &a, &new_space(&a, space).unwrap()).await);
+    assert_eq!(docs_in(&http, &base, &a, space).await, Ok(Vec::new()));
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn removing_a_notebook_closes_its_sockets() {
+    let http = reqwest::Client::new();
+    let (base, a, phone, space) = notebook_on_two_devices(&http).await;
+    let (mut pushes, page) = pushed_page(&base, &phone).await;
+    let mut watcher = watching(&base, &a, space).await;
+
+    assert_eq!(remove_notebook(&http, &base, &a, space).await, 204);
+    assert!(closes(&mut watcher).await);
+    push_page(&mut pushes, &phone, page, b"ungesichert").await;
+    assert!(closes(&mut pushes).await);
 }

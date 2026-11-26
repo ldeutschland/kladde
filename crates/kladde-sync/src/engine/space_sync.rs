@@ -8,6 +8,7 @@ use super::relay_features::{agree_on_format, handshake, remember_checkpoints};
 use super::relay_link::Link;
 use super::remote_removals::{orphans_of, remove_deleted};
 use super::report::{Report, error_code};
+use super::resync::follow_keyset;
 use super::space_state::remote_changes;
 use super::untracked_docs::{has_untracked_docs, queue_untracked_docs};
 use crate::{Error, account::Access};
@@ -38,6 +39,7 @@ pub async fn sync_latest(
     access: &Access,
     report: &mut Report,
 ) -> Result<(), Error> {
+    follow_keyset(local, access)?;
     let relay = handshake(client, access).await?;
 
     agree_on_format(local, client, access, &relay, report).await?;
@@ -116,7 +118,10 @@ pub async fn sync_changes_except(
     report: &mut Report,
 ) {
     let remote: BTreeMap<Uuid, i64> = hints.iter().copied().collect();
-    let synced = sync_some(local, access, &remote, stuck, &BTreeSet::new(), report).await;
+    let synced = match follow_keyset(local, access) {
+        Ok(()) => sync_some(local, access, &remote, stuck, &BTreeSet::new(), report).await,
+        Err(e) => Err(e),
+    };
 
     finish_round(local, client, access, synced, report).await;
 }

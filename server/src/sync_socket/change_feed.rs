@@ -48,6 +48,12 @@ pub(crate) fn announce(relay: &Shared, space: Uuid, device: Uuid, message: &Serv
     }
 }
 
+pub(crate) fn close_watchers(relay: &Shared, space: Uuid) {
+    if let Ok(mut watchers) = relay.watchers.lock() {
+        watchers.remove(&space);
+    }
+}
+
 pub(crate) async fn next_change(
     watched: &mut Option<Watched>,
 ) -> std::result::Result<Option<Vec<u8>>, broadcast::error::RecvError> {

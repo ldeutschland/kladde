@@ -158,7 +158,7 @@ async fn replace_space_keys(
     Ok(dropped)
 }
 
-async fn drop_spaces(
+pub(super) async fn drop_spaces(
     tx: &mut sqlx_postgres::PgConnection,
     account: Uuid,
     spaces: &[Uuid],
@@ -252,7 +252,7 @@ pub async fn recovery_finish(
     Ok(Json(true))
 }
 
-async fn erase_unreferenced(relay: &App, account: Uuid, files: Vec<Uuid>) {
+pub(super) async fn erase_unreferenced(relay: &App, account: Uuid, files: Vec<Uuid>) {
     for file in files {
         let referenced = query("SELECT 1 FROM blobs b JOIN memberships m ON m.space=b.space WHERE b.id=$1 AND m.account=$2")
             .bind(file)

@@ -298,6 +298,10 @@ fn account_routes() -> Router<App> {
             "/v1/workspaces",
             get(auth::account::list_spaces).post(auth::account::add_space),
         )
+        .route(
+            "/v1/workspaces/{space}",
+            delete(auth::account::remove_space),
+        )
         .route("/v1/devices", get(auth::account::devices))
         .route("/v1/devices/formats", get(compat::device_formats))
         .route("/v1/account", delete(auth::account::erase))

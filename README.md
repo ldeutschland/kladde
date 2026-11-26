@@ -85,6 +85,7 @@ If you lose **both** the password and the recovery phrase, the data on the serve
 - Attachments uploaded to the relay contain the encrypted file plus its file key, encrypted with the page key. Shared page versions are stored the same way.
 - The page lists the SHA-256 of every attachment part and shared version in its own signed content. A download has to match that hash before it is stored, shown or indexed, so replacing an attachment requires a device that can sign page changes; the workspace keys of a removed device are not enough. A download that neither the page nor its local history lists is refused. Files attached with version 1.1.0 or earlier carry no hash and are still accepted without one.
 - Text a device recognizes in an attachment (OCR, PDF and Office text) is uploaded as an extra encrypted attachment, so your other devices can search the file without downloading and recognizing it again. It is signed by the device key and carries the device certificate. Other devices only accept it if the certificate is valid for the current identity key and the signature covers this workspace, page, file and epoch; otherwise they recognize the text themselves. After a key rotation, devices upload their texts again under the new identity. Its ID is derived from the workspace key, so the relay cannot link it to the file by its ID.
+- A notebook can be removed from the relay on its own. The request has to be signed by a device key, like deleting pages and attachments, so a stolen session token is not enough. The relay then deletes the notebook's pages, history and attachments and frees their storage. The notebook the account was created with stays, because its key set is part of the account keys. Devices that still have the notebook keep their copy: their next sync is refused, and they show the notebook as one that only exists on that device. Uploading it again creates a new key set; every device then drops its sync state from before and merges its copy anew.
 
 ### Devices and sessions
 
@@ -107,7 +108,7 @@ The old phrase stops working and every device has to sign in again. When a devic
 
 The relay **cannot** see page content, titles, database entries, file names, attachments, search terms or the local search index.
 
-To work, it **does** see: your username and IP address, public keys, device, workspace, page and file IDs, approximate sizes, when and how often something changes, and how much storage an account uses.
+To work, it **does** see: your username and IP address, public keys, device, workspace, page and file IDs, approximate sizes, when and how often something changes, and how much storage an account uses. When you remove a notebook from the server, the relay deletes what it stored for it, but it sees which workspace ID was removed and when. A notebook that is uploaded again keeps its ID, so the relay can tell it is the same one.
 
 ## Self-hosting the relay server
 
@@ -183,7 +184,7 @@ Attachments are stored as files in the `data` volume (`/data/blobs`), everything
 3. On the first device, choose **Create account**, pick a username (3 to 64 characters: letters, digits, `.`, `_`, `-`) and a password of at least 12 characters.
 4. Write down the recovery phrase and keep it somewhere safe and offline. It is shown only once.
 5. On every other device, choose **Sign in** with the same server, username and password.
-6. Under **Sync → Notebooks**, choose what each device syncs. Notebooks on the server sync to every signed-in device, also while they are not open, unless you switch them off on that device; nothing is deleted when you do. A notebook that only exists on one device is uploaded once you switch it on there.
+6. Under **Sync → Notebooks**, choose what each device syncs. Notebooks on the server sync to every signed-in device, also while they are not open, unless you switch them off on that device; nothing is deleted when you do. A notebook that only exists on one device is uploaded once you switch it on there. **Remove from server** (the crossed-out cloud next to a notebook) deletes a notebook from the server; the copies on your devices stay and simply stop syncing. The notebook you created the account with stays on the server.
 
 ### Configuration
 

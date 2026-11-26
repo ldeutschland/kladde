@@ -1,9 +1,11 @@
 use super::{
     SyncState,
-    error_messages::to_message,
+    error_messages::{sync_error, to_message},
     live_watch,
+    session::fresh_access,
     stored_account::{
-        confirmed_access, excluded_spaces, excluded_state, known_remote_spaces, space_access,
+        confirmed_access, excluded_spaces, excluded_state, forget_space, known_remote_spaces,
+        space_access,
     },
     workspaces::refreshed_spaces,
 };
@@ -17,6 +19,9 @@ use uuid::Uuid;
 
 const MAX_TITLE_CHARS: usize = 200;
 const EXCLUDED_MARK: &[u8] = &[1];
+const UNKNOWN_SPACE: &str = "Unknown workspace";
+const FIRST_SPACE_STAYS: &str = "The account's first notebook stays on the server";
+const NOT_ON_DEVICE: &str = "Workspace not on this device";
 
 #[derive(Serialize)]
 pub struct Choice {
@@ -25,9 +30,11 @@ pub struct Choice {
     local: bool,
     remote: bool,
     excluded: bool,
+    primary: bool,
 }
 
 struct Known {
+    primary: Uuid,
     local: Vec<(Uuid, String)>,
     remote: BTreeSet<Uuid>,
     excluded: BTreeSet<Uuid>,
@@ -41,6 +48,7 @@ impl Known {
         remote: BTreeSet<Uuid>,
     ) -> Result<Self, String> {
         Ok(Self {
+            primary: access.space,
             local: vault.access(app, |store| store.spaces())?,
             remote,
             excluded: excluded_spaces(vault, app, access.account)?,
@@ -64,6 +72,7 @@ impl Known {
             local,
             remote: self.remote.contains(&id),
             excluded: self.excluded.contains(&id),
+            primary: id == self.primary,
         }
     }
 
@@ -163,7 +172,7 @@ pub fn exclude_space(
     let marker = excluded_state(access.account, space);
 
     if excluded && !known_remote_spaces(&vault, &app, &access)?.contains(&space) {
-        return Err("Unknown workspace".into());
+        return Err(UNKNOWN_SPACE.into());
     }
 
     vault.access(&app, |store| {
@@ -173,6 +182,51 @@ pub fn exclude_space(
             store.clear_state(&marker)
         }
     })?;
+    live_watch::wake(&app);
+
+    Ok(())
+}
+
+fn check_removable(
+    vault: &Vault,
+    app: &AppHandle,
+    access: &Access,
+    space: Uuid,
+) -> Result<(), String> {
+    if space == access.space {
+        return Err(FIRST_SPACE_STAYS.into());
+    }
+
+    if !known_remote_spaces(vault, app, access)?.contains(&space) {
+        return Err(UNKNOWN_SPACE.into());
+    }
+
+    if vault
+        .access(app, |store| store.get(space))?
+        .is_none_or(|n| n.kind != "workspace")
+    {
+        return Err(NOT_ON_DEVICE.into());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn remove_space(
+    app: AppHandle,
+    vault: State<'_, Vault>,
+    sync: State<'_, SyncState>,
+    space: Uuid,
+) -> Result<(), String> {
+    let _guard = sync.lock.lock().await;
+    let client = kladde_sync::http().map_err(to_message)?;
+    let access = fresh_access(&vault, &app, &client).await?;
+
+    check_removable(&vault, &app, &access, space)?;
+    engine::remove_space(&client, &access, space)
+        .await
+        .map_err(|e| sync_error(&e))?;
+    forget_space(&vault, &app, access.account, space)?;
     live_watch::wake(&app);
 
     Ok(())

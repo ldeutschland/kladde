@@ -10,6 +10,7 @@ export interface SyncChoice {
   local: boolean;
   remote: boolean;
   excluded: boolean;
+  primary: boolean;
 }
 
 export type ChoiceState =
@@ -24,6 +25,10 @@ export function choiceState(choice: SyncChoice): ChoiceState {
 
 export function syncsHere(choice: SyncChoice) {
   return choice.remote && !choice.excluded;
+}
+
+export function removable(choice: SyncChoice) {
+  return choice.local && choice.remote && !choice.primary;
 }
 
 function loadChoices(refresh: boolean) {
@@ -109,12 +114,29 @@ export function useSyncBooks(props: SyncPanelProps, account: SyncAccount) {
     else setChoices([]);
   }, [signedIn]);
 
+  function nameOf(choice: SyncChoice) {
+    return choice.title || t("untitled");
+  }
+
   async function confirmUpload(choice: SyncChoice) {
-    const name = choice.title || t("untitled");
     const answer = await props.ask(
-      t("uploadBookQuestion").replace("{name}", name),
+      t("uploadBookQuestion").replace("{name}", nameOf(choice)),
       undefined,
       { detail: t("uploadBookDetail"), action: t("sync") },
+    );
+
+    return answer !== null;
+  }
+
+  async function confirmRemoval(choice: SyncChoice) {
+    const answer = await props.ask(
+      t("removeBookQuestion").replace("{name}", nameOf(choice)),
+      undefined,
+      {
+        detail: t("removeBookDetail"),
+        action: t("removeFromServer"),
+        danger: true,
+      },
     );
 
     return answer !== null;
@@ -137,20 +159,49 @@ export function useSyncBooks(props: SyncPanelProps, account: SyncAccount) {
     if (choice.id === book.id) props.setStatus(SYNC_OFF);
   }
 
-  async function toggle(choice: SyncChoice) {
-    if (!choice.remote && !(await confirmUpload(choice))) return;
+  async function changeChoice(
+    choice: SyncChoice,
+    work: () => Promise<void>,
+    explain = (error: unknown) => readableError(error, t),
+  ) {
     mark([choice.id], true);
     setProblem("");
 
     try {
-      if (syncsHere(choice)) await exclude(choice);
-      else await include(choice);
+      await work();
     } catch (error) {
-      setProblem(readableError(error, t));
+      setProblem(explain(error));
     } finally {
       await showKnown().catch(() => {});
       mark([choice.id], false);
     }
+  }
+
+  async function toggle(choice: SyncChoice) {
+    if (!choice.remote && !(await confirmUpload(choice))) return;
+    await changeChoice(choice, () =>
+      syncsHere(choice) ? exclude(choice) : include(choice),
+    );
+  }
+
+  async function removeFromServer(choice: SyncChoice) {
+    await command("remove_space", { space: choice.id });
+    if (choice.id === book.id) props.setStatus(SYNC_OFF);
+  }
+
+  function notRemoved(choice: SyncChoice, error: unknown) {
+    const failed = t("removeBookFailed").replace("{name}", nameOf(choice));
+
+    return failed + " " + readableError(error, t);
+  }
+
+  async function remove(choice: SyncChoice) {
+    if (!(await confirmRemoval(choice))) return;
+    await changeChoice(
+      choice,
+      () => removeFromServer(choice),
+      (error) => notRemoved(choice, error),
+    );
   }
 
   async function syncOpen() {
@@ -179,7 +230,7 @@ export function useSyncBooks(props: SyncPanelProps, account: SyncAccount) {
     }
   }
 
-  return { choices, pending, problem, toggle, syncAll };
+  return { choices, pending, problem, toggle, remove, syncAll };
 }
 
 export type SyncBooks = ReturnType<typeof useSyncBooks>;

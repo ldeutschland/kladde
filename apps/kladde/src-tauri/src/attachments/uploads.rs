@@ -64,6 +64,14 @@ pub fn resume(app: &AppHandle) {
     }
 }
 
+pub fn verify_again(app: &AppHandle, space: Uuid) {
+    if let Some(uploads) = app.try_state::<Uploads>()
+        && let Ok(mut verified) = uploads.verified.lock()
+    {
+        verified.remove(&space);
+    }
+}
+
 pub fn start_upload(app: &AppHandle, space: Uuid) {
     let app = app.clone();
 

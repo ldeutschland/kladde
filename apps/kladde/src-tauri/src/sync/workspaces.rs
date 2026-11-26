@@ -2,7 +2,7 @@ use super::{
     SyncState,
     error_messages::{success_or_message, to_message},
     session::fresh_access,
-    stored_account::{space_keyset, space_state},
+    stored_account::{space_keyset, space_state, unlisted_spaces},
 };
 
 use crate::notebook::vault::Vault;
@@ -60,17 +60,28 @@ pub fn space_entries<'a>(
     Ok(entries)
 }
 
-fn store_space_keys(
+pub fn store_space_keys(
     vault: &Vault,
     app: &AppHandle,
     access: &Access,
     spaces: &SpaceList,
 ) -> Result<Vec<Uuid>, String> {
     let entries = space_entries(access, spaces)?;
+    let listed: Vec<Uuid> = spaces.iter().map(|(space, _)| *space).collect();
+    let gone = unlisted_spaces(vault, app, access.account, &listed)?;
+    let stale: Vec<String> = gone
+        .iter()
+        .map(|space| space_state(access.account, *space))
+        .collect();
+    let cleared: Vec<&str> = stale.iter().map(String::as_str).collect();
 
-    vault.access(app, |store| store.replace_states(&entries, &[]))?;
+    vault.access(app, |store| store.replace_states(&entries, &cleared))?;
 
-    Ok(spaces.iter().map(|(space, _)| *space).collect())
+    for space in gone {
+        crate::attachments::uploads::verify_again(app, space);
+    }
+
+    Ok(listed)
 }
 
 async fn link_space(

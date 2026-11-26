@@ -75,12 +75,51 @@ pub fn is_excluded(
     Ok(marker.is_some())
 }
 
+pub fn syncs_here(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<bool, String> {
+    let Some(access) = confirmed_access(vault, app)? else {
+        return Ok(false);
+    };
+
+    let known = known_remote_spaces(vault, app, &access)?.contains(&space);
+
+    Ok(known && !is_excluded(vault, app, access.account, space)?)
+}
+
 pub fn excluded_here(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<bool, String> {
     let Some(access) = confirmed_access(vault, app)? else {
         return Ok(false);
     };
 
     is_excluded(vault, app, access.account, space)
+}
+
+pub fn unlisted_spaces(
+    vault: &Vault,
+    app: &AppHandle,
+    account: Uuid,
+    listed: &[Uuid],
+) -> Result<Vec<Uuid>, String> {
+    let stored = spaces_under(vault, app, &space_state_prefix(account))?;
+
+    Ok(stored
+        .into_iter()
+        .filter(|space| !listed.contains(space))
+        .collect())
+}
+
+pub fn forget_space(
+    vault: &Vault,
+    app: &AppHandle,
+    account: Uuid,
+    space: Uuid,
+) -> Result<(), String> {
+    let keys = space_state(account, space);
+    let marker = excluded_state(account, space);
+
+    vault.access(app, |store| store.replace_states(&[], &[&keys, &marker]))?;
+    crate::attachments::uploads::verify_again(app, space);
+
+    Ok(())
 }
 
 pub fn stored_access(vault: &Vault, app: &AppHandle) -> Result<Option<Access>, String> {

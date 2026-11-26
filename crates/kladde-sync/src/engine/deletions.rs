@@ -1,9 +1,15 @@
 use super::Local;
-use super::relay_requests::{proof, require_success, signed_call};
+use super::relay_requests::{proof, require_success, signed_call, signed_request};
 use crate::{Error, Origin, account::Access};
-use kladde_protocol::account::{PROOF_HEADER, discard_message, erase_blob_message, purge_message};
+use kladde_protocol::{
+    account::{
+        PROOF_HEADER, discard_message, erase_blob_message, purge_message, remove_space_message,
+    },
+    compat::Side,
+};
+
 use kladde_store::Store;
-use reqwest::Method;
+use reqwest::{Method, StatusCode};
 use std::collections::BTreeSet;
 use uuid::Uuid;
 
@@ -47,6 +53,24 @@ async fn erase(
 
 pub async fn erase_blob(client: &reqwest::Client, access: &Access, id: Uuid) -> Result<(), Error> {
     erase(client, access, Erased::Blobs, id).await
+}
+
+pub async fn remove_space(
+    client: &reqwest::Client,
+    access: &Access,
+    space: Uuid,
+) -> Result<(), Error> {
+    let path = format!("v1/workspaces/{space}");
+    let message = remove_space_message(access.account, space)?;
+    let response = signed_request(client, access, Method::DELETE, &path, &message).await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        return Err(Error::Outdated(Side::Server));
+    }
+
+    require_success(response)?;
+
+    Ok(())
 }
 
 async fn purge_all(

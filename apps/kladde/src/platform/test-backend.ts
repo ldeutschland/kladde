@@ -15,6 +15,7 @@ interface SimulatedBooks {
   remote: string[];
   excluded: string[];
   titles: Record<string, string>;
+  primary: string;
 }
 
 const SYNC_BOOKS = "kladde-test-sync-books";
@@ -22,7 +23,7 @@ const SYNC_BOOKS = "kladde-test-sync-books";
 function simulatedBooks(): SimulatedBooks {
   const stored = JSON.parse(localStorage.getItem(SYNC_BOOKS) ?? "{}");
 
-  return { remote: [], excluded: [], titles: {}, ...stored };
+  return { remote: [], excluded: [], titles: {}, primary: "", ...stored };
 }
 
 function keepBooks(books: SimulatedBooks) {
@@ -39,6 +40,7 @@ function simulatedChoices(data: Record<string, Stored>) {
     local: isLocal,
     remote: books.remote.includes(id),
     excluded: books.excluded.includes(id),
+    primary: books.primary === id,
   });
 
   return [
@@ -54,6 +56,14 @@ function simulatedExclusion(space: string, excluded: boolean) {
 
   books.excluded = books.excluded.filter((id) => id !== space);
   if (excluded) books.excluded.push(space);
+  keepBooks(books);
+}
+
+function simulatedRemoval(space: string) {
+  const books = simulatedBooks();
+
+  books.remote = books.remote.filter((id) => id !== space);
+  books.excluded = books.excluded.filter((id) => id !== space);
   keepBooks(books);
 }
 
@@ -416,6 +426,9 @@ export async function mock<T>(
       break;
     case "exclude_space":
       simulatedExclusion(String(args.space), args.excluded === true);
+      break;
+    case "remove_space":
+      simulatedRemoval(String(args.space));
       break;
     case "remote_spaces":
       result = simulatedLink(args.link);

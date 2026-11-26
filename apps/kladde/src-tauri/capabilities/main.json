@@ -55,6 +55,7 @@
     "allow-remote-spaces",
     "allow-sync-choices",
     "allow-exclude-space",
+    "allow-remove-space",
     "allow-account-info",
     "allow-device-action",
     "allow-discard-rescued",

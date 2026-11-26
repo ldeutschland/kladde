@@ -226,6 +226,7 @@ fn build_tauri() {
         "remote_spaces",
         "sync_choices",
         "exclude_space",
+        "remove_space",
         "account_info",
         "device_action",
         "discard_rescued",

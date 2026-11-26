@@ -1,13 +1,23 @@
-use super::{challenges::take_ticket, checks::device_signed};
-use crate::{App, Result, bad, blobs::storage::BlobStorage, denied, request_owner, token_hash};
+use super::{
+    challenges::take_ticket,
+    checks::{device_signed, request_signed},
+    recovery::{drop_spaces, erase_unreferenced},
+};
+
+use crate::{
+    App, Fault, Result, bad, blobs::storage::BlobStorage, denied, request_owner,
+    sync_socket::change_feed::close_watchers, token_hash,
+};
+
 use axum::{
     Json,
-    extract::State,
+    extract::{Path, State},
     http::{HeaderMap, StatusCode},
 };
 
-use kladde_protocol::account::*;
+use kladde_protocol::{account::*, decode};
 use sqlx_core::{query::query, row::Row};
+use sqlx_postgres::PgConnection;
 use uuid::Uuid;
 
 pub async fn devices(State(relay): State<App>, headers: HeaderMap) -> Result<Json<Vec<Uuid>>> {
@@ -60,16 +70,7 @@ pub async fn add_space(
     device_signed(&relay, account, device, &message, &input.proof).await?;
     let mut tx = relay.pool.begin().await?;
 
-    query("SELECT id FROM accounts WHERE id=$1 FOR UPDATE")
-        .bind(account)
-        .fetch_one(&mut *tx)
-        .await?;
-    query("SELECT 1 FROM sessions WHERE token=$1 AND account=$2 AND expires>now()")
-        .bind(hash.as_slice())
-        .bind(account)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(denied)?;
+    lock_session(&mut tx, account, &hash).await?;
     let count: i64 = query("SELECT COUNT(*) FROM workspaces WHERE owner=$1")
         .bind(account)
         .fetch_one(&mut *tx)
@@ -97,6 +98,72 @@ pub async fn add_space(
     tx.commit().await?;
 
     Ok(Json(true))
+}
+
+async fn lock_session(tx: &mut PgConnection, account: Uuid, hash: &[u8]) -> Result<()> {
+    query("SELECT id FROM accounts WHERE id=$1 FOR UPDATE")
+        .bind(account)
+        .fetch_one(&mut *tx)
+        .await?;
+    query("SELECT 1 FROM sessions WHERE token=$1 AND account=$2 AND expires>now()")
+        .bind(hash)
+        .bind(account)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(denied)?;
+
+    Ok(())
+}
+
+async fn primary_space(tx: &mut PgConnection, account: Uuid) -> Result<Uuid> {
+    let row = query("SELECT bundle FROM key_blobs WHERE account=$1")
+        .bind(account)
+        .fetch_one(&mut *tx)
+        .await?;
+    let bundle: AccountBundle = decode(&row.get::<Vec<u8>, _>(0))?;
+
+    Ok(bundle.space)
+}
+
+async fn owns_space(tx: &mut PgConnection, account: Uuid, space: Uuid) -> Result<bool> {
+    let owned = query("SELECT 1 FROM workspaces WHERE id=$1 AND owner=$2 FOR UPDATE")
+        .bind(space)
+        .bind(account)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+    Ok(owned.is_some())
+}
+
+pub async fn remove_space(
+    State(relay): State<App>,
+    headers: HeaderMap,
+    Path(space): Path<Uuid>,
+) -> Result<StatusCode> {
+    let hash = token_hash(&headers)?;
+    let (account, device) = request_owner(&relay, &headers).await?;
+    let message = remove_space_message(account, space)?;
+
+    request_signed(&relay, &headers, account, device, &message).await?;
+    let mut tx = relay.pool.begin().await?;
+
+    lock_session(&mut tx, account, &hash).await?;
+
+    if space == primary_space(&mut tx, account).await? {
+        return Err(Fault(StatusCode::CONFLICT));
+    }
+
+    if !owns_space(&mut tx, account, space).await? {
+        return Ok(StatusCode::NO_CONTENT);
+    }
+
+    let files = drop_spaces(&mut tx, account, &[space]).await?;
+
+    tx.commit().await?;
+    erase_unreferenced(&relay, account, files).await;
+    close_watchers(&relay, space);
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn list_spaces(

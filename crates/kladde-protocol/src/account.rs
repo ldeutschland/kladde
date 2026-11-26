@@ -97,6 +97,10 @@ pub fn space_key_message(
     super::encode(&(b"kladde/v1/space-key", account, space, wrapped))
 }
 
+pub fn remove_space_message(account: Uuid, space: Uuid) -> Result<Vec<u8>, super::Invalid> {
+    super::encode(&(b"kladde/v1/remove-space", account, space))
+}
+
 pub const PROOF_HEADER: &str = "kladde-proof";
 
 pub fn purge_message(account: Uuid, space: Uuid, doc: Uuid) -> Result<Vec<u8>, super::Invalid> {

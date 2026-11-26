@@ -712,8 +712,25 @@ const copy = {
   ],
   uploadBookQuestion: ["„{name}“ synchronisieren?", "Sync “{name}”?"],
   uploadBookDetail: [
-    "Kladde lädt das Notizbuch Ende-zu-Ende-verschlüsselt auf den Sync-Server und gleicht es mit deinen anderen Geräten ab. Dort kannst du es jeweils ausschließen. Vom Server entfernen lässt es sich nur zusammen mit dem Konto.",
-    "Kladde uploads the notebook end-to-end encrypted to the sync server and syncs it with your other devices, where you can exclude it individually. It can only be removed from the server together with the account.",
+    "Kladde lädt das Notizbuch Ende-zu-Ende-verschlüsselt auf den Sync-Server und gleicht es mit deinen anderen Geräten ab. Dort kannst du es jeweils ausschließen. Vom Server entfernen kannst du es hier jederzeit wieder.",
+    "Kladde uploads the notebook end-to-end encrypted to the sync server and syncs it with your other devices, where you can exclude it individually. You can remove it from the server here at any time.",
+  ],
+  removeFromServer: ["Vom Server entfernen", "Remove from server"],
+  removeBookLabel: [
+    "„{name}“ vom Server entfernen",
+    "Remove “{name}” from the server",
+  ],
+  removeBookQuestion: [
+    "„{name}“ vom Server entfernen?",
+    "Remove “{name}” from the server?",
+  ],
+  removeBookDetail: [
+    "Kladde löscht das Notizbuch samt Anhängen vom Sync-Server. Die Kopie auf diesem Gerät bleibt erhalten. Deine anderen Geräte behalten ihre Kopie, gleichen sie aber nicht mehr ab.",
+    "Kladde deletes the notebook and its attachments from the sync server. The copy on this device stays. Your other devices keep their copy but no longer sync it.",
+  ],
+  removeBookFailed: [
+    "„{name}“ wurde nicht vom Server entfernt.",
+    "“{name}” was not removed from the server.",
   ],
   err: ["Fehler", "Error"],
   send: ["Senden", "Send"],

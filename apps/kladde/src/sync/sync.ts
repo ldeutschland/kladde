@@ -113,6 +113,7 @@ const PHASE_TEXT: Record<SyncPhase, Word> = {
   error: "syncProblem",
 };
 const LOCKED = "Notebook locked";
+const UNSYNCED = "unsynced";
 const TRANSIENT = new Set<SyncProblem>(["offline", "busy", "storage"]);
 const GRACE_FAILURES = 2;
 const RETRY_MS = [2000, 5000, 15000, 30000, 60000];
@@ -155,6 +156,7 @@ export function statusFromReport(
   previous: SyncStatus,
   now = Date.now(),
 ): SyncStatus {
+  if (report.stopped === UNSYNCED) return SYNC_OFF;
   const problem = report.stopped ? problemOf(report.stopped) : null;
   const failed = report.failed.length > 0;
 

@@ -11,6 +11,7 @@ const KEY: usize = 32;
 const EPOCH: usize = 2 * KEY;
 const FIRST_EPOCH: u32 = 1;
 const TEXT_ID_PURPOSE: &[u8] = b"kladde/v1/file-text";
+const KEYSET_ID_PURPOSE: &[u8] = b"kladde/v1/keyset-id";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Ring {
@@ -71,6 +72,16 @@ impl Access {
         let identity = VerifyingKey::from_bytes(entry[KEY..].try_into().map_err(|_| Error::Auth)?)
             .map_err(|_| Error::Auth)?;
         Ok((key, identity))
+    }
+
+    pub fn keyset_id(&self) -> Result<Key, Error> {
+        let (first, _) = self.epoch_keys(FIRST_EPOCH)?;
+
+        Ok(c::derive(
+            first.as_ref(),
+            self.space.as_bytes(),
+            KEYSET_ID_PURPOSE,
+        )?)
     }
 
     pub fn text_id(&self, doc: Uuid, file: Uuid) -> Result<Uuid, Error> {
