@@ -29,6 +29,7 @@ export interface ModalActions {
   notify: (text: string) => void;
   open: (target: string | null) => Promise<void>;
   changeBook: (id?: string) => Promise<void>;
+  reloadBooks: () => Promise<void>;
   restore: (target: string) => void;
   erase: (page: Page) => void;
   palette: PaletteActions;
@@ -159,6 +160,7 @@ function ToolModal({
           status={state.sync.seen}
           setStatus={state.sync.setStatus}
           changeBook={actions.changeBook}
+          reloadBooks={actions.reloadBooks}
         />
       </Panel>
     );

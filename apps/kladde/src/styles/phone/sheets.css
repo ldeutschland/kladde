@@ -196,6 +196,19 @@ body:has(.phone) .settings .settingrow {
   row-gap: 8px;
   padding-block: 8px;
 }
+body:has(.phone) .syncbook {
+  min-height: 60px;
+}
+body:has(.phone) .syncbookname strong {
+  font-size: 17px;
+}
+body:has(.phone) .syncbookname small {
+  font-size: 14px;
+}
+body:has(.phone) .syncbook > button.switchitem {
+  width: 52px;
+  height: 44px;
+}
 body:has(.phone) .settings > h3 {
   font-size: 13px;
   letter-spacing: 0.02em;

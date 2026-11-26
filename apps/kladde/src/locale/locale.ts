@@ -690,6 +690,31 @@ const copy = {
     "Another device uses an older version of Kladde. New data formats stay off until it is updated.",
   ],
   syncUnknownDetail: ["Der Sync wurde unterbrochen.", "Sync was interrupted."],
+  syncBooks: ["Notizbücher", "Notebooks"],
+  syncBooksHint: [
+    "Eingeschaltete Notizbücher gleicht dieses Gerät ab, auch wenn sie gerade nicht geöffnet sind. Ausschalten schließt ein Notizbuch nur hier aus – gelöscht wird nichts.",
+    "This device syncs the notebooks that are switched on, even when they are not open. Switching one off only excludes it here – nothing is deleted.",
+  ],
+  bookArriving: ["Wird heruntergeladen …", "Downloading …"],
+  bookExcludedHere: [
+    "Auf diesem Gerät ausgeschlossen",
+    "Excluded on this device",
+  ],
+  bookExcludedAway: [
+    "Ausgeschlossen, nur auf dem Server",
+    "Excluded, only on the server",
+  ],
+  bookOnServer: ["Notizbuch auf dem Server", "Notebook on the server"],
+  bookOpen: ["geöffnet", "open"],
+  syncBookLabel: [
+    "„{name}“ auf diesem Gerät synchronisieren",
+    "Sync “{name}” on this device",
+  ],
+  uploadBookQuestion: ["„{name}“ synchronisieren?", "Sync “{name}”?"],
+  uploadBookDetail: [
+    "Kladde lädt das Notizbuch Ende-zu-Ende-verschlüsselt auf den Sync-Server und gleicht es mit deinen anderen Geräten ab. Dort kannst du es jeweils ausschließen. Vom Server entfernen lässt es sich nur zusammen mit dem Konto.",
+    "Kladde uploads the notebook end-to-end encrypted to the sync server and syncs it with your other devices, where you can exclude it individually. It can only be removed from the server together with the account.",
+  ],
   err: ["Fehler", "Error"],
   send: ["Senden", "Send"],
   aiPrivacy: [

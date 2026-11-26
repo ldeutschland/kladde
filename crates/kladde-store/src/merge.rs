@@ -4,6 +4,7 @@ use yrs::{Any, Doc, Map, MapRef, Out, ReadTxn, StateVector, Transact, Update, ty
 
 const LINK_PREFIX: &str = "kladde:";
 const UUID_TEXT: usize = 36;
+const WORKSPACE: &str = "workspace";
 
 pub struct Incoming {
     doc: Doc,
@@ -34,6 +35,14 @@ impl Incoming {
         self.latest = Some(note);
 
         Ok(())
+    }
+
+    pub fn workspace_title(&self) -> Option<String> {
+        let latest = self.latest.as_ref().filter(|note| note.kind == WORKSPACE)?;
+        let meta = self.doc.get_or_insert_map("meta");
+        let merged = text_entry(&meta, &self.doc.transact(), "title");
+
+        Some(merged.unwrap_or_else(|| latest.title.clone()))
     }
 }
 

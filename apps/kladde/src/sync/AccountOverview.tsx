@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   KeyRound,
   LoaderCircle,
   LogIn,
@@ -7,13 +6,14 @@ import {
   RefreshCw,
   Wrench,
 } from "lucide-react";
-import { Select } from "../ui/Select";
+import { firstLetter } from "../workspace/commands";
 import { needsRepair, syncDetails, syncLabel } from "./sync";
 import type { AccountInfo, SyncPanelProps } from "./accountTypes";
 import type { SyncAccount } from "./useSyncAccount";
 import type { AccountManagement } from "./useAccountManagement";
+import type { SyncBooks } from "./useSyncBooks";
+import { SyncBookList } from "./SyncBookList";
 
-const FALLBACK_INITIAL = "K";
 const DEVICE_ID_LENGTH = 8;
 
 export interface OverviewProps {
@@ -21,16 +21,15 @@ export interface OverviewProps {
   info: AccountInfo;
   account: SyncAccount;
   management: AccountManagement;
+  books: SyncBooks;
 }
 
-function AccountCard({ panel, info, account }: OverviewProps) {
+function AccountCard({ panel, info, account, books }: OverviewProps) {
   const { t } = panel;
 
   return (
     <div className="accountcard">
-      <span className="avatar">
-        {(Array.from(info[1])[0] ?? FALLBACK_INITIAL).toUpperCase()}
-      </span>
+      <span className="avatar">{firstLetter(info[1])}</span>
       <span className="grow accountname">
         <strong>{info[1]}</strong>
         <small>{info[0]}</small>
@@ -38,7 +37,7 @@ function AccountCard({ panel, info, account }: OverviewProps) {
       <button
         disabled={account.busy}
         className="primary"
-        onClick={account.sync}
+        onClick={() => void books.syncAll()}
       >
         {account.busy ? <LoaderCircle className="spin" /> : <RefreshCw />}
         {account.busy ? t("syncing") : t("sync")}
@@ -90,10 +89,6 @@ function AccountButtons({ panel, account, management }: OverviewProps) {
 
   return (
     <div className="syncactions">
-      <button disabled={account.busy} onClick={management.listRemote}>
-        <BookOpen />
-        {t("workspace")}
-      </button>
       <button disabled={account.busy} onClick={management.listDevices}>
         <MonitorSmartphone />
         {t("devices")}
@@ -120,34 +115,6 @@ function AccountButtons({ panel, account, management }: OverviewProps) {
   );
 }
 
-function RemoteNotebooks({ panel, management }: OverviewProps) {
-  const { book, t } = panel;
-  const { remote } = management;
-  const label = (id: string) =>
-    id === book.id ? String(book.manifest.doc.getMap("meta").get("title")) : id;
-
-  if (!remote.length) return null;
-
-  return (
-    <div className="syncrow">
-      <Select
-        label={t("workspace")}
-        value=""
-        choices={[
-          { value: "", label: t("choose") },
-          ...remote.map((id) => ({ value: id, label: label(id) })),
-        ]}
-        change={management.openRemote}
-      />
-      {!remote.includes(book.id) && (
-        <button className="outline" onClick={management.linkNotebook}>
-          {t("connect")}
-        </button>
-      )}
-    </div>
-  );
-}
-
 function DeviceList({ panel, management }: OverviewProps) {
   return management.devices.map((id) => (
     <div className="line" key={id}>
@@ -159,12 +126,20 @@ function DeviceList({ panel, management }: OverviewProps) {
 }
 
 export function AccountOverview(props: OverviewProps) {
+  const { panel, account, books } = props;
+
   return (
     <>
       <AccountCard {...props} />
       <SyncState {...props} />
+      <SyncBookList
+        books={books}
+        open={panel.book.id}
+        locked={account.busy}
+        t={panel.t}
+      />
+      <h3>{panel.t("account")}</h3>
       <AccountButtons {...props} />
-      <RemoteNotebooks {...props} />
       <DeviceList {...props} />
     </>
   );

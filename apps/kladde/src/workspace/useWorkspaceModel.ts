@@ -28,6 +28,7 @@ export interface WorkspaceProps {
   mobile: boolean;
   books: [string, string][];
   changeBook: (id?: string) => Promise<void>;
+  reloadBooks: () => Promise<void>;
   initialSync: boolean;
 }
 
@@ -57,10 +58,16 @@ export function useWorkspaceModel(props: WorkspaceProps) {
   const [rail, setRail] = useRail(book);
   const shared = useSharedItems(book, mobile, overlays.modal);
   const pageData = usePageData(book, navigation.id, navigation.page?.parent);
-  const sync = useSyncStatus(book, t, toasts.notify, (removed) => {
-    if (navigation.id && removed.includes(navigation.id))
-      void navigation.open(null);
-  });
+  const sync = useSyncStatus(
+    book,
+    t,
+    toasts.notify,
+    (removed) => {
+      if (navigation.id && removed.includes(navigation.id))
+        void navigation.open(null);
+    },
+    props.reloadBooks,
+  );
   const context: WorkspaceContext = {
     book,
     t,

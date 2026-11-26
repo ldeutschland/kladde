@@ -36,6 +36,7 @@ export interface SyncPanelProps {
   status: SyncStatus;
   setStatus: Dispatch<SetStateAction<SyncStatus>>;
   changeBook: (id?: string) => Promise<void>;
+  reloadBooks: () => Promise<void>;
 }
 
 const SYNC_ERROR = /^(Error: )?sync:/;

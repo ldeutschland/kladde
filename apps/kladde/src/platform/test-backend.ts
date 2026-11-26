@@ -11,6 +11,62 @@ function simulatedSync(): SimulatedSync | null {
   return JSON.parse(localStorage.getItem("kladde-test-sync") ?? "null");
 }
 
+interface SimulatedBooks {
+  remote: string[];
+  excluded: string[];
+  titles: Record<string, string>;
+}
+
+const SYNC_BOOKS = "kladde-test-sync-books";
+
+function simulatedBooks(): SimulatedBooks {
+  const stored = JSON.parse(localStorage.getItem(SYNC_BOOKS) ?? "{}");
+
+  return { remote: [], excluded: [], titles: {}, ...stored };
+}
+
+function keepBooks(books: SimulatedBooks) {
+  localStorage.setItem(SYNC_BOOKS, JSON.stringify(books));
+}
+
+function simulatedChoices(data: Record<string, Stored>) {
+  const books = simulatedBooks();
+  const local = Object.values(data).filter((n) => n.kind === "workspace");
+  const here = new Set(local.map((n) => n.id));
+  const choice = (id: string, title: string | null, isLocal: boolean) => ({
+    id,
+    title,
+    local: isLocal,
+    remote: books.remote.includes(id),
+    excluded: books.excluded.includes(id),
+  });
+
+  return [
+    ...local.map((n) => choice(n.id, n.title, true)),
+    ...books.remote
+      .filter((id) => !here.has(id))
+      .map((id) => choice(id, books.titles[id] ?? null, false)),
+  ];
+}
+
+function simulatedExclusion(space: string, excluded: boolean) {
+  const books = simulatedBooks();
+
+  books.excluded = books.excluded.filter((id) => id !== space);
+  if (excluded) books.excluded.push(space);
+  keepBooks(books);
+}
+
+function simulatedLink(link: unknown) {
+  const books = simulatedBooks();
+
+  if (typeof link === "string" && !books.remote.includes(link))
+    books.remote.push(link);
+  keepBooks(books);
+
+  return books.remote;
+}
+
 const OPENED_SPACE = "kladde-test-opened-space";
 const SCRIPTED_CALLS = "kladde-test-ai-calls";
 const ROW_PAGE = 5000;
@@ -348,9 +404,25 @@ export async function mock<T>(
 
   switch (name) {
     case "account_info":
-      result = simulatedSync()
-        ? ["https://sync.example.org", "test", args.space ?? "", "device"]
-        : null;
+      result =
+        simulatedSync() &&
+        !simulatedBooks().excluded.includes(String(args.space))
+          ? ["https://sync.example.org", "test", args.space ?? "", "device"]
+          : null;
+      break;
+    case "sync_choices":
+      if (!simulatedSync()) throw Error("Not connected");
+      result = simulatedChoices(data);
+      break;
+    case "exclude_space":
+      simulatedExclusion(String(args.space), args.excluded === true);
+      break;
+    case "remote_spaces":
+      result = simulatedLink(args.link);
+      break;
+    case "sync_others":
+      if (!simulatedSync()) throw Error("Not connected");
+      result = [];
       break;
     case "sync_now": {
       const sync = simulatedSync();

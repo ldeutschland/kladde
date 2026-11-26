@@ -49,6 +49,7 @@ function modalActionsFor(workspace: WorkspaceScope): ModalActions {
     notify: toasts.notify,
     open: navigation.open,
     changeBook,
+    reloadBooks: workspace.reloadBooks,
     restore: (target) => void restorePage(book, target),
     erase: (target) => void erasePage(book, ask, t, target),
     palette: paletteActionsFor(workspace),

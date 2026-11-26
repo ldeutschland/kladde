@@ -4,6 +4,7 @@ import type { SyncPanelProps } from "./accountTypes";
 import { useSyncAccount, type SyncAccount } from "./useSyncAccount";
 import { useAccountManagement } from "./useAccountManagement";
 import { useAccountForm } from "./useAccountForm";
+import { useSyncBooks } from "./useSyncBooks";
 import { AccountOverview } from "./AccountOverview";
 import { AccountForm } from "./AccountForm";
 
@@ -36,6 +37,7 @@ export function SyncPanel(props: SyncPanelProps) {
   const { t } = props;
   const account = useSyncAccount(props);
   const management = useAccountManagement(props, account);
+  const books = useSyncBooks(props, account);
   const { connect } = useAccountForm(props, account, management);
   const { info, busy, error } = account;
   const showForm = !info || account.action !== "login";
@@ -48,6 +50,7 @@ export function SyncPanel(props: SyncPanelProps) {
           info={info}
           account={account}
           management={management}
+          books={books}
         />
       ) : (
         <NoAccount t={t} account={account} />

@@ -17,12 +17,15 @@ export function useSyncStatus(
   t: T,
   notify: (text: string) => void,
   removed: (ids: string[]) => void,
+  arrived: () => Promise<void>,
 ) {
   const [status, setStatus] = useState<SyncStatus>(SYNC_OFF),
     [slow, setSlow] = useState(false);
   const onRemoved = useRef(removed);
+  const onArrived = useRef(arrived);
 
   onRemoved.current = removed;
+  onArrived.current = arrived;
   useEffect(
     () =>
       startSyncLoop(book, {
@@ -34,6 +37,7 @@ export function useSyncStatus(
           if (report.changed.length) void mergeAiTrees(book).catch(() => {});
           onRemoved.current(report.removed);
         },
+        arrived: () => void onArrived.current().catch(() => {}),
       }),
     [book, t, notify],
   );

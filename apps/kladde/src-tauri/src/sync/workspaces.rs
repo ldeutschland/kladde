@@ -99,6 +99,21 @@ async fn link_space(
     Ok(())
 }
 
+pub async fn refreshed_spaces(
+    vault: &Vault,
+    app: &AppHandle,
+    sync: &SyncState,
+    client: &reqwest::Client,
+) -> Result<(Access, SpaceList), String> {
+    let _guard = sync.lock.lock().await;
+    let access = fresh_access(vault, app, client).await?;
+    let spaces = fetch_spaces(client, &access).await?;
+
+    store_space_keys(vault, app, &access, &spaces)?;
+
+    Ok((access, spaces))
+}
+
 #[tauri::command]
 pub async fn remote_spaces(
     app: AppHandle,

@@ -51,6 +51,7 @@ export function useAccountForm(
     account.setAction("login");
     management.clearDevices();
     account.setInfo(await command<AccountInfo | null>("account_info"));
+    if (!(await command("account_info", { space }))) return;
     await account.syncInto(space);
     if (space !== book.id) await props.changeBook(space);
   }

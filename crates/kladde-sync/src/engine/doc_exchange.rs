@@ -155,7 +155,7 @@ pub(super) async fn receive_pull(
     received
 }
 
-async fn collect_items(
+pub(super) async fn collect_items(
     socket: &mut Socket,
     access: &Access,
     keys: &DocKeys,

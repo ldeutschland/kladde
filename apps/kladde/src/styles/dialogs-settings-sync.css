@@ -163,15 +163,82 @@ button.outline {
 .syncactions button[aria-pressed="true"] {
   background: var(--hover-strong);
 }
-.syncrow {
+.syncpanel h3 + .syncactions {
+  margin-top: 0;
+}
+.syncbooks > p.muted {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.syncbooks ul {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 4px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  list-style: none;
+}
+.syncbook {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 4px 4px 4px 8px;
 }
-.syncrow > :first-child {
-  flex: 1;
-  min-width: 0;
+.syncbook + .syncbook {
+  border-top: 1px solid var(--border);
+}
+.syncbook .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.syncbook.local .avatar,
+.syncbook.excludedHere .avatar,
+.syncbook.excludedAway .avatar {
+  background: var(--hover);
+  color: var(--muted);
+}
+.syncbookname {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.syncbookname strong,
+.syncbookname small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.syncbookname strong {
+  font-weight: 500;
+}
+.syncbookname small {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: normal;
+}
+.syncbook.arriving .syncbookname small {
+  color: var(--accent-text);
+}
+.syncbook > svg.spin {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+.syncbook > button.switchitem {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+}
+.syncbook > button.switchitem .switch {
+  margin: 0;
 }
 .syncpanel .line svg.lucide {
   width: 16px;

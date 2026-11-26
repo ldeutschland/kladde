@@ -101,6 +101,9 @@ function useAppSession() {
     if (id) await command("remember_space", { id });
     setReady(true);
   }, []);
+  const reloadBooks = useCallback(async () => {
+    setBooks(await command<BookList>("spaces"));
+  }, []);
 
   useStartup(refresh, setPlatform, setError);
 
@@ -121,6 +124,7 @@ function useAppSession() {
     setError,
     account,
     refresh,
+    reloadBooks,
     start,
   };
 }
@@ -158,6 +162,7 @@ function OpenWorkspace({
           mobile={session.platform === "ios"}
           books={session.books}
           changeBook={session.refresh}
+          reloadBooks={session.reloadBooks}
           initialSync={session.account}
         />
       </Suspense>

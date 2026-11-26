@@ -183,6 +183,7 @@ Attachments are stored as files in the `data` volume (`/data/blobs`), everything
 3. On the first device, choose **Create account**, pick a username (3 to 64 characters: letters, digits, `.`, `_`, `-`) and a password of at least 12 characters.
 4. Write down the recovery phrase and keep it somewhere safe and offline. It is shown only once.
 5. On every other device, choose **Sign in** with the same server, username and password.
+6. Under **Sync → Notebooks**, choose what each device syncs. Notebooks on the server sync to every signed-in device, also while they are not open, unless you switch them off on that device; nothing is deleted when you do. A notebook that only exists on one device is uploaded once you switch it on there.
 
 ### Configuration
 

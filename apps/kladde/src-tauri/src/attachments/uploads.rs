@@ -38,7 +38,7 @@ struct Pause {
 pub struct Uploads {
     busy: tokio::sync::Mutex<()>,
     lease: Mutex<CancellationToken>,
-    again: Mutex<Option<Uuid>>,
+    again: Mutex<BTreeSet<Uuid>>,
     pause: Mutex<Pause>,
     shown: Mutex<Option<&'static str>>,
     verified: Mutex<HashMap<Uuid, Instant>>,
@@ -164,12 +164,12 @@ impl Uploads {
 
     fn ask_again(&self, space: Uuid) {
         if let Ok(mut again) = self.again.lock() {
-            *again = Some(space);
+            again.insert(space);
         }
     }
 
     fn asked_again(&self) -> Option<Uuid> {
-        self.again.lock().ok()?.take()
+        self.again.lock().ok()?.pop_first()
     }
 
     fn verification_due(&self, space: Uuid) -> bool {
