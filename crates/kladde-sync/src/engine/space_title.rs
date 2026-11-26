@@ -10,15 +10,20 @@ pub async fn space_title(socket: &mut Socket, access: &Access) -> Result<Option<
     let mut damaged = false;
 
     subscribe(socket, access, &keys, &cursor).await?;
-    collect_items(
+    let collected = collect_items(
         socket,
         access,
         &keys,
         &mut cursor,
         &mut incoming,
         &mut damaged,
+        &[],
     )
-    .await?;
+    .await;
 
-    Ok(incoming.workspace_title())
+    match collected {
+        Ok(()) => Ok(incoming.workspace_title()),
+        Err(Error::Uncovered) => Ok(None),
+        Err(e) => Err(e),
+    }
 }

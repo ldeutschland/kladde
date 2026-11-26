@@ -1,4 +1,5 @@
 mod batches;
+mod closings;
 mod deletions;
 mod doc_exchange;
 mod doc_state_keys;
@@ -19,6 +20,7 @@ mod untracked_docs;
 #[cfg(test)]
 mod tests;
 
+pub use closings::remember_fresh_sign_in;
 pub use deletions::{erase_blob, remove_space};
 pub use relay_features::{Relay, handshake};
 pub use relay_requests::{call, require_success};

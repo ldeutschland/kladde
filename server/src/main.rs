@@ -1,5 +1,6 @@
 mod auth;
 mod blobs;
+mod closings;
 mod compat;
 mod space_documents;
 mod sync_socket;
@@ -9,7 +10,7 @@ use axum::{
     extract::{DefaultBodyLimit, Request, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
 };
 
 use blobs::storage::{BlobStorage, Volume};
@@ -206,6 +207,8 @@ type Startup<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const DEFAULT_LISTEN_ADDR: &str = "127.0.0.1:7341";
 const MAX_CONNECTIONS: u32 = 12;
 const MAX_REQUEST_BODY: usize = 131072;
+const MAX_ROTATION_BODY: usize = 4 * 1024 * 1024;
+const MAX_CLOSING_BODY: usize = 64 * 1024 * 1024;
 
 fn write_setup_file(path: &str) -> Startup<()> {
     use std::{io::Write, os::unix::fs::OpenOptionsExt};
@@ -293,7 +296,10 @@ fn account_routes() -> Router<App> {
         .route("/v1/session", delete(auth::sessions::logout))
         .route("/v1/recovery/start", post(auth::recovery::recovery_start))
         .route("/v1/recovery/keys", post(auth::recovery::recovery_keys))
-        .route("/v1/recovery/finish", post(auth::recovery::recovery_finish))
+        .route(
+            "/v1/recovery/finish",
+            post(auth::recovery::recovery_finish).layer(DefaultBodyLimit::max(MAX_ROTATION_BODY)),
+        )
         .route(
             "/v1/workspaces",
             get(auth::account::list_spaces).post(auth::account::add_space),
@@ -321,6 +327,12 @@ fn sync_routes() -> Router<App> {
         )
         .route("/v1/spaces/{space}/discard", post(space_documents::discard))
         .route("/v1/spaces/{space}/blobs", get(blobs::list_blobs))
+        .route("/v1/spaces/{space}/heads", get(closings::heads))
+        .route("/v1/spaces/{space}/closings", get(closings::closings))
+        .route(
+            "/v1/spaces/{space}/closing",
+            put(closings::share_closing).layer(DefaultBodyLimit::max(MAX_CLOSING_BODY)),
+        )
         .route(
             "/v1/spaces/{space}/blobs/{id}",
             get(blobs::get_blob)

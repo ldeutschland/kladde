@@ -3,7 +3,7 @@ use kladde_crypto as c;
 use kladde_store::{Note, Store};
 use kladde_sync::{
     Error, Origin,
-    account::{Access, login, register},
+    account::{Access, Proof, login, prepare_rekey, register, rekey},
     engine::{self, Local, Report},
 };
 
@@ -1397,6 +1397,7 @@ fn listed_pages(device: &Device) -> Vec<String> {
     let mut listed: Vec<String> = pages.keys(&doc.transact()).map(str::to_string).collect();
 
     listed.sort();
+
     listed
 }
 
@@ -1624,4 +1625,71 @@ async fn a_repair_brings_every_device_back_in_step_after_a_relay_restore() {
     assert_eq!(read_text(&fresh, restored), expected);
     assert_eq!(read_text(&fresh, untouched), "unberührt");
     assert_clean(&sync_latest(&phone).await);
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_device_signing_in_after_a_key_change_reads_the_history_before_it() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let page = Uuid::new_v4();
+    let http = kladde_sync::http().unwrap();
+
+    list_pages(&mac, &[page], &[]);
+    write_text(&mac, page, "vor dem Wechsel");
+    assert_clean(&sync(&mac).await);
+    rekey(
+        &http,
+        &origin,
+        &user,
+        Proof::Password(PASSWORD),
+        PASSWORD,
+        &c::key(),
+    )
+    .await
+    .unwrap();
+    let phone = device(&origin, &user).await;
+
+    phone
+        .with(|s| engine::remember_fresh_sign_in(s, &phone.access))
+        .unwrap();
+    assert_clean(&sync_latest(&phone).await);
+    assert_eq!(read_text(&phone, page), "vor dem Wechsel");
+}
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_key_change_is_refused_when_a_notebook_changed_after_its_heads_were_read() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let page = Uuid::new_v4();
+    let http = kladde_sync::http().unwrap();
+
+    list_pages(&mac, &[page], &[]);
+    write_text(&mac, page, "vor dem Wechsel");
+    assert_clean(&sync(&mac).await);
+    let late = prepare_rekey(
+        &http,
+        &origin,
+        &user,
+        Proof::Password(PASSWORD),
+        PASSWORD,
+        &c::key(),
+    )
+    .await
+    .unwrap();
+
+    write_text(&mac, page, " überlebt den Wechsel");
+    assert_clean(&sync(&mac).await);
+    assert!(matches!(late.send(&http, &origin).await, Err(Error::Stale)));
+    rekey(
+        &http,
+        &origin,
+        &user,
+        Proof::Password(PASSWORD),
+        PASSWORD,
+        &c::key(),
+    )
+    .await
+    .unwrap();
 }

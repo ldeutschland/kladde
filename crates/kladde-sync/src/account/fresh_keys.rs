@@ -4,7 +4,7 @@ use super::{
 };
 
 use crate::Error;
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::{Signer, SigningKey};
 use kladde_crypto::{self as c, Key, Purpose};
 use kladde_protocol::{account::*, encode};
 use rand::rngs::OsRng;
@@ -28,6 +28,18 @@ impl Fresh {
 
     pub(super) fn public(&self) -> [u8; 32] {
         self.identity.verifying_key().to_bytes()
+    }
+
+    pub(super) fn close(&self, account: Uuid, heads: &SpaceHeads) -> Result<ClosingProof, Error> {
+        let digest = c::digest(&heads.heads);
+        let message = closing_message(account, heads.space, &digest)?;
+
+        Ok(ClosingProof {
+            space: heads.space,
+            mark: heads.mark,
+            digest,
+            proof: self.identity.sign(&message).to_bytes().to_vec(),
+        })
     }
 
     pub(super) fn ring(

@@ -46,7 +46,7 @@ pub(super) fn check_bundle(bundle: &AccountBundle) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn verify_signature(public: &[u8], message: &[u8], proof: &[u8]) -> Result<()> {
+pub(crate) fn verify_signature(public: &[u8], message: &[u8], proof: &[u8]) -> Result<()> {
     VerifyingKey::from_bytes(public.try_into().map_err(|_| denied())?)
         .map_err(|_| denied())?
         .verify_strict(
@@ -79,7 +79,7 @@ pub(crate) async fn device_public(
     device_key(&identity, account, &cert).map_err(|_| denied())
 }
 
-pub(super) async fn device_signed(
+pub(crate) async fn device_signed(
     relay: &Shared,
     account: Uuid,
     device: Uuid,

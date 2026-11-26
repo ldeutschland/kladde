@@ -101,10 +101,13 @@ Changing the password, recovering with the phrase or removing a device triggers 
 
 1. A new master key, identity key and recovery phrase are generated.
 2. Every workspace key set gets a new epoch with a fresh key.
-3. The new key material is uploaded in a single signed request.
-4. The server marks all devices as revoked and deletes all sessions.
+3. For every notebook, the device signs a **closing list** with the new identity key: the last entry of every device's chain, as the relay reports it.
+4. The new key material and the closing lists are uploaded in a single signed request. The relay refuses it if a notebook changed after the chains were read; the device then starts over.
+5. The server marks all devices as revoked and deletes all sessions.
 
 The old phrase stops working and every device has to sign in again. When a device that already knows the account signs in again, it checks that the new key sets continue the old ones. A server that tries to swap in keys of its own is rejected. Until the server has confirmed a rotation, sync stays paused.
+
+After a rotation, an entry certified under an earlier identity key is only accepted if its chain ends exactly at an entry on a closing list signed by the current identity. A removed device still knows the old identity key, but it cannot add anything to the history, not even together with the relay. Everything written before the rotation stays readable, also on a device that signs in for the first time, for example after recovering with the phrase. Devices that were already signed in before closing lists existed sign the relay's current chain ends once with their device key, so history from earlier rotations stays readable as well.
 
 ### What the relay can see
 
@@ -262,7 +265,7 @@ cd deploy
 docker compose up -d
 ```
 
-Database migrations run automatically at startup. If the app and the relay are too far apart in version, the app reports it and keeps your changes locally until both are updated. Update the relay together with the app: deleted pages only reach your other devices through a relay that passes on the deletion signatures.
+Database migrations run automatically at startup. If the app and the relay are too far apart in version, the app reports it and keeps your changes locally until both are updated. Update the relay together with the app: deleted pages only reach your other devices through a relay that passes on the deletion signatures, and history from before a key change only stays readable through a relay that stores closing lists.
 
 ### Running without Docker
 

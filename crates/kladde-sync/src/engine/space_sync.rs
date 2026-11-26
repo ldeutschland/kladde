@@ -1,5 +1,6 @@
 use super::Local;
 use super::batches::sync_docs;
+use super::closings::ensure_chains;
 use super::deletions::push_deletions;
 use super::doc_exchange::exchange_doc;
 use super::listings::{listings_current, sync_listings, wanted_listings};
@@ -41,6 +42,7 @@ pub async fn sync_latest(
     let relay = handshake(client, access).await?;
 
     agree_on_format(local, client, access, &relay, report).await?;
+    ensure_chains(local, client, access).await?;
     let after = known_mark(local, access)?;
 
     if after > 0 && !has_untracked_docs(local, access)? {

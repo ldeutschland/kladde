@@ -13,6 +13,7 @@ use kladde_crypto::{self as c, Key};
 use kladde_sync::{
     Origin,
     account::{self, Proof},
+    engine,
 };
 
 use tauri::{AppHandle, Manager, State};
@@ -82,6 +83,8 @@ fn proof<'a>(action: &str, secrets: &'a Secrets) -> Result<Proof<'a>, String> {
     }
 }
 
+const ROTATION_ATTEMPTS: usize = 3;
+
 async fn rotate_keys(
     vault: &Vault,
     app: &AppHandle,
@@ -91,6 +94,24 @@ async fn rotate_keys(
     secrets: &Secrets,
     key: &Key,
 ) -> Result<(), String> {
+    for _ in 0..ROTATION_ATTEMPTS {
+        if rotate_once(vault, app, origin, client, input, secrets, key).await? {
+            return Ok(());
+        }
+    }
+
+    Err(account_error(kladde_sync::Error::Stale))
+}
+
+async fn rotate_once(
+    vault: &Vault,
+    app: &AppHandle,
+    origin: &Origin,
+    client: &reqwest::Client,
+    input: &Credentials,
+    secrets: &Secrets,
+    key: &Key,
+) -> Result<bool, String> {
     let proof = proof(&input.action, secrets)?;
     let known = known_keys(vault, app, origin, &input.user)?;
     let rotation =
@@ -105,16 +126,19 @@ async fn rotate_keys(
         expect_keys(vault, app, &rotation.expected)
     })?;
     let Err(e) = rotation.send(client, origin).await else {
-        return Ok(());
+        return Ok(true);
     };
 
-    if !refused_outright(&e) {
+    if !refused_outright(&e) && !matches!(e, kladde_sync::Error::Stale) {
         return Err(UNCONFIRMED.into());
     }
 
     forget_expected_keys(vault, app)?;
 
-    Err(account_error(e))
+    match e {
+        kladde_sync::Error::Stale => Ok(false),
+        other => Err(account_error(other)),
+    }
 }
 
 fn refused_outright(error: &kladde_sync::Error) -> bool {
@@ -186,6 +210,7 @@ pub async fn connect_account(
     crate::attachments::uploads::change_access(&app, || {
         save_account(&vault, &app, &auth, &spaces, confirms_expected)
     })?;
+    vault.access(&app, |store| engine::remember_fresh_sign_in(store, &auth))?;
 
     Ok(auth.space)
 }

@@ -130,11 +130,52 @@ pub struct Erase {
     pub ticket: String,
 }
 
+pub type ChainHead = (Uuid, Uuid, u64, [u8; 32]);
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SpaceHeads {
+    pub space: Uuid,
+    pub mark: i64,
+    pub heads: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ClosingProof {
+    pub space: Uuid,
+    pub mark: i64,
+    pub digest: [u8; 32],
+    pub proof: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Closing {
+    pub signer: Option<Certificate>,
+    pub heads: Vec<u8>,
+    pub proof: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeviceClosing {
+    pub heads: Vec<u8>,
+    pub proof: Vec<u8>,
+}
+
+pub fn closing_message(
+    account: Uuid,
+    space: Uuid,
+    digest: &[u8; 32],
+) -> Result<Vec<u8>, super::Invalid> {
+    super::encode(&(b"kladde/v1/closing", account, space, digest))
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RecoveryInfo {
     pub nonce: Uuid,
     pub bundle: AccountBundle,
     pub spaces: Vec<(Uuid, Vec<u8>)>,
+    #[serde(default)]
+    pub heads: Vec<SpaceHeads>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -145,6 +186,8 @@ pub struct Reset {
     pub bundle: AccountBundle,
     pub spaces: Vec<(Uuid, Vec<u8>)>,
     pub proof: Vec<u8>,
+    #[serde(default)]
+    pub closings: Vec<ClosingProof>,
 }
 
 #[derive(Serialize, Deserialize)]

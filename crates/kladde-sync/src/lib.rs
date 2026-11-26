@@ -42,6 +42,8 @@ pub enum Error {
     Newer,
     #[error("A notebook key on the sync server is unreadable; repair it with the recovery phrase")]
     Unreadable,
+    #[error("History from before a key change is not covered by a closing list")]
+    Uncovered,
     #[error(transparent)]
     Crypto(#[from] c::Invalid),
     #[error(transparent)]
@@ -123,11 +125,23 @@ pub fn http() -> Result<reqwest::Client, Error> {
         .map_err(|_| Error::Network)
 }
 
+const REPLY_LIMIT: usize = 131072;
+
 async fn post<T: DeserializeOwned>(
     client: &reqwest::Client,
     url: &Origin,
     path: &str,
     body: &impl Serialize,
+) -> Result<T, Error> {
+    post_limited(client, url, path, body, REPLY_LIMIT).await
+}
+
+async fn post_limited<T: DeserializeOwned>(
+    client: &reqwest::Client,
+    url: &Origin,
+    path: &str,
+    body: &impl Serialize,
+    limit: usize,
 ) -> Result<T, Error> {
     let response = client
         .post(url.0.join(path).map_err(|_| Error::Url)?)
@@ -149,11 +163,15 @@ async fn post<T: DeserializeOwned>(
         return Err(outdated_in(response.headers()));
     }
 
+    if status == reqwest::StatusCode::PRECONDITION_FAILED {
+        return Err(Error::Stale);
+    }
+
     if !status.is_success() {
         return Err(Error::Auth);
     }
 
-    json_limited(response, 131072).await
+    json_limited(response, limit).await
 }
 
 pub async fn json_limited<T: DeserializeOwned>(

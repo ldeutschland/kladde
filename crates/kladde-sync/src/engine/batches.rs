@@ -123,6 +123,7 @@ async fn pull_each(
         match receive_pull(socket, access, local, &keys, &mut cursor, report).await {
             Ok(()) => {}
             Err(Error::Newer) => report_newer_format(local, report, keys.id),
+            Err(Error::Uncovered) => report.failed.push(keys.id),
             Err(e) => return Err(e),
         }
         *done += 1;
@@ -194,6 +195,11 @@ async fn pull_and_prepare(
             Ok(()) => {}
             Err(Error::Newer) => {
                 report_newer_format(local, report, keys.id);
+                done.insert(keys.id);
+                continue;
+            }
+            Err(Error::Uncovered) => {
+                report.failed.push(keys.id);
                 done.insert(keys.id);
                 continue;
             }

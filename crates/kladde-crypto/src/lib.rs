@@ -341,7 +341,11 @@ pub fn open(
 }
 
 pub fn hash(e: &Envelope) -> Result<[u8; 32], Invalid> {
-    Ok(Sha256::digest(encode(e)?).into())
+    Ok(digest(&encode(e)?))
+}
+
+pub fn digest(bytes: &[u8]) -> [u8; 32] {
+    Sha256::digest(bytes).into()
 }
 
 pub fn backup_key(password: &[u8], salt: &[u8; 16]) -> Result<Key, Invalid> {

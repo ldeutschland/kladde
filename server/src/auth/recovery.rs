@@ -4,7 +4,9 @@ use super::{
 };
 
 use crate::{
-    App, BLOB_CHARGE_FLOOR, Fault, ROW_CHARGE, Result, Shared, bad, blobs::storage::BlobStorage,
+    App, BLOB_CHARGE_FLOOR, Fault, ROW_CHARGE, Result, Shared, bad,
+    blobs::storage::BlobStorage,
+    closings::{account_heads, close_spaces},
     denied,
 };
 
@@ -87,6 +89,7 @@ pub async fn recovery_keys(
         nonce: open_challenge(&relay, Challenge::Rekey(account))?,
         bundle: decode(&row.get::<Vec<u8>, _>(2))?,
         spaces,
+        heads: account_heads(&relay, account).await?,
     }))
 }
 
@@ -222,6 +225,8 @@ pub async fn recovery_finish(
     let record = ServerRegistration::<Suite>::finish(
         RegistrationUpload::deserialize(&input.record).map_err(|_| bad())?,
     );
+
+    close_spaces(&mut tx, account, &input.bundle.identity, &input.closings).await?;
     let repairs = input.login_ticket.is_none();
     let dropped = replace_space_keys(&mut tx, account, &input.spaces, repairs).await?;
     let files = drop_spaces(&mut tx, account, &dropped).await?;
