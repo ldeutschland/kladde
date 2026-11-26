@@ -101,7 +101,7 @@ pub(crate) async fn request_signed(
     account: Uuid,
     device: Uuid,
     message: &[u8],
-) -> Result<()> {
+) -> Result<Vec<u8>> {
     let proof = headers
         .get(PROOF_HEADER)
         .and_then(|v| v.to_str().ok())
@@ -109,5 +109,7 @@ pub(crate) async fn request_signed(
         .filter(|proof| proof.len() == PROOF_BYTES)
         .ok_or_else(denied)?;
 
-    device_signed(relay, account, device, message, &proof).await
+    device_signed(relay, account, device, message, &proof).await?;
+
+    Ok(proof)
 }

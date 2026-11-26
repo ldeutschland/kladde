@@ -11,12 +11,14 @@ use axum::{
 };
 
 use kladde_protocol::{
-    Server,
-    account::{discard_message, purge_message},
+    Certificate, Server,
+    account::{Tombstone, discard_message, purge_message},
     compat::Peer,
+    decode,
 };
 
 use sqlx_core::{query::query, row::Row};
+use std::collections::{BTreeMap, btree_map::Entry};
 use uuid::Uuid;
 
 pub(crate) async fn next_mark(tx: &mut sqlx_postgres::PgConnection, space: Uuid) -> Result<i64> {
@@ -92,12 +94,49 @@ pub async fn space_state(
             .iter()
             .map(|r| r.get(0))
             .collect();
+    let (tombstones, signers) = signed_deletions(&relay, space, after).await?;
+
     Ok(Json(kladde_protocol::account::SpaceState {
         docs,
         deleted,
+        tombstones,
+        signers,
         checkpoints: true,
         mark: Some(mark),
     }))
+}
+
+const SIGNED_DELETIONS: &str = "SELECT x.id,x.device,x.proof,d.cert FROM deletions x JOIN devices d ON d.id=x.device WHERE x.space=$1 AND (x.mark>$2 OR $2=0) AND x.proof IS NOT NULL ORDER BY x.id LIMIT $3";
+
+async fn signed_deletions(
+    relay: &Shared,
+    space: Uuid,
+    after: i64,
+) -> Result<(Vec<Tombstone>, Vec<Certificate>)> {
+    let rows = query(SIGNED_DELETIONS)
+        .bind(space)
+        .bind(after)
+        .bind(MAX_LISTED)
+        .fetch_all(&relay.pool)
+        .await?;
+    let mut signers = BTreeMap::new();
+    let mut tombstones = Vec::with_capacity(rows.len());
+
+    for row in &rows {
+        let device: Uuid = row.get(1);
+
+        if let Entry::Vacant(slot) = signers.entry(device) {
+            slot.insert(decode::<Certificate>(&row.get::<Vec<u8>, _>(3))?);
+        }
+
+        tombstones.push(Tombstone {
+            doc: row.get(0),
+            device,
+            proof: row.get(2),
+        });
+    }
+
+    Ok((tombstones, signers.into_values().collect()))
 }
 
 async fn stored_bytes(
@@ -149,7 +188,7 @@ pub async fn purge(
     let (account, device) = request_owner(&relay, &headers).await?;
 
     require_member(&relay, account, space).await?;
-    request_signed(
+    let proof = request_signed(
         &relay,
         &headers,
         account,
@@ -160,14 +199,15 @@ pub async fn purge(
     let mut tx = relay.pool.begin().await?;
     let mark = next_mark(&mut tx, space).await?;
 
-    let marked =
-        query("INSERT INTO deletions(space,id,mark) VALUES($1,$2,$3) ON CONFLICT DO NOTHING")
-            .bind(space)
-            .bind(id)
-            .bind(mark)
-            .execute(&mut *tx)
-            .await?
-            .rows_affected();
+    let marked = query("INSERT INTO deletions(space,id,mark,device,proof) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING")
+        .bind(space)
+        .bind(id)
+        .bind(mark)
+        .bind(device)
+        .bind(&proof)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
     let freed = stored_bytes(&mut tx, space, &[id]).await?;
 
     query("DELETE FROM documents WHERE id=$1 AND space=$2")

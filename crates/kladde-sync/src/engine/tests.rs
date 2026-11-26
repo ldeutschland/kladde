@@ -1,14 +1,19 @@
 use super::doc_exchange::pull;
 use super::doc_state_keys::DocKeys;
 use super::pending_pushes::{Pending, acknowledge, envelope, prepare_push};
-use super::remote_removals::remove_deleted;
+use super::remote_removals::{remove_deleted, signed_among};
 use super::report::Report;
 use super::{Local, local_error};
 use crate::{Cursor, Error, Socket, Writing, account::Access};
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::{Signer, SigningKey};
 use futures_util::{SinkExt, StreamExt};
 use kladde_crypto as c;
-use kladde_protocol::{self as p, Server, compat};
+use kladde_protocol::{
+    self as p, Certificate, Server,
+    account::{SpaceState, Tombstone, purge_message},
+    compat,
+};
+
 use kladde_store::{Note, Store};
 use std::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message;
@@ -206,6 +211,79 @@ fn listing_with(page: Uuid) -> Doc {
     pages.insert(&mut doc.transact_mut(), page.to_string(), entry);
 
     doc
+}
+
+fn signed_tombstone(signer: &SigningKey, device: Uuid, a: &Access, doc: Uuid) -> Tombstone {
+    let message = purge_message(a.account, a.space, doc).unwrap();
+
+    Tombstone {
+        doc,
+        device,
+        proof: signer.sign(&message).to_bytes().to_vec(),
+    }
+}
+
+fn relay_state(
+    deleted: Vec<Uuid>,
+    tombstones: Vec<Tombstone>,
+    signers: Vec<Certificate>,
+) -> SpaceState {
+    SpaceState {
+        docs: Vec::new(),
+        deleted,
+        tombstones,
+        signers,
+        checkpoints: true,
+        mark: Some(1),
+    }
+}
+
+#[test]
+fn an_unsigned_relay_tombstone_dooms_no_page() {
+    let a = access(Uuid::new_v4(), Uuid::new_v4());
+    let doc = Uuid::new_v4();
+    let state = relay_state(vec![doc], Vec::new(), Vec::new());
+
+    assert!(signed_among(&a, &state, &[doc]).is_empty());
+}
+
+#[test]
+fn a_tombstone_signed_by_a_device_of_the_current_identity_dooms_the_page() {
+    let a = access(Uuid::new_v4(), Uuid::new_v4());
+    let (doc, kept) = (Uuid::new_v4(), Uuid::new_v4());
+    let signer = SigningKey::from_bytes(&a.device_key);
+    let tombstone = signed_tombstone(&signer, a.cert.device, &a, doc);
+    let state = relay_state(vec![doc, kept], vec![tombstone], vec![a.cert.clone()]);
+
+    assert_eq!(signed_among(&a, &state, &[kept, doc]), vec![doc]);
+}
+
+#[test]
+fn a_tombstone_from_a_device_of_an_earlier_identity_dooms_no_page() {
+    let a = access(Uuid::new_v4(), Uuid::new_v4());
+    let doc = Uuid::new_v4();
+    let removed = SigningKey::from_bytes(&[6; 32]);
+    let earlier = SigningKey::from_bytes(&[4; 32]);
+    let public = removed.verifying_key().to_bytes();
+    let cert = c::certify(&earlier, a.account, Uuid::new_v4(), public).unwrap();
+    let tombstone = signed_tombstone(&removed, cert.device, &a, doc);
+    let state = relay_state(vec![doc], vec![tombstone], vec![cert]);
+
+    assert!(signed_among(&a, &state, &[doc]).is_empty());
+}
+
+#[test]
+fn a_proof_for_another_page_or_from_an_unknown_signer_dooms_no_page() {
+    let a = access(Uuid::new_v4(), Uuid::new_v4());
+    let doc = Uuid::new_v4();
+    let signer = SigningKey::from_bytes(&a.device_key);
+    let mut moved = signed_tombstone(&signer, a.cert.device, &a, Uuid::new_v4());
+    let stranger = signed_tombstone(&signer, Uuid::new_v4(), &a, doc);
+
+    moved.doc = doc;
+    let state = relay_state(vec![doc], vec![moved, stranger], vec![a.cert.clone()]);
+
+    assert!(signed_among(&a, &state, &[doc]).is_empty());
 }
 
 #[test]

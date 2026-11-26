@@ -169,10 +169,21 @@ pub fn renew_message(challenge: Uuid, device: Uuid) -> Result<Vec<u8>, super::In
     super::encode(&(b"kladde/v1/renew", challenge, device))
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Tombstone {
+    pub doc: Uuid,
+    pub device: Uuid,
+    pub proof: Vec<u8>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SpaceState {
     pub docs: Vec<(Uuid, i64)>,
     pub deleted: Vec<Uuid>,
+    #[serde(default)]
+    pub tombstones: Vec<Tombstone>,
+    #[serde(default)]
+    pub signers: Vec<Certificate>,
     #[serde(default)]
     pub checkpoints: bool,
     #[serde(default)]

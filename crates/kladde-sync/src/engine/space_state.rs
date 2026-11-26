@@ -36,7 +36,15 @@ pub(super) async fn remote_changes(
 
     let state: SpaceState = json_limited(require_success(response)?, STATE_LIMIT).await?;
 
-    if state.docs.len() > MAX_DOCS || state.deleted.len() > MAX_DOCS {
+    if [
+        state.docs.len(),
+        state.deleted.len(),
+        state.tombstones.len(),
+        state.signers.len(),
+    ]
+    .iter()
+    .any(|count| *count > MAX_DOCS)
+    {
         return Err(Error::Denied);
     }
 
@@ -74,6 +82,8 @@ async fn legacy_state(client: &reqwest::Client, access: &Access) -> Result<Space
     Ok(SpaceState {
         docs: ids.into_iter().map(|id| (id, UNKNOWN_SEQ)).collect(),
         deleted: Vec::new(),
+        tombstones: Vec::new(),
+        signers: Vec::new(),
         checkpoints: false,
         mark: None,
     })

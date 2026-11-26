@@ -86,6 +86,7 @@ If you lose **both** the password and the recovery phrase, the data on the serve
 - Attachments uploaded to the relay contain the encrypted file plus its file key, encrypted with the page key. Shared page versions are stored the same way.
 - The page lists the SHA-256 of every attachment part and shared version in its own signed content. A download has to match that hash before it is stored, shown or indexed, so replacing an attachment requires a device that can sign page changes; the workspace keys of a removed device are not enough. A download that neither the page nor its local history lists is refused. Files attached with version 1.1.0 or earlier carry no hash and are still accepted without one.
 - Text a device recognizes in an attachment (OCR, PDF and Office text) is uploaded as an extra encrypted attachment, so your other devices can search the file without downloading and recognizing it again. It is signed by the device key and carries the device certificate. Other devices only accept it if the certificate is valid for the current identity key and the signature covers this workspace, page, file and epoch; otherwise they recognize the text themselves. After a key rotation, devices upload their texts again under the new identity. Its ID is derived from the workspace key, so the relay cannot link it to the file by its ID.
+- Deleting a page sends a request signed by the device key. The relay keeps that signature and passes it on with the deletion. Other devices only remove their copy if the signature comes from a device whose certificate is valid for the current identity key. A deletion the relay reports without such a signature is ignored: the page stays on the device and simply no longer syncs. This covers deletions from an older relay version and deletions signed before the last key rotation.
 - A notebook can be removed from the relay on its own. The request has to be signed by a device key, like deleting pages and attachments, so a stolen session token is not enough. The relay then deletes the notebook's pages, history and attachments and frees their storage. The notebook the account was created with stays, because its key set is part of the account keys. Devices that still have the notebook keep their copy: their next sync is refused, and they show the notebook as one that only exists on that device. Uploading it again creates a new key set; every device then drops its sync state from before and merges its copy anew.
 
 ### Devices and sessions
@@ -261,7 +262,7 @@ cd deploy
 docker compose up -d
 ```
 
-Database migrations run automatically at startup. If the app and the relay are too far apart in version, the app reports it and keeps your changes locally until both are updated.
+Database migrations run automatically at startup. If the app and the relay are too far apart in version, the app reports it and keeps your changes locally until both are updated. Update the relay together with the app: deleted pages only reach your other devices through a relay that passes on the deletion signatures.
 
 ### Running without Docker
 
