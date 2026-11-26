@@ -1,11 +1,11 @@
 use super::Local;
 use super::relay_requests::{call, require_success};
-use crate::{Error, Origin, account::Access, json_limited};
-use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
+use crate::{Error, Origin, account::Access, closing_lists::listed_heads, json_limited};
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use kladde_crypto as c;
 use kladde_protocol::{
     self as p,
-    account::{ChainHead, Closing, DeviceClosing, SpaceHeads, closing_message},
+    account::{Closing, DeviceClosing, SpaceHeads, closing_message},
 };
 
 use kladde_store::Store;
@@ -139,46 +139,23 @@ async fn fetch_closings(client: &reqwest::Client, access: &Access) -> Result<Vec
     json_limited(reply, CLOSINGS_LIMIT).await
 }
 
-fn signed(access: &Access, identity: &VerifyingKey, closing: &Closing) -> bool {
-    let Ok(message) = closing_message(access.account, access.space, &c::digest(&closing.heads))
-    else {
-        return false;
-    };
-
-    match &closing.signer {
-        Some(cert) => {
-            c::verify_certified(identity, access.account, cert, &message, &closing.proof).is_ok()
-        }
-        None => Signature::from_slice(&closing.proof)
-            .is_ok_and(|signature| identity.verify_strict(&message, &signature).is_ok()),
-    }
-}
-
 pub(super) fn covered_by(
     access: &Access,
     closings: &[Closing],
 ) -> Result<BTreeMap<Uuid, Covered>, Error> {
     let identity = VerifyingKey::from_bytes(&access.identity).map_err(|_| Error::Auth)?;
-    let mut covered: BTreeMap<Uuid, BTreeSet<(Uuid, u64, [u8; 32])>> = BTreeMap::new();
+    let mut covered: BTreeMap<Uuid, Covered> = BTreeMap::new();
 
-    for closing in closings
-        .iter()
-        .filter(|closing| signed(access, &identity, closing))
+    for (doc, device, counter, hash) in
+        listed_heads(access.account, access.space, &identity, closings)
     {
-        let heads: Vec<ChainHead> = p::decode_attachment(&closing.heads)?;
-
-        for (doc, device, counter, hash) in heads {
-            covered
-                .entry(doc)
-                .or_default()
-                .insert((device, counter, hash));
-        }
+        covered
+            .entry(doc)
+            .or_default()
+            .push((device, counter, hash));
     }
 
-    Ok(covered
-        .into_iter()
-        .map(|(doc, heads)| (doc, heads.into_iter().collect()))
-        .collect())
+    Ok(covered)
 }
 
 pub(super) fn store_chains(

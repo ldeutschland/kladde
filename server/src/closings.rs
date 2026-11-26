@@ -13,8 +13,10 @@ use axum::{
 use kladde_crypto as c;
 use kladde_protocol::{
     Certificate,
-    account::{ChainHead, Closing, ClosingProof, DeviceClosing, SpaceHeads, closing_message},
-    decode, encode,
+    account::{
+        ChainHead, Closing, ClosingProof, DeviceClosing, SpaceClosings, SpaceHeads, closing_message,
+    },
+    decode, decode_attachment, encode,
 };
 
 use sqlx_core::{query::query, row::Row};
@@ -61,21 +63,50 @@ async fn consistent_snapshot(relay: &Shared) -> Result<Snapshot> {
     Ok(tx)
 }
 
-pub(crate) async fn account_heads(relay: &Shared, account: Uuid) -> Result<Vec<SpaceHeads>> {
+pub(crate) struct RotationState {
+    pub(crate) heads: Vec<SpaceHeads>,
+    pub(crate) closings: Vec<SpaceClosings>,
+    pub(crate) signers: Vec<Certificate>,
+}
+
+async fn account_signers(conn: &mut PgConnection, account: Uuid) -> Result<Vec<Certificate>> {
+    let rows = query("SELECT cert FROM devices WHERE account=$1 ORDER BY id")
+        .bind(account)
+        .fetch_all(&mut *conn)
+        .await?;
+
+    rows.iter()
+        .map(|row| Ok(decode::<Certificate>(&row.get::<Vec<u8>, _>(0))?))
+        .collect()
+}
+
+pub(crate) async fn rotation_state(relay: &Shared, account: Uuid) -> Result<RotationState> {
     let mut tx = consistent_snapshot(relay).await?;
     let spaces = query("SELECT id,mark FROM workspaces WHERE owner=$1 ORDER BY id")
         .bind(account)
         .fetch_all(&mut *tx)
         .await?;
-    let mut heads = Vec::with_capacity(spaces.len());
+    let mut state = RotationState {
+        heads: Vec::with_capacity(spaces.len()),
+        closings: Vec::with_capacity(spaces.len()),
+        signers: account_signers(&mut tx, account).await?,
+    };
 
     for row in &spaces {
-        heads.push(space_heads(&mut tx, row.get(0), row.get(1)).await?);
+        let space: Uuid = row.get(0);
+
+        state
+            .heads
+            .push(space_heads(&mut tx, space, row.get(1)).await?);
+        state.closings.push(SpaceClosings {
+            space,
+            lists: space_lists(&mut tx, space).await?,
+        });
     }
 
     tx.commit().await?;
 
-    Ok(heads)
+    Ok(state)
 }
 
 pub async fn heads(
@@ -99,6 +130,14 @@ pub async fn heads(
     Ok(Json(heads))
 }
 
+const SPACE_LISTS: &str = "SELECT c.heads,c.proof,d.cert FROM closings c LEFT JOIN devices d ON d.id=c.signer WHERE c.space=$1 ORDER BY c.signer";
+
+async fn space_lists(conn: &mut PgConnection, space: Uuid) -> Result<Vec<Closing>> {
+    let rows = query(SPACE_LISTS).bind(space).fetch_all(&mut *conn).await?;
+
+    rows.iter().map(closing_of).collect()
+}
+
 fn closing_of(row: &PgRow) -> Result<Closing> {
     let signer = row
         .get::<Option<Vec<u8>>, _>(2)
@@ -120,12 +159,9 @@ pub async fn closings(
     let (account, _) = request_owner(&relay, &headers).await?;
 
     require_member(&relay, account, space).await?;
-    let rows = query("SELECT c.heads,c.proof,d.cert FROM closings c LEFT JOIN devices d ON d.id=c.signer WHERE c.space=$1 ORDER BY c.signer")
-        .bind(space)
-        .fetch_all(&relay.pool)
-        .await?;
+    let mut conn = relay.pool.acquire().await?;
 
-    Ok(Json(rows.iter().map(closing_of).collect::<Result<_>>()?))
+    Ok(Json(space_lists(&mut conn, space).await?))
 }
 
 pub async fn share_closing(
@@ -164,13 +200,13 @@ async fn close_space(
         .await?
         .ok_or_else(bad)?
         .get(0);
-    let heads = chain_heads(tx, closing.space).await?;
 
-    if mark != closing.mark || c::digest(&heads) != closing.digest {
+    if mark != closing.mark {
         return Err(Fault(StatusCode::PRECONDITION_FAILED));
     }
 
-    let message = closing_message(account, closing.space, &closing.digest)?;
+    decode_attachment::<Vec<ChainHead>>(&closing.heads)?;
+    let message = closing_message(account, closing.space, &c::digest(&closing.heads))?;
 
     verify_signature(identity, &message, &closing.proof)?;
     query("DELETE FROM closings WHERE space=$1")
@@ -180,7 +216,7 @@ async fn close_space(
     query(STORE_CLOSING)
         .bind(closing.space)
         .bind(ROTATION_SIGNER)
-        .bind(&heads)
+        .bind(&closing.heads)
         .bind(&closing.proof)
         .execute(&mut *tx)
         .await?;

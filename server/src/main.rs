@@ -207,7 +207,7 @@ type Startup<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const DEFAULT_LISTEN_ADDR: &str = "127.0.0.1:7341";
 const MAX_CONNECTIONS: u32 = 12;
 const MAX_REQUEST_BODY: usize = 131072;
-const MAX_ROTATION_BODY: usize = 4 * 1024 * 1024;
+const MAX_ROTATION_BODY: usize = 64 * 1024 * 1024;
 const MAX_CLOSING_BODY: usize = 64 * 1024 * 1024;
 
 fn write_setup_file(path: &str) -> Startup<()> {

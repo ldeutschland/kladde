@@ -143,7 +143,7 @@ pub struct SpaceHeads {
 pub struct ClosingProof {
     pub space: Uuid,
     pub mark: i64,
-    pub digest: [u8; 32],
+    pub heads: Vec<u8>,
     pub proof: Vec<u8>,
 }
 
@@ -152,6 +152,12 @@ pub struct Closing {
     pub signer: Option<Certificate>,
     pub heads: Vec<u8>,
     pub proof: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SpaceClosings {
+    pub space: Uuid,
+    pub lists: Vec<Closing>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -176,6 +182,10 @@ pub struct RecoveryInfo {
     pub spaces: Vec<(Uuid, Vec<u8>)>,
     #[serde(default)]
     pub heads: Vec<SpaceHeads>,
+    #[serde(default)]
+    pub closings: Vec<SpaceClosings>,
+    #[serde(default)]
+    pub signers: Vec<Certificate>,
 }
 
 #[derive(Serialize, Deserialize)]

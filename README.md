@@ -101,7 +101,7 @@ Changing the password, recovering with the phrase or removing a device triggers 
 
 1. A new master key, identity key and recovery phrase are generated.
 2. Every workspace key set gets a new epoch with a fresh key.
-3. For every notebook, the device signs a **closing list** with the new identity key: the last entry of every device's chain, as the relay reports it.
+3. For every notebook, the device signs a **closing list** with the new identity key. For devices whose certificate it verifies against the current identity, it takes the last entry of their chain as the relay reports it. For older chains, it takes over exactly the entries of the closing lists that are valid now, never more, so the relay cannot slip in what a device removed earlier wrote after its removal.
 4. The new key material and the closing lists are uploaded in a single signed request. The relay refuses it if a notebook changed after the chains were read; the device then starts over.
 5. The server marks all devices as revoked and deletes all sessions.
 

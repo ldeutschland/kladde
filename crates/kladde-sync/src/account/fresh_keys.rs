@@ -30,14 +30,19 @@ impl Fresh {
         self.identity.verifying_key().to_bytes()
     }
 
-    pub(super) fn close(&self, account: Uuid, heads: &SpaceHeads) -> Result<ClosingProof, Error> {
-        let digest = c::digest(&heads.heads);
-        let message = closing_message(account, heads.space, &digest)?;
+    pub(super) fn close(
+        &self,
+        account: Uuid,
+        space: Uuid,
+        mark: i64,
+        heads: Vec<u8>,
+    ) -> Result<ClosingProof, Error> {
+        let message = closing_message(account, space, &c::digest(&heads))?;
 
         Ok(ClosingProof {
-            space: heads.space,
-            mark: heads.mark,
-            digest,
+            space,
+            mark,
+            heads,
             proof: self.identity.sign(&message).to_bytes().to_vec(),
         })
     }

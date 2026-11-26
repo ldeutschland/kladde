@@ -5,7 +5,12 @@ use super::pending_pushes::{Pending, acknowledge, envelope, prepare_push};
 use super::remote_removals::{remove_deleted, signed_among};
 use super::report::Report;
 use super::{Local, local_error};
-use crate::{Cursor, Error, Socket, Writing, account::Access};
+use crate::{
+    Cursor, Error, Socket, Writing,
+    account::Access,
+    closing_lists::{current_devices, rotation_heads},
+};
+
 use ed25519_dalek::{Signer, SigningKey};
 use futures_util::{SinkExt, StreamExt};
 use kladde_crypto as c;
@@ -16,7 +21,11 @@ use kladde_protocol::{
 };
 
 use kladde_store::{Note, Store};
-use std::{collections::BTreeMap, sync::Mutex};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Mutex,
+};
+
 use tokio_tungstenite::tungstenite::Message;
 use uuid::Uuid;
 use yrs::{Any, Doc, Map, ReadTxn, StateVector, Text, Transact};
@@ -594,4 +603,32 @@ async fn an_old_chain_continued_past_the_listed_head_stops_there() {
     assert!(matches!(pulled, Err(Error::Uncovered)));
     assert_eq!(cursor.seq, 1);
     assert_eq!(local.with(|s| s.get(id)).unwrap().unwrap().title, "eins");
+}
+
+#[test]
+fn a_second_rotation_carries_old_chains_only_as_far_as_the_lists_reached() {
+    let r = rotated();
+    let (doc, other) = (Uuid::new_v4(), Uuid::new_v4());
+    let (removed, current) = (r.removed.cert.device, r.reader.cert.device);
+    let here = (r.reader.account, r.reader.space);
+    let earlier = (doc, removed, 1, [1; 32]);
+    let renewed = (doc, current, 2, [2; 32]);
+    let forged = (doc, removed, 3, [3; 32]);
+    let lists = [
+        closing_by_identity(NEW_IDENTITY, here, &[earlier]),
+        closing_by_identity(OLD_IDENTITY, here, &[forged]),
+    ];
+    let relayed = p::encode(&vec![forged, renewed, (other, Uuid::new_v4(), 1, [4; 32])]).unwrap();
+    let identity = SigningKey::from_bytes(&NEW_IDENTITY).verifying_key();
+    let certified = [r.removed.cert.clone(), r.reader.cert.clone()];
+    let devices = current_devices(&identity, r.reader.account, &certified);
+    let account = r.reader.account;
+    let space = r.reader.space;
+    let heads = rotation_heads(account, space, &identity, &devices, &relayed, &lists).unwrap();
+    let heads: BTreeSet<ChainHead> = p::decode_attachment::<Vec<_>>(&heads)
+        .unwrap()
+        .into_iter()
+        .collect();
+
+    assert_eq!(heads, BTreeSet::from([earlier, renewed]));
 }

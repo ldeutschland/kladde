@@ -1693,3 +1693,37 @@ async fn a_key_change_is_refused_when_a_notebook_changed_after_its_heads_were_re
     .await
     .unwrap();
 }
+
+#[tokio::test]
+#[ignore = "uses an isolated PostgreSQL relay; run scripts/test-relay.sh"]
+async fn a_device_signing_in_after_two_key_changes_reads_the_history_before_them() {
+    let (origin, user) = setup().await;
+    let mac = device(&origin, &user).await;
+    let page = Uuid::new_v4();
+    let http = kladde_sync::http().unwrap();
+
+    list_pages(&mac, &[page], &[]);
+    write_text(&mac, page, "vor dem Wechsel");
+    assert_clean(&sync(&mac).await);
+
+    for _ in 0..2 {
+        rekey(
+            &http,
+            &origin,
+            &user,
+            Proof::Password(PASSWORD),
+            PASSWORD,
+            &c::key(),
+        )
+        .await
+        .unwrap();
+    }
+
+    let phone = device(&origin, &user).await;
+
+    phone
+        .with(|s| engine::remember_fresh_sign_in(s, &phone.access))
+        .unwrap();
+    assert_clean(&sync_latest(&phone).await);
+    assert_eq!(read_text(&phone, page), "vor dem Wechsel");
+}

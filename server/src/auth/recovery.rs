@@ -6,7 +6,7 @@ use super::{
 use crate::{
     App, BLOB_CHARGE_FLOOR, Fault, ROW_CHARGE, Result, Shared, bad,
     blobs::storage::BlobStorage,
-    closings::{account_heads, close_spaces},
+    closings::{close_spaces, rotation_state},
     denied,
 };
 
@@ -85,11 +85,15 @@ pub async fn recovery_keys(
         .iter()
         .map(|r| (r.get(0), r.get(1)))
         .collect();
+    let state = rotation_state(&relay, account).await?;
+
     Ok(Json(RecoveryInfo {
         nonce: open_challenge(&relay, Challenge::Rekey(account))?,
         bundle: decode(&row.get::<Vec<u8>, _>(2))?,
         spaces,
-        heads: account_heads(&relay, account).await?,
+        heads: state.heads,
+        closings: state.closings,
+        signers: state.signers,
     }))
 }
 
