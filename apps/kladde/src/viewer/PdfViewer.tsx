@@ -13,7 +13,7 @@ import { usePens } from "./usePens";
 import { useStage, useStageSize } from "./useStage";
 import { useZoom } from "./useZoom";
 import { findShortcut, isTyping, viewerKeys } from "./viewerKeys";
-import { shownMarks, useFileFind } from "./useFileFind";
+import { shownMarks, useFileFind, useJumpToPageOnlyMatch } from "./useFileFind";
 import { FileFindBar } from "./FileFindBar";
 import { savePdf } from "./savePdf";
 import { ViewerFrame } from "./ViewerFrame";
@@ -63,6 +63,8 @@ function usePdfViewer(props: ViewerProps) {
     stageWidth: size.width,
     startPage: target.page,
   });
+
+  useJumpToPageOnlyMatch(find, go);
 
   return {
     source,

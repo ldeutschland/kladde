@@ -98,6 +98,7 @@ export function useFileFind(source: PdfSource, initial: string, page: number) {
     requested,
     total: matches.length,
     current,
+    match: matches.at(current),
     searching,
     marks,
     show,
@@ -107,6 +108,17 @@ export function useFileFind(source: PdfSource, initial: string, page: number) {
 }
 
 export type FileFind = ReturnType<typeof useFileFind>;
+
+export function useJumpToPageOnlyMatch(
+  find: FileFind,
+  go: (page: number) => void,
+) {
+  const { match } = find;
+
+  useEffect(() => {
+    if (match && !match.boxes.length) go(match.page);
+  }, [match, go]);
+}
 
 export function shownMarks(
   find: FileFind,
