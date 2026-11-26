@@ -86,14 +86,19 @@ fn indexed_text(
     };
 
     let text = Zeroizing::new(found.text);
-    let pages = text.split(PAGE_BREAK).count();
-    let complete = if found.status == PARTIAL {
-        pages.saturating_sub(1)
-    } else {
-        pages
-    };
+    let pages = covered_pages(&text, &found.status);
 
-    (text, complete)
+    (text, pages)
+}
+
+fn covered_pages(text: &str, status: &str) -> usize {
+    let pages = text.split(PAGE_BREAK).count();
+
+    if status == PARTIAL {
+        return pages.saturating_sub(1);
+    }
+
+    pages
 }
 
 #[tauri::command]
@@ -132,4 +137,29 @@ pub async fn attachment_thumbnail(
 
     rendered(move || text_and_previews::preview(&bytes, index, text_and_previews::THUMBNAIL_EDGE))
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_partial_text_vouches_only_for_its_complete_pages() {
+        assert_eq!(covered_pages("eins\u{c}zwei\u{c}drei", "ready"), 3);
+        assert_eq!(covered_pages("eins\u{c}zwei\u{c}dr", PARTIAL), 2);
+        assert_eq!(covered_pages("", "ready"), 1);
+        assert_eq!(covered_pages("ein", PARTIAL), 0);
+    }
+
+    #[test]
+    fn a_search_term_is_short_visible_text_without_nul() {
+        let too_long = "a".repeat(MAX_FOUND_TERM + 1);
+
+        assert!(check_term("Betrag").is_ok());
+        assert!(check_term(&"ä".repeat(MAX_FOUND_TERM / 2)).is_ok());
+
+        for term in ["", "   ", "Bet\0rag", too_long.as_str()] {
+            assert!(check_term(term).is_err(), "{term:?}");
+        }
+    }
 }

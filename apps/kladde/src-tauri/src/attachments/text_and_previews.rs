@@ -394,6 +394,9 @@ mod tests {
     const WIDTH: u32 = 600;
     const HEIGHT: u32 = 400;
     const BITMAP_HEADER: u32 = 54;
+    const FONT: &str = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+    const WORD_BOX: FoundBox = [0.307, 0.088, 0.116, 0.035];
+    const NO_INDEX: IndexedText = IndexedText { text: "", pages: 0 };
 
     fn bitmap() -> Vec<u8> {
         let pixels = WIDTH * HEIGHT * 3;
@@ -413,36 +416,48 @@ mod tests {
         bytes
     }
 
-    fn longest_edge(jpeg: &[u8]) -> usize {
+    fn jpeg_size(jpeg: &[u8]) -> (usize, usize) {
         let frame = jpeg
             .windows(2)
             .position(|w| w[0] == 0xff && matches!(w[1], 0xc0 | 0xc2))
             .unwrap();
         let size = |at: usize| usize::from(u16::from_be_bytes([jpeg[at], jpeg[at + 1]]));
 
-        size(frame + 5).max(size(frame + 7))
+        (size(frame + 7), size(frame + 5))
     }
 
-    fn text_pdf(rotate: u32) -> Vec<u8> {
-        let stream = "BT /F1 24 Tf 72 700 Td (Rechnung Betrag 4711) Tj ET";
-        let objects = [
-            "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
-            format!(
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Rotate {rotate} /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>"
-            ),
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
-            format!(
-                "<< /Length {} >>\nstream\n{stream}\nendstream",
-                stream.len()
-            ),
-        ];
+    fn longest_edge(jpeg: &[u8]) -> usize {
+        let (width, height) = jpeg_size(jpeg);
+
+        width.max(height)
+    }
+
+    fn stream(dictionary: &str, content: &[u8]) -> Vec<u8> {
+        let mut body =
+            format!("<< {dictionary} /Length {} >>\nstream\n", content.len()).into_bytes();
+
+        body.extend(content);
+        body.extend(b"\nendstream");
+
+        body
+    }
+
+    fn page_object(contents: usize, rotate: u32, resources: &str) -> Vec<u8> {
+        format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Rotate {rotate} /Resources << {resources} >> /Contents {contents} 0 R >>"
+        )
+        .into_bytes()
+    }
+
+    fn assembled(objects: &[Vec<u8>]) -> Vec<u8> {
         let mut pdf = b"%PDF-1.4\n".to_vec();
         let mut offsets = Vec::new();
 
-        for (number, body) in (1..).zip(&objects) {
+        for (number, body) in (1..).zip(objects) {
             offsets.push(pdf.len());
-            pdf.extend(format!("{number} 0 obj\n{body}\nendobj\n").bytes());
+            pdf.extend(format!("{number} 0 obj\n").bytes());
+            pdf.extend(body);
+            pdf.extend(b"\nendobj\n");
         }
 
         let table = pdf.len();
@@ -461,6 +476,68 @@ mod tests {
         pdf
     }
 
+    fn document(pages: usize, mut objects: Vec<Vec<u8>>) -> Vec<u8> {
+        let kids: Vec<String> = (0..pages).map(|at| format!("{} 0 R", 4 + 2 * at)).collect();
+        let mut all = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            format!(
+                "<< /Type /Pages /Kids [{}] /Count {pages} >>",
+                kids.join(" ")
+            )
+            .into_bytes(),
+        ];
+
+        all.append(&mut objects);
+
+        assembled(&all)
+    }
+
+    fn text_pages_pdf(texts: &[&str], rotate: u32) -> Vec<u8> {
+        let mut objects = vec![FONT.as_bytes().to_vec()];
+
+        for (at, text) in texts.iter().enumerate() {
+            let content = format!("BT /F1 24 Tf 72 700 Td ({text}) Tj ET");
+
+            objects.push(page_object(5 + 2 * at, rotate, "/Font << /F1 3 0 R >>"));
+            objects.push(stream("", content.as_bytes()));
+        }
+
+        document(texts.len(), objects)
+    }
+
+    fn text_pdf(rotate: u32) -> Vec<u8> {
+        text_pages_pdf(&["Rechnung Betrag 4711"], rotate)
+    }
+
+    fn scanned_pdf(jpeg: &[u8]) -> Vec<u8> {
+        let (width, height) = jpeg_size(jpeg);
+        let image = format!(
+            "/Type /XObject /Subtype /Image /Width {width} /Height {height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode"
+        );
+
+        document(
+            1,
+            vec![
+                stream(&image, jpeg),
+                page_object(5, 0, "/XObject << /Im1 3 0 R >>"),
+                stream("", b"q 612 0 0 792 0 0 cm /Im1 Do Q"),
+            ],
+        )
+    }
+
+    fn photo() -> Vec<u8> {
+        let (_, jpeg) = preview(&text_pdf(0), 0, PREVIEW_EDGE).unwrap();
+
+        STANDARD.decode(jpeg).unwrap()
+    }
+
+    fn pages_and_boxes(found: &[FoundMatch]) -> Vec<(u32, usize)> {
+        found
+            .iter()
+            .map(|found| (found.page, found.boxes.len()))
+            .collect()
+    }
+
     fn assert_near(found: &[FoundBox], expected: FoundBox, tolerance: f32) {
         assert_eq!(found.len(), 1, "{found:?}");
         let close = found[0]
@@ -472,7 +549,7 @@ mod tests {
 
     #[test]
     fn the_found_word_is_boxed_on_the_page_as_shown() {
-        let word = [0.307, 0.088, 0.116, 0.035];
+        let word = WORD_BOX;
 
         assert_near(&found_boxes(&text_pdf(0), 0, "betrag"), word, 0.02);
         let turned = [1.0 - word[1] - word[3], word[0], word[3], word[2]];
@@ -484,13 +561,104 @@ mod tests {
 
     #[test]
     fn the_found_word_is_boxed_in_a_photo_by_text_recognition() {
-        let (_, jpeg) = preview(&text_pdf(0), 0, PREVIEW_EDGE).unwrap();
-        let photo = STANDARD.decode(jpeg).unwrap();
+        assert_near(&found_boxes(&photo(), 0, "Betrag"), WORD_BOX, 0.04);
+    }
 
-        assert_near(
-            &found_boxes(&photo, 0, "Betrag"),
-            [0.307, 0.088, 0.116, 0.035],
-            0.04,
+    #[test]
+    fn boxes_of_one_match_stay_together_and_an_empty_box_marks_only_its_page() {
+        let line = [0.25, 0.5, 0.25, 0.125];
+        let next_line = [0.25, 0.625, 0.5, 0.125];
+        let nothing = [0.0, 1.0, 0.0, 0.0];
+        let places = [[0, 0], [0, 0], [2, 1], [5, 2]];
+        let found = grouped(&places, &[line, next_line, line, nothing]);
+
+        assert_eq!(pages_and_boxes(&found), [(0, 2), (2, 1), (5, 0)]);
+        assert_eq!(found[0].boxes, [line, next_line]);
+    }
+
+    #[test]
+    fn every_match_in_a_pdf_is_found_on_its_page() {
+        let pdf = text_pages_pdf(
+            &[
+                "Rechnung Betrag 4711",
+                "Nichts zu sehen",
+                "Betrag hier und betrag dort",
+            ],
+            0,
+        );
+        let found = found_matches(&pdf, "betrag", &NO_INDEX);
+
+        assert_eq!(pages_and_boxes(&found), [(0, 1), (2, 1), (2, 1)]);
+        assert_near(&found[0].boxes, WORD_BOX, 0.02);
+        assert_eq!(
+            pages_and_boxes(&found_matches(&pdf, "BETRÄG", &NO_INDEX)),
+            pages_and_boxes(&found)
+        );
+        assert!(found_matches(&pdf, "fehlt", &NO_INDEX).is_empty());
+    }
+
+    #[test]
+    fn indexed_pages_are_searched_only_where_the_index_names_the_word() {
+        let pdf = text_pages_pdf(
+            &["Rechnung Betrag 4711", "Nichts zu sehen", "Betrag hier"],
+            0,
+        );
+        let index = IndexedText {
+            text: "Rechnung Betrag 4711\u{c}Nichts zu sehen\u{c}Anderes",
+            pages: 3,
+        };
+
+        let partial = IndexedText {
+            text: "Rechnung",
+            pages: 1,
+        };
+
+        assert_eq!(
+            pages_and_boxes(&found_matches(&pdf, "betrag", &index)),
+            [(0, 1)]
+        );
+        assert_eq!(
+            pages_and_boxes(&found_matches(&pdf, "betrag", &partial)),
+            [(2, 1)]
+        );
+    }
+
+    #[test]
+    fn a_scanned_page_is_recognized_where_the_index_names_the_word() {
+        let scan = scanned_pdf(&photo());
+        let index = IndexedText {
+            text: "Rechnung Betrag 4711\n",
+            pages: 1,
+        };
+
+        let found = found_matches(&scan, "betrag", &index);
+
+        assert!(found_matches(&scan, "betrag", &NO_INDEX).is_empty());
+        assert_eq!(pages_and_boxes(&found), [(0, 1)]);
+        assert_near(&found[0].boxes, WORD_BOX, 0.04);
+    }
+
+    #[test]
+    fn a_photo_is_recognized_unless_its_index_lacks_the_word() {
+        let photo = photo();
+        let empty = IndexedText { text: "", pages: 1 };
+        let found = found_matches(&photo, "betrag", &NO_INDEX);
+
+        assert_eq!(pages_and_boxes(&found), [(0, 1)]);
+        assert_near(&found[0].boxes, WORD_BOX, 0.04);
+        assert!(found_matches(&photo, "betrag", &empty).is_empty());
+    }
+
+    #[test]
+    fn a_word_only_the_index_knows_still_points_to_its_page() {
+        let index = IndexedText {
+            text: "Rechnung Betrag 4711 Fußnote\n",
+            pages: 1,
+        };
+
+        assert_eq!(
+            pages_and_boxes(&found_matches(&photo(), "Fußnote", &index)),
+            [(0, 0)]
         );
     }
 
