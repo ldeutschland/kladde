@@ -230,7 +230,7 @@ export function HomeContent({
 }) {
   const recent = useMemo(() => recentPages(book, all), [all, book]);
   const aiOn = useAiOn();
-  const bookName = String(book.manifest.doc.getMap("meta").get("title"));
+  const bookName = book.title;
 
   return (
     <>

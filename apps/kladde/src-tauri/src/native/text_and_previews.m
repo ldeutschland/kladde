@@ -12,6 +12,7 @@
 
 static const size_t imageEdge = 2400;
 static const NSUInteger pageLimit = 200;
+static const NSUInteger searchPageLimit = 5000;
 static const NSStringCompareOptions findOptions = NSCaseInsensitiveSearch | NSDiacriticInsensitiveSearch;
 
 static NSArray<VNRecognizedTextObservation *> *recognizedLines(CGImageRef image) {
@@ -56,48 +57,63 @@ static CGImageRef renderPage(PDFPage *documentPage, BOOL inColor, size_t edge) {
     return image;
 }
 
-static void addBox(CGRect found, CGSize whole, float *boxes, size_t capacity, size_t *count) {
-    if (*count >= capacity || whole.width <= 0 || whole.height <= 0) return;
-    float *box = boxes + *count * 4;
+typedef struct {
+    float *boxes;
+    uint32_t *places;
+    size_t capacity;
+    size_t count;
+    uint32_t matches;
+    uint32_t page;
+} Found;
+
+static BOOL isFull(const Found *into) {
+    return into->count >= into->capacity;
+}
+
+static void addBox(CGRect found, CGSize whole, Found *into) {
+    if (isFull(into) || whole.width <= 0 || whole.height <= 0) return;
+    float *box = into->boxes + into->count * 4;
     box[0] = CGRectGetMinX(found) / whole.width;
     box[1] = 1 - CGRectGetMaxY(found) / whole.height;
     box[2] = CGRectGetWidth(found) / whole.width;
     box[3] = CGRectGetHeight(found) / whole.height;
-    *count += 1;
+    if (into->places) {
+        into->places[into->count * 2] = into->page;
+        into->places[into->count * 2 + 1] = into->matches;
+    }
+    into->count += 1;
 }
 
-static size_t textBoxes(PDFPage *page, NSString *term, float *boxes, size_t capacity) {
+static void textBoxes(PDFPage *page, NSString *term, Found *into) {
     CGSize shown = kladde_shown_size(page);
     CGAffineTransform toShown = [page transformForBox:kPDFDisplayBoxCropBox];
     NSString *text = page.string;
     NSRange remaining = NSMakeRange(0, text.length);
-    size_t count = 0;
-    while (count < capacity && remaining.length) {
+    while (!isFull(into) && remaining.length) {
         NSRange match = [text rangeOfString:term options:findOptions range:remaining];
         if (match.location == NSNotFound) break;
         for (PDFSelection *line in [page selectionForRange:match].selectionsByLine) {
-            addBox(CGRectApplyAffineTransform([line boundsForPage:page], toShown), shown, boxes, capacity, &count);
+            addBox(CGRectApplyAffineTransform([line boundsForPage:page], toShown), shown, into);
         }
+        into->matches += 1;
         remaining = NSMakeRange(NSMaxRange(match), text.length - NSMaxRange(match));
     }
-    return count;
 }
 
-static size_t recognizedBoxes(CGImageRef image, NSString *term, float *boxes, size_t capacity) {
-    size_t count = 0;
+static void recognizedBoxes(CGImageRef image, NSString *term, Found *into) {
     for (VNRecognizedTextObservation *line in recognizedLines(image)) {
         VNRecognizedText *candidate = [line topCandidates:1].firstObject;
         NSString *text = candidate.string;
         NSRange remaining = NSMakeRange(0, text.length);
-        while (count < capacity && remaining.length) {
+        while (!isFull(into) && remaining.length) {
             NSRange match = [text rangeOfString:term options:findOptions range:remaining];
             if (match.location == NSNotFound) break;
             VNRectangleObservation *box = [candidate boundingBoxForRange:match error:nil];
-            if (box) addBox(box.boundingBox, CGSizeMake(1, 1), boxes, capacity, &count);
+            if (box) addBox(box.boundingBox, CGSizeMake(1, 1), into);
+            into->matches += 1;
             remaining = NSMakeRange(NSMaxRange(match), text.length - NSMaxRange(match));
         }
     }
-    return count;
 }
 
 static BOOL pageHasImages(CGPDFPageRef page) {
@@ -245,13 +261,14 @@ size_t kladde_find_boxes(const uint8_t *bytes, size_t length, size_t index, bool
             NSString *wanted = [NSString stringWithUTF8String:term];
             if (!wanted.length || !capacity) return 0;
             NSData *data = [NSData dataWithBytesNoCopy:(void *)bytes length:length freeWhenDone:NO];
+            Found into = {boxes, NULL, capacity, 0, 0, 0};
             CGImageRef image = NULL;
             if (pdf) {
                 PDFDocument *document = [[PDFDocument alloc] initWithData:data];
                 if (!document || document.isLocked || index >= document.pageCount) return 0;
                 PDFPage *page = [document pageAtIndex:index];
-                size_t count = textBoxes(page, wanted, boxes, capacity);
-                if (count || !page.pageRef) return count;
+                textBoxes(page, wanted, &into);
+                if (into.count || !page.pageRef) return into.count;
                 image = renderPage(page, NO, imageEdge);
             } else {
                 CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
@@ -259,9 +276,83 @@ size_t kladde_find_boxes(const uint8_t *bytes, size_t length, size_t index, bool
                 if (index < CGImageSourceGetCount(source) && isPreviewImage(source)) image = imageThumbnail(source, index, imageEdge);
                 CFRelease(source);
             }
-            size_t count = recognizedBoxes(image, wanted, boxes, capacity);
+            recognizedBoxes(image, wanted, &into);
             if (image) CGImageRelease(image);
-            return count;
+            return into.count;
+        } @catch (NSException *exception) {
+            return 0;
+        }
+    }
+}
+
+static BOOL mentions(NSString *text, NSString *term) {
+    return text && [text rangeOfString:term options:findOptions].location != NSNotFound;
+}
+
+static NSArray<NSString *> *indexedPages(const uint8_t *known, size_t length, size_t pages) {
+    if (!pages) return @[];
+    NSString *text = known && length ? [[NSString alloc] initWithBytes:known length:length encoding:NSUTF8StringEncoding] : @"";
+    NSArray<NSString *> *segments = [text componentsSeparatedByString:@"\f"];
+    if (!segments) return @[];
+    return [segments subarrayWithRange:NSMakeRange(0, MIN(pages, segments.count))];
+}
+
+static void markPage(Found *into) {
+    addBox(CGRectZero, CGSizeMake(1, 1), into);
+    into->matches += 1;
+}
+
+static void recognizedPage(PDFPage *page, NSString *term, Found *into) {
+    if (!page.pageRef) return;
+    CGImageRef image = renderPage(page, NO, imageEdge);
+    recognizedBoxes(image, term, into);
+    if (image) CGImageRelease(image);
+}
+
+static void findInPDF(NSData *data, NSString *term, NSArray<NSString *> *indexed, Found *into) {
+    PDFDocument *document = [[PDFDocument alloc] initWithData:data];
+    if (!document || document.isLocked) return;
+    NSUInteger pages = MIN(document.pageCount, searchPageLimit);
+    for (NSUInteger index = 0; index < pages && !isFull(into); index++) {
+        @autoreleasepool {
+            BOOL known = index < indexed.count;
+            if (known && !mentions(indexed[index], term)) continue;
+            uint32_t before = into->matches;
+            PDFPage *page = [document pageAtIndex:index];
+            into->page = (uint32_t)index;
+            textBoxes(page, term, into);
+            if (into->matches > before || !known) continue;
+            recognizedPage(page, term, into);
+            if (into->matches == before) markPage(into);
+        }
+    }
+}
+
+static void findInImage(NSData *data, NSString *term, NSArray<NSString *> *indexed, Found *into) {
+    BOOL known = indexed.count > 0;
+    if (known && !mentions(indexed[0], term)) return;
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+    if (!source) return;
+    BOOL readable = CGImageSourceGetCount(source) > 0 && isPreviewImage(source);
+    CGImageRef image = readable ? imageThumbnail(source, 0, imageEdge) : NULL;
+    CFRelease(source);
+    recognizedBoxes(image, term, into);
+    if (image) CGImageRelease(image);
+    if (known && !into->matches) markPage(into);
+}
+
+size_t kladde_find_all(const uint8_t *bytes, size_t length, bool pdf, const char *term, const uint8_t *known,
+                       size_t knownLength, size_t knownPages, uint32_t *places, float *boxes, size_t capacity) {
+    @autoreleasepool {
+        @try {
+            NSString *wanted = [NSString stringWithUTF8String:term];
+            if (!wanted.length || !capacity) return 0;
+            NSArray<NSString *> *indexed = indexedPages(known, knownLength, knownPages);
+            NSData *data = [NSData dataWithBytesNoCopy:(void *)bytes length:length freeWhenDone:NO];
+            Found into = {boxes, places, capacity, 0, 0, 0};
+            if (pdf) findInPDF(data, wanted, indexed, &into);
+            else findInImage(data, wanted, indexed, &into);
+            return into.count;
         } @catch (NSException *exception) {
             return 0;
         }

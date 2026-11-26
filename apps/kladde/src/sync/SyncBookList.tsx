@@ -1,22 +1,14 @@
 import { CloudOff, LoaderCircle } from "lucide-react";
-import type { T, Word } from "../locale/locale";
+import type { T } from "../locale/locale";
 import { firstLetter } from "../workspace/commands";
 import {
   choiceState,
+  choiceWord,
   removable,
   syncsHere,
-  type ChoiceState,
   type SyncBooks,
   type SyncChoice,
 } from "./useSyncBooks";
-
-const STATE_TEXT: Record<ChoiceState, Word> = {
-  synced: "synced",
-  arriving: "bookArriving",
-  local: "unsynced",
-  excludedHere: "bookExcludedHere",
-  excludedAway: "bookExcludedAway",
-};
 
 interface RowProps {
   choice: SyncChoice;
@@ -35,7 +27,7 @@ function bookName(choice: SyncChoice, t: T) {
 }
 
 function stateText({ choice, open, pending, t }: RowProps) {
-  const state = pending ? t("syncing") : t(STATE_TEXT[choiceState(choice)]);
+  const state = pending ? t("syncing") : t(choiceWord(choice));
 
   return open ? state + " · " + t("bookOpen") : state;
 }

@@ -309,6 +309,10 @@
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
+.foundmarks rect.current {
+  fill: var(--found-current);
+  stroke-width: 3px;
+}
 .searchhit {
   display: grid;
   gap: 2px;

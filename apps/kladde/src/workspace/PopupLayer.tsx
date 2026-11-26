@@ -21,6 +21,7 @@ export interface PopupActions {
   upload: (key: ImageKey, target: string, file: File | undefined) => void;
   switchBook: (id: string) => void;
   newBook: () => void;
+  manageBooks: () => void;
 }
 
 export function PopupLayer({
@@ -65,6 +66,7 @@ export function PopupLayer({
         current={book.id}
         switchBook={actions.switchBook}
         newBook={actions.newBook}
+        manageBooks={actions.manageBooks}
       />
     );
   if (!page) return null;

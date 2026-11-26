@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import {
+  BookCopy,
   Camera,
   Check,
   FilePlus,
@@ -248,11 +249,13 @@ export function BooksMenu({
   current,
   switchBook,
   newBook,
+  manageBooks,
 }: PopoverBase & {
   books: [string, string][];
   current: string;
   switchBook: (id: string) => void;
   newBook: () => void;
+  manageBooks: () => void;
 }) {
   return (
     <Popover anchor={anchor} label={t("workspace")} close={close}>
@@ -268,6 +271,10 @@ export function BooksMenu({
         <button onClick={newBook}>
           <Plus />
           {t("newBook")}
+        </button>
+        <button onClick={manageBooks}>
+          <BookCopy />
+          {t("manageBooks")}
         </button>
       </div>
     </Popover>

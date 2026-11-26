@@ -31,3 +31,19 @@ export function viewerKeys(
 
   return true;
 }
+
+export function findShortcut(
+  event: KeyboardEvent<HTMLElement>,
+  editing: boolean,
+  show: () => void,
+) {
+  const command = event.metaKey || event.ctrlKey;
+
+  if (!command || event.nativeEvent.isComposing) return false;
+  if (event.key.toLowerCase() !== "f") return false;
+  event.preventDefault();
+  event.stopPropagation();
+  if (!editing) show();
+
+  return true;
+}

@@ -67,6 +67,23 @@ function simulatedRemoval(space: string) {
   keepBooks(books);
 }
 
+function simulatedDeletion(data: Record<string, Stored>, space: string) {
+  const workspaces = Object.values(data).filter((n) => n.kind === "workspace");
+
+  if (!workspaces.some((n) => n.id === space))
+    throw Error("Workspace not on this device");
+  if (workspaces.length < 2)
+    throw Error("The last notebook on this device stays");
+  for (const note of Object.values(data))
+    if (note.space === space) delete data[note.id];
+  localStorage.setItem("kladde-test-notes", JSON.stringify(data));
+  const books = simulatedBooks();
+
+  if (books.remote.includes(space) && !books.excluded.includes(space))
+    books.excluded.push(space);
+  keepBooks(books);
+}
+
 function simulatedLink(link: unknown) {
   const books = simulatedBooks();
 
@@ -373,6 +390,25 @@ function fileHits(notes: Stored[], query: string) {
   );
 }
 
+function simulatedMatches(args: Record<string, unknown>) {
+  const scan = simulatedScan(String(args.file));
+  const term = String(args.term).toLowerCase();
+  const text = scan?.text.toLowerCase() ?? "";
+  const found = [];
+
+  for (
+    let at = text.indexOf(term);
+    scan && at >= 0;
+    at = text.indexOf(term, at + 1)
+  ) {
+    const top = Math.min(0.85, 0.2 + found.length * 0.12);
+
+    found.push({ page: scan.page, boxes: [[0.2, top, 0.3, 0.08]] });
+  }
+
+  return found;
+}
+
 function simulatedFound(args: Record<string, unknown>) {
   const scan = simulatedScan(String(args.file));
   const term = String(args.term).toLowerCase();
@@ -429,6 +465,9 @@ export async function mock<T>(
       break;
     case "remove_space":
       simulatedRemoval(String(args.space));
+      break;
+    case "delete_space":
+      simulatedDeletion(data, String(args.space));
       break;
     case "remote_spaces":
       result = simulatedLink(args.link);
@@ -579,6 +618,9 @@ export async function mock<T>(
       break;
     case "find_in_attachment":
       result = simulatedFound(args);
+      break;
+    case "find_all_in_attachment":
+      result = simulatedMatches(args);
       break;
     case "edit_pdf": {
       const bytes = simulatedFiles.get(String(args.file));

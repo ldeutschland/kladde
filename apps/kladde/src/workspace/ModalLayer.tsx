@@ -16,6 +16,8 @@ import {
 import { SearchPalette, type PaletteActions } from "./SearchPalette";
 import { TrashPanel } from "./Palettes";
 import { SettingsPanel, type SettingsActions } from "./SettingsPanel";
+import { BooksPanel } from "./BooksPanel";
+import type { BooksPanelActions } from "./useBookManager";
 import { Support } from "./Support";
 import type { Search } from "./useSearch";
 import type { Sync } from "./useSyncStatus";
@@ -34,6 +36,7 @@ export interface ModalActions {
   erase: (page: Page) => void;
   palette: PaletteActions;
   settings: SettingsActions;
+  books: BooksPanelActions;
 }
 
 export interface ModalState {
@@ -216,6 +219,16 @@ export function ModalLayer({
         t={t}
         mobile={state.mobile}
         actions={actions.palette}
+      />
+    );
+  if (modal === "books")
+    return (
+      <BooksPanel
+        book={book}
+        books={state.books}
+        t={t}
+        ask={state.ask}
+        actions={actions.books}
       />
     );
   if (modal === "trash")

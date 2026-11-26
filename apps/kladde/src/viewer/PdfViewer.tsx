@@ -1,5 +1,5 @@
 import { useMemo, useRef, type KeyboardEvent } from "react";
-import { useFoundBoxes } from "./foundMarks";
+import { useFoundMarks } from "./foundMarks";
 import type { PdfInfo } from "./pdfPages";
 import type { T } from "../locale/locale";
 import { fileId, type ViewerProps } from "./viewing";
@@ -12,7 +12,9 @@ import { useEditSession } from "./useEditSession";
 import { usePens } from "./usePens";
 import { useStage, useStageSize } from "./useStage";
 import { useZoom } from "./useZoom";
-import { isTyping, viewerKeys } from "./viewerKeys";
+import { findShortcut, isTyping, viewerKeys } from "./viewerKeys";
+import { shownMarks, useFileFind } from "./useFileFind";
+import { FileFindBar } from "./FileFindBar";
 import { savePdf } from "./savePdf";
 import { ViewerFrame } from "./ViewerFrame";
 import { ViewerEnd } from "./ViewerEnd";
@@ -36,7 +38,7 @@ function usePdfViewer(props: ViewerProps) {
   const pens = usePens(mobile ? "hand" : "pen");
   const info = usePdfInfo(source);
   const foundPage = target.page ?? 0;
-  const found = useFoundBoxes(source, foundPage, target.found);
+  const found = useFoundMarks(source, foundPage, target.found);
   const originals = useMemo(() => originalPages(info), [info]);
   const session = useEditSession<PageDraft[]>(
     NO_PAGES,
@@ -51,6 +53,7 @@ function usePdfViewer(props: ViewerProps) {
   const edits = usePageEdits(history, info, editing);
   const pages = editing ? history.state : originals;
   const current = useCurrentPage(stage.element, column, pages.length);
+  const find = useFileFind(source, target.found ?? "", current);
   const padding = mobile ? PHONE_PADDING : PADDING;
   const go = usePageJump({
     stage,
@@ -77,6 +80,7 @@ function usePdfViewer(props: ViewerProps) {
     edits,
     pages,
     current,
+    find,
     padding,
     go,
   };
@@ -113,6 +117,12 @@ function ThumbRail({ viewer, info, t }: PartProps) {
   );
 }
 
+function marksOn(viewer: PdfViewerState, page: number) {
+  const revealed = page === viewer.foundPage ? viewer.found : undefined;
+
+  return shownMarks(viewer.find, page, revealed);
+}
+
 function PdfColumn({ viewer, info, t }: PartProps) {
   const { pages, edits } = viewer;
   const { editing } = viewer.session;
@@ -138,11 +148,7 @@ function PdfColumn({ viewer, info, t }: PartProps) {
           pens={viewer.pens}
           change={edits.changeMarks}
           t={t}
-          found={
-            !editing && page.source === viewer.foundPage
-              ? viewer.found
-              : undefined
-          }
+          found={editing ? undefined : marksOn(viewer, page.source)}
         >
           {editing && (
             <PageActions
@@ -165,14 +171,17 @@ export function PdfViewer(props: ViewerProps) {
   const viewer = usePdfViewer(props);
   const { stage, zoom, pens, info, session, pages, current, go } = viewer;
   const { editing, history } = session;
+  const { find } = viewer;
 
   function escape() {
     if (isTyping()) return;
     if (editing) void session.leave();
+    else if (find.open) find.hide();
     else props.close();
   }
 
   function pageKeys(event: KeyboardEvent<HTMLElement>) {
+    if (findShortcut(event, editing || !info, find.show)) return;
     if (viewerKeys(event, zoom, editing, history) || isTyping()) return;
     if (event.metaKey || event.ctrlKey) return;
     const step = ARROW_STEPS[event.key];
@@ -208,9 +217,11 @@ export function PdfViewer(props: ViewerProps) {
           editable={!!info?.editable}
           edit={() => session.start(viewer.originals)}
           save={viewer.saver.save}
+          find={find.show}
         />
       }
       tools={editing && info ? <MarkTools pens={pens} t={t} /> : undefined}
+      find={!editing && info && <FileFindBar find={find} t={t} />}
       side={!mobile && info && <ThumbRail viewer={viewer} info={info} t={t} />}
       footer={
         mobile &&

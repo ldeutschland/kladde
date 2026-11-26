@@ -40,6 +40,10 @@ function popupActionsFor(workspace: WorkspaceScope): PopupActions {
       void setPageImage(context, key, target, file),
     switchBook: (target) => void switchBook(context, target),
     newBook: () => void newWorkspace(context),
+    manageBooks: () => {
+      overlays.setPopup(null);
+      overlays.setModal("books");
+    },
   };
 }
 

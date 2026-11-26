@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { turnedSize, type Mark, type Point } from "./marks";
 import { useNear, usePagePicture, type PdfSource } from "./pdfPages";
-import { FoundMarks, type FoundBox } from "./foundMarks";
+import { FoundMarks, type FoundView } from "./foundMarks";
 import type { T } from "../locale/locale";
 import { Sheet } from "./Sheet";
 import { IconButton } from "./ViewerControls";
@@ -97,7 +97,7 @@ export function PdfPage({
   pens: Pens;
   change: (index: number, marks: Mark[]) => void;
   t: T;
-  found?: FoundBox[];
+  found?: FoundView;
   children?: ReactNode;
 }) {
   const holder = useRef<HTMLDivElement>(null);
@@ -124,7 +124,7 @@ export function PdfPage({
       >
         {found && (
           <FoundMarks
-            boxes={found}
+            found={found}
             width={width}
             height={height}
             stage={stage}

@@ -28,8 +28,12 @@ struct Run {
     cancel: CancellationToken,
 }
 
+pub fn policy_key(space: Uuid) -> String {
+    format!("ai:{space}")
+}
+
 fn policy(app: &AppHandle, vault: &Vault, space: Uuid) -> Result<Policy, String> {
-    let stored = vault.access(app, |store| store.state(&format!("ai:{space}")))?;
+    let stored = vault.access(app, |store| store.state(&policy_key(space)))?;
 
     match stored {
         None => Ok(Policy::default()),
@@ -58,7 +62,7 @@ pub fn ai_settings(
     let other_settings_changed = previous != settings;
     let data = serde_json::to_vec(&settings).map_err(|_| "Settings")?;
 
-    vault.access(&app, |store| store.set_state(&format!("ai:{space}"), &data))?;
+    vault.access(&app, |store| store.set_state(&policy_key(space), &data))?;
     active.retain(|_, r| {
         if r.space == space && (other_settings_changed || (r.using_web && !settings.web_search)) {
             r.cancel.cancel();

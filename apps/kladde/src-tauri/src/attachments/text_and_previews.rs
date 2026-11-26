@@ -1,4 +1,5 @@
 use quick_xml::{Reader, events::Event};
+use serde::Serialize;
 use std::io::{Cursor, Read};
 use zeroize::Zeroizing;
 
@@ -7,6 +8,7 @@ pub const THUMBNAIL_EDGE: usize = 256;
 pub(super) const TEXT_LIMIT: usize = 1_048_576;
 const XML_LIMIT: u64 = 16 * 1024 * 1024;
 const MAX_FOUND_BOXES: usize = 64;
+const MAX_FILE_BOXES: usize = 1000;
 
 unsafe extern "C" {
     fn kladde_file_preview(
@@ -25,6 +27,19 @@ unsafe extern "C" {
         index: usize,
         pdf: bool,
         term: *const std::ffi::c_char,
+        boxes: *mut f32,
+        capacity: usize,
+    ) -> usize;
+
+    fn kladde_find_all(
+        bytes: *const u8,
+        length: usize,
+        pdf: bool,
+        term: *const std::ffi::c_char,
+        known: *const u8,
+        known_length: usize,
+        known_pages: usize,
+        places: *mut u32,
         boxes: *mut f32,
         capacity: usize,
     ) -> usize;
@@ -100,6 +115,61 @@ pub fn found_boxes(bytes: &[u8], index: usize, term: &str) -> Vec<FoundBox> {
         .iter()
         .filter_map(|found| inside_page(*found))
         .collect()
+}
+
+#[derive(Serialize)]
+pub struct FoundMatch {
+    page: u32,
+    boxes: Vec<FoundBox>,
+}
+
+pub struct IndexedText<'a> {
+    pub text: &'a str,
+    pub pages: usize,
+}
+
+pub fn found_matches(bytes: &[u8], term: &str, indexed: &IndexedText) -> Vec<FoundMatch> {
+    let Ok(term) = std::ffi::CString::new(term) else {
+        return Vec::new();
+    };
+
+    let mut places = vec![[0u32; 2]; MAX_FILE_BOXES];
+    let mut boxes = vec![[0f32; 4]; MAX_FILE_BOXES];
+    let count = unsafe {
+        kladde_find_all(
+            bytes.as_ptr(),
+            bytes.len(),
+            is_pdf(bytes),
+            term.as_ptr(),
+            indexed.text.as_ptr(),
+            indexed.text.len(),
+            indexed.pages,
+            places.as_mut_ptr().cast(),
+            boxes.as_mut_ptr().cast(),
+            MAX_FILE_BOXES,
+        )
+    }
+    .min(MAX_FILE_BOXES);
+
+    grouped(&places[..count], &boxes[..count])
+}
+
+fn grouped(places: &[[u32; 2]], boxes: &[FoundBox]) -> Vec<FoundMatch> {
+    let mut found: Vec<(u32, FoundMatch)> = Vec::new();
+
+    for (&[page, number], &found_box) in places.iter().zip(boxes) {
+        if found.last().is_none_or(|(last, _)| *last != number) {
+            let boxes = Vec::new();
+
+            found.push((number, FoundMatch { page, boxes }));
+        }
+
+        if let (Some(inside), Some((_, current))) = (inside_page(found_box), found.last_mut()) {
+            current.boxes.push(inside);
+        }
+    }
+
+    found.into_iter().map(|(_, found)| found).collect()
 }
 
 fn inside_page([x, y, width, height]: FoundBox) -> Option<FoundBox> {

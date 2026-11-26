@@ -228,6 +228,7 @@ function AskPanel({
             maxLength={2048}
             autoFocus
             defaultValue={question.initial}
+            onFocus={(e) => e.currentTarget.select()}
           />
         )}
         <footer>

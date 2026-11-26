@@ -1,7 +1,8 @@
+import { useMemo, type KeyboardEvent } from "react";
 import { Crop, FlipHorizontal2, RotateCcw, RotateCw } from "lucide-react";
 import type { ImageDraft } from "./imageExport";
 import { flipped, rotated } from "./marks";
-import { FoundMarks, useFoundBoxes } from "./foundMarks";
+import { FoundMarks, useFoundMarks } from "./foundMarks";
 import type { T } from "../locale/locale";
 import { fileId, type ViewerProps } from "./viewing";
 import { Sheet } from "./Sheet";
@@ -15,7 +16,9 @@ import { useEditSession } from "./useEditSession";
 import { usePens } from "./usePens";
 import { useStage, useStageSize } from "./useStage";
 import { useZoom } from "./useZoom";
-import { isTyping, viewerKeys } from "./viewerKeys";
+import { findShortcut, isTyping, viewerKeys } from "./viewerKeys";
+import { shownMarks, useFileFind } from "./useFileFind";
+import { FileFindBar } from "./FileFindBar";
 import { ViewerFrame } from "./ViewerFrame";
 import { ViewerEnd } from "./ViewerEnd";
 import { IconButton, MarkTools, ZoomControls } from "./ViewerControls";
@@ -71,11 +74,12 @@ function useImageViewer(props: ViewerProps) {
     t,
   );
   const image = useLoadedImage(props);
-  const found = useFoundBoxes(
-    { space: book.id, doc: entry.id, file: fileId(target.url) },
-    target.page ?? 0,
-    target.found,
+  const source = useMemo(
+    () => ({ space: book.id, doc: entry.id, file: fileId(target.url) }),
+    [book.id, entry.id, target.url],
   );
+  const found = useFoundMarks(source, target.page ?? 0, target.found);
+  const find = useFileFind(source, target.found ?? "", 0);
   const crop = useImageCrop();
   const saver = useEditSave(props, (copy) =>
     saveImage(props, image!.element, session.history.state, copy),
@@ -96,7 +100,8 @@ function useImageViewer(props: ViewerProps) {
     pens,
     session,
     image,
-    found,
+    found: shownMarks(find, 0, found),
+    find,
     crop,
     saver,
     draft,
@@ -154,9 +159,9 @@ function ImageStage({
               change={crop.setFrame}
             />
           )}
-          {!editing && (
+          {!editing && viewer.found && (
             <FoundMarks
-              boxes={viewer.found}
+              found={viewer.found}
               width={width}
               height={height}
               stage={stage.ref}
@@ -177,13 +182,20 @@ export function ImageViewer(props: ViewerProps) {
   const viewer = useImageViewer(props);
   const { stage, zoom, pens, session, image, crop, draft, layout } = viewer;
   const { history, editing } = session;
+  const { find } = viewer;
   const title = target.name || t("image");
 
   function escape() {
     if (crop.frame) crop.cancel();
     else if (isTyping()) return;
     else if (editing) void session.leave();
+    else if (find.open) find.hide();
     else props.close();
+  }
+
+  function keys(event: KeyboardEvent<HTMLElement>) {
+    if (findShortcut(event, editing || !image, find.show)) return;
+    viewerKeys(event, zoom, editing, history);
   }
 
   const tools = crop.frame ? (
@@ -214,7 +226,7 @@ export function ImageViewer(props: ViewerProps) {
       escape={escape}
       t={t}
       stage={stage.attach}
-      keys={(event) => viewerKeys(event, zoom, editing, history)}
+      keys={keys}
       center={!mobile && image && <ZoomControls zoom={zoom} t={t} />}
       end={
         <ViewerEnd
@@ -226,9 +238,11 @@ export function ImageViewer(props: ViewerProps) {
           save={async (copy) => {
             if (image) await viewer.saver.save(copy);
           }}
+          find={find.show}
         />
       }
       tools={editing && image ? tools : undefined}
+      find={!editing && image && <FileFindBar find={find} t={t} />}
     >
       <ImageStage viewer={viewer} title={title} t={t} />
       {session.asking}

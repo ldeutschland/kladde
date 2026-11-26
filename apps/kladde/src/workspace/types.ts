@@ -14,6 +14,7 @@ export type Modal =
   | "clipper"
   | "privacy"
   | "support"
+  | "books"
   | null;
 
 export type PopupKind =

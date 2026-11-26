@@ -12,6 +12,7 @@ export function ViewerFrame({
   center,
   end,
   tools,
+  find,
   side,
   stage,
   children,
@@ -25,6 +26,7 @@ export function ViewerFrame({
   center?: ReactNode;
   end: ReactNode;
   tools?: ReactNode;
+  find?: ReactNode;
   side?: ReactNode;
   stage: (node: HTMLDivElement | null) => void;
   children: ReactNode;
@@ -61,6 +63,7 @@ export function ViewerFrame({
             <span className="viewerend">{end}</span>
           </header>
           {tools}
+          {find}
           <div className="viewerbody">
             {side}
             <div className="viewerstage" ref={stage} tabIndex={-1}>

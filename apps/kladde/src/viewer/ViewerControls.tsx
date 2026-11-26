@@ -9,6 +9,7 @@ import {
   PenLine,
   Plus,
   Redo2,
+  Search,
   Square,
   Type,
   Undo2,
@@ -210,14 +211,17 @@ export function ViewActions({
   editable,
   edit,
   download,
+  find,
 }: {
   t: T;
   editable: boolean;
   edit: () => void;
   download: () => void;
+  find: () => void;
 }) {
   return (
     <>
+      <IconButton label={t("findInFile")} icon={<Search />} onClick={find} />
       {editable && (
         <button className="viewertext" onClick={edit}>
           <PenLine />

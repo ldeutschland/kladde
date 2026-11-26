@@ -3,6 +3,7 @@ import { command } from "../platform/native";
 import { SYNC_OFF } from "./sync";
 import { readableError, type SyncPanelProps } from "./accountTypes";
 import type { SyncAccount } from "./useSyncAccount";
+import type { Word } from "../locale/locale";
 
 export interface SyncChoice {
   id: string;
@@ -16,11 +17,27 @@ export interface SyncChoice {
 export type ChoiceState =
   "synced" | "arriving" | "local" | "excludedHere" | "excludedAway";
 
+const STATE_WORDS: Record<ChoiceState, Word> = {
+  synced: "synced",
+  arriving: "bookArriving",
+  local: "unsynced",
+  excludedHere: "bookExcludedHere",
+  excludedAway: "bookExcludedAway",
+};
+
 export function choiceState(choice: SyncChoice): ChoiceState {
   if (!choice.remote) return "local";
   if (!choice.excluded) return choice.local ? "synced" : "arriving";
 
   return choice.local ? "excludedHere" : "excludedAway";
+}
+
+export function choiceWord(choice: SyncChoice) {
+  return STATE_WORDS[choiceState(choice)];
+}
+
+export function loadChoices(refresh: boolean) {
+  return command<SyncChoice[]>("sync_choices", { refresh });
 }
 
 export function syncsHere(choice: SyncChoice) {
@@ -29,10 +46,6 @@ export function syncsHere(choice: SyncChoice) {
 
 export function removable(choice: SyncChoice) {
   return choice.local && choice.remote && !choice.primary;
-}
-
-function loadChoices(refresh: boolean) {
-  return command<SyncChoice[]>("sync_choices", { refresh });
 }
 
 function arrivingIds(choices: SyncChoice[]) {

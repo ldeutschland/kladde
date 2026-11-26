@@ -4,8 +4,8 @@ use super::{
     live_watch,
     session::fresh_access,
     stored_account::{
-        confirmed_access, excluded_spaces, excluded_state, forget_space, known_remote_spaces,
-        space_access,
+        confirmed_access, excluded_spaces, excluded_state, forget_space, is_excluded,
+        known_remote_spaces, space_access, stored_access,
     },
     workspaces::refreshed_spaces,
 };
@@ -22,6 +22,8 @@ const EXCLUDED_MARK: &[u8] = &[1];
 const UNKNOWN_SPACE: &str = "Unknown workspace";
 const FIRST_SPACE_STAYS: &str = "The account's first notebook stays on the server";
 const NOT_ON_DEVICE: &str = "Workspace not on this device";
+const LAST_SPACE_STAYS: &str = "The last notebook on this device stays";
+const UNSYNCED_CHANGES: &str = "Notebook has unsynced changes";
 
 #[derive(Serialize)]
 pub struct Choice {
@@ -227,6 +229,80 @@ pub async fn remove_space(
         .await
         .map_err(|e| sync_error(&e))?;
     forget_space(&vault, &app, access.account, space)?;
+    live_watch::wake(&app);
+
+    Ok(())
+}
+
+fn check_deletable(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<(), String> {
+    let spaces = vault.access(app, |store| store.spaces())?;
+
+    if !spaces.iter().any(|(id, _)| *id == space) {
+        return Err(NOT_ON_DEVICE.into());
+    }
+
+    if spaces.len() < 2 {
+        return Err(LAST_SPACE_STAYS.into());
+    }
+
+    Ok(())
+}
+
+fn remote_account(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<Option<Uuid>, String> {
+    let Some(access) = stored_access(vault, app)? else {
+        return Ok(None);
+    };
+
+    let on_server = known_remote_spaces(vault, app, &access)?.contains(&space);
+
+    Ok(on_server.then_some(access.account))
+}
+
+fn check_synced(vault: &Vault, app: &AppHandle, account: Uuid, space: Uuid) -> Result<(), String> {
+    if is_excluded(vault, app, account, space)? {
+        return Ok(());
+    }
+
+    if vault.access(app, |store| store.has_unsynced_changes(space))? {
+        return Err(UNSYNCED_CHANGES.into());
+    }
+
+    Ok(())
+}
+
+fn delete_here(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<(), String> {
+    let account = remote_account(vault, app, space)?;
+
+    if let Some(account) = account {
+        check_synced(vault, app, account, space)?;
+    }
+
+    vault.access(app, |store| {
+        store.delete_space(space)?;
+
+        store.clear_state(&crate::ai::policy_key(space))
+    })?;
+
+    let Some(account) = account else {
+        return Ok(());
+    };
+
+    let marker = excluded_state(account, space);
+
+    vault.access(app, |store| store.set_state(&marker, EXCLUDED_MARK))
+}
+
+#[tauri::command]
+pub async fn delete_space(
+    app: AppHandle,
+    vault: State<'_, Vault>,
+    sync: State<'_, SyncState>,
+    space: Uuid,
+) -> Result<(), String> {
+    let _guard = sync.lock.lock().await;
+
+    check_deletable(&vault, &app, space)?;
+    crate::attachments::uploads::change_access(&app, || delete_here(&vault, &app, space))?;
     live_watch::wake(&app);
 
     Ok(())

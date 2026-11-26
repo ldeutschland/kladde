@@ -481,6 +481,30 @@ impl Store {
         })
     }
 
+    pub fn attachment_words(
+        &self,
+        space: Uuid,
+        doc: Uuid,
+        file: Uuid,
+    ) -> Result<Option<ExtractedText>, Error> {
+        Ok(self
+            .0
+            .query_row(
+                "SELECT f.status,w.body FROM page_files f JOIN file_words w ON w.rowid=f.rowid JOIN notes n ON n.id=f.doc
+             WHERE n.space=?1 AND n.archived=0 AND f.doc=?2 AND f.file=?3 AND f.status IN ('ready','partial')",
+                params![space.to_string(), doc.to_string(), file.to_string()],
+                |r| {
+                    Ok(ExtractedText {
+                        doc,
+                        file,
+                        status: r.get(0)?,
+                        text: r.get(1)?,
+                    })
+                },
+            )
+            .optional()?)
+    }
+
     pub fn pending_attachments(&self, space: Uuid) -> Result<u32, Error> {
         Ok(self.0.query_row("SELECT count(*) FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.space=?1 AND n.archived=0 AND f.status='pending'", [space.to_string()], |r|r.get(0))?)
     }

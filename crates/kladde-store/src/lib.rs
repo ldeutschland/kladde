@@ -15,6 +15,7 @@ mod private_state;
 mod readable;
 mod search;
 mod shared_versions;
+mod space_deletion;
 
 pub use archive::Archive;
 pub use backup::{Bundle, Record};

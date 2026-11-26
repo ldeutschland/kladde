@@ -159,7 +159,7 @@ function usePageData(
     database,
     all,
     small: !!book.settings.get("small"),
-    bookName: String(book.manifest.doc.getMap("meta").get("title")),
+    bookName: book.title,
   };
 }
 

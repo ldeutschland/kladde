@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import {
   ArrowLeftRight,
+  BookCopy,
   ChevronRight,
   Cloud,
   LifeBuoy,
@@ -39,6 +40,7 @@ export interface SettingsActions {
   clipper: () => void;
   privacy: () => void;
   support: () => void;
+  books: () => void;
   newBook: () => void;
   open: (target: string | null) => Promise<void>;
   notify: (text: string) => void;
@@ -131,6 +133,11 @@ function WorkspaceSettings({
           notify={actions.notify}
         />
       </Suspense>
+      <button onClick={actions.books}>
+        <BookCopy />
+        {t("manageBooks")}
+        <ChevronRight className="trail" />
+      </button>
       <button onClick={actions.newBook}>
         <Plus />
         {t("newBook")}
