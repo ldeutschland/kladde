@@ -109,27 +109,6 @@ pub(crate) async fn rotation_state(relay: &Shared, account: Uuid) -> Result<Rota
     Ok(state)
 }
 
-pub async fn heads(
-    State(relay): State<App>,
-    headers: HeaderMap,
-    Path(space): Path<Uuid>,
-) -> Result<Json<SpaceHeads>> {
-    let (account, _) = request_owner(&relay, &headers).await?;
-
-    require_member(&relay, account, space).await?;
-    let mut tx = consistent_snapshot(&relay).await?;
-    let mark: i64 = query("SELECT mark FROM workspaces WHERE id=$1")
-        .bind(space)
-        .fetch_one(&mut *tx)
-        .await?
-        .get(0);
-    let heads = space_heads(&mut tx, space, mark).await?;
-
-    tx.commit().await?;
-
-    Ok(Json(heads))
-}
-
 const SPACE_LISTS: &str = "SELECT c.heads,c.proof,d.cert FROM closings c LEFT JOIN devices d ON d.id=c.signer WHERE c.space=$1 ORDER BY c.signer";
 
 async fn space_lists(conn: &mut PgConnection, space: Uuid) -> Result<Vec<Closing>> {

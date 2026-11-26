@@ -327,7 +327,6 @@ fn sync_routes() -> Router<App> {
         )
         .route("/v1/spaces/{space}/discard", post(space_documents::discard))
         .route("/v1/spaces/{space}/blobs", get(blobs::list_blobs))
-        .route("/v1/spaces/{space}/heads", get(closings::heads))
         .route("/v1/spaces/{space}/closings", get(closings::closings))
         .route(
             "/v1/spaces/{space}/closing",

@@ -1,4 +1,4 @@
-use super::closings::{covered_by, store_chains};
+use super::closings::{covered_by, own_heads, store_chains};
 use super::doc_exchange::pull;
 use super::doc_state_keys::DocKeys;
 use super::pending_pushes::{Pending, acknowledge, envelope, prepare_push};
@@ -631,4 +631,34 @@ fn a_second_rotation_carries_old_chains_only_as_far_as_the_lists_reached() {
         .collect();
 
     assert_eq!(heads, BTreeSet::from([earlier, renewed]));
+}
+
+#[test]
+fn a_device_vouches_only_for_chains_it_holds_itself() {
+    let (local, _dir) = empty_device();
+    let a = access(Uuid::new_v4(), Uuid::new_v4());
+    let elsewhere = access(a.account, Uuid::new_v4());
+    let (doc, other, device) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+    let held = Cursor {
+        heads: BTreeMap::from([(device, (2, [2; 32]))]),
+        ..Cursor::default()
+    };
+
+    let foreign = Cursor {
+        heads: BTreeMap::from([(device, (5, [5; 32]))]),
+        ..Cursor::default()
+    };
+
+    for (owner, id, cursor) in [(&a, doc, &held), (&elsewhere, other, &foreign)] {
+        let key = DocKeys::new(owner, id).head;
+
+        local
+            .with(|s| s.set_state(&key, &p::encode(cursor).unwrap()))
+            .unwrap();
+    }
+
+    assert_eq!(
+        own_heads(&local, &a).unwrap(),
+        vec![(doc, device, 2, [2; 32])]
+    );
 }

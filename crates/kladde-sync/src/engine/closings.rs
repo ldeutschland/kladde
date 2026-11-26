@@ -1,11 +1,12 @@
 use super::Local;
+use super::doc_state_keys::{head_prefix, read_cursor};
 use super::relay_requests::{call, require_success};
 use crate::{Error, Origin, account::Access, closing_lists::listed_heads, json_limited};
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use kladde_crypto as c;
 use kladde_protocol::{
     self as p,
-    account::{Closing, DeviceClosing, SpaceHeads, closing_message},
+    account::{ChainHead, Closing, DeviceClosing, closing_message},
 };
 
 use kladde_store::Store;
@@ -71,7 +72,7 @@ pub(super) async fn ensure_chains(
     if !remembered_for(local, &fresh_key(access.account), access)?
         && !remembered_for(local, &shared_key(access), access)?
     {
-        tolerate_old_relay(share_relay_heads(local, client, access).await)?;
+        tolerate_old_relay(share_own_heads(local, client, access).await)?;
     }
 
     let closings = tolerate_old_relay(fetch_closings(client, access).await)?.unwrap_or_default();
@@ -87,26 +88,56 @@ fn tolerate_old_relay<T>(result: Result<T, Error>) -> Result<Option<T>, Error> {
     }
 }
 
-async fn share_relay_heads(
+pub(super) fn own_heads(local: &impl Local, access: &Access) -> Result<Vec<ChainHead>, Error> {
+    let prefix = head_prefix(access);
+
+    local.with(|store| {
+        let mut heads = Vec::new();
+
+        for key in store.state_keys(&prefix)? {
+            let Ok(doc) = key[prefix.len()..].parse::<Uuid>() else {
+                continue;
+            };
+
+            let chains = read_cursor(store, &key)?.heads.into_iter();
+
+            heads.extend(chains.map(|(device, (counter, hash))| (doc, device, counter, hash)));
+        }
+
+        heads.sort_unstable();
+
+        Ok(heads)
+    })
+}
+
+fn mark_shared(local: &impl Local, access: &Access) -> Result<(), Error> {
+    local.with(|store| store.set_state(&shared_key(access), &access.identity))
+}
+
+async fn share_own_heads(
     local: &impl Local,
     client: &reqwest::Client,
     access: &Access,
 ) -> Result<(), Error> {
-    let path = format!("v1/spaces/{}/heads", access.space);
-    let reply = call(client, access, Method::GET, &path).await?;
-    let relayed: SpaceHeads = json_limited(reply, CLOSINGS_LIMIT).await?;
-    let message = closing_message(access.account, access.space, &c::digest(&relayed.heads))?;
+    let heads = own_heads(local, access)?;
+
+    if heads.is_empty() {
+        return mark_shared(local, access);
+    }
+
+    let bytes = p::encode(&heads)?;
+    let message = closing_message(access.account, access.space, &c::digest(&bytes))?;
     let closing = DeviceClosing {
         proof: SigningKey::from_bytes(&access.device_key)
             .sign(&message)
             .to_bytes()
             .to_vec(),
-        heads: relayed.heads,
+        heads: bytes,
     };
 
     put_closing(client, access, &closing).await?;
 
-    local.with(|store| store.set_state(&shared_key(access), &access.identity))
+    mark_shared(local, access)
 }
 
 async fn put_closing(
