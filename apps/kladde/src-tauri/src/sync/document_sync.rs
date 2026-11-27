@@ -1,5 +1,9 @@
 use super::{
-    SyncState, error_messages::sync_error, session::renew_session, stored_account::for_space,
+    SyncState,
+    error_messages::sync_error,
+    session::renew_session,
+    stored_account::{confirmed_access, excluded_spaces, for_space, syncs_here},
+    workspaces::{fetch_spaces, refreshed_spaces, store_space_keys},
 };
 
 use crate::notebook::vault::Vault;
@@ -10,6 +14,9 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 const MAX_HINTS: usize = 4096;
+const SYNC_PREFIX: &str = "sync:";
+const STOPS_ROUND: [&str; 3] = ["offline", "busy", "auth"];
+const UNSYNCED: &str = "unsynced";
 
 struct Device<'a> {
     vault: &'a Vault,
@@ -60,6 +67,46 @@ pub async fn sync_now(
     run_sync(&app, space, full, &hints).await
 }
 
+#[tauri::command]
+pub async fn sync_others(app: AppHandle, open: Option<Uuid>) -> Result<Vec<Uuid>, String> {
+    let vault = app.state::<Vault>();
+    let client = kladde_sync::http().map_err(|e| sync_error(&e))?;
+    let (access, spaces) =
+        refreshed_spaces(&vault, &app, &app.state::<SyncState>(), &client).await?;
+    let excluded = excluded_spaces(&vault, &app, access.account)?;
+    let before = local_spaces(&vault, &app)?;
+
+    drop(access);
+
+    for (space, _) in spaces
+        .iter()
+        .filter(|(space, _)| Some(*space) != open && !excluded.contains(space))
+    {
+        if stops_round(&run_sync(&app, *space, true, &[]).await) {
+            break;
+        }
+    }
+
+    let after = local_spaces(&vault, &app)?;
+
+    Ok(after.difference(&before).copied().collect())
+}
+
+fn local_spaces(vault: &Vault, app: &AppHandle) -> Result<BTreeSet<Uuid>, String> {
+    let spaces = vault.access(app, |store| store.spaces())?;
+
+    Ok(spaces.into_iter().map(|(space, _)| space).collect())
+}
+
+fn stops_round(outcome: &Result<Report, String>) -> bool {
+    let code = match outcome {
+        Ok(report) => report.stopped,
+        Err(problem) => problem.strip_prefix(SYNC_PREFIX),
+    };
+
+    code.is_some_and(|code| STOPS_ROUND.contains(&code))
+}
+
 #[cfg(target_os = "ios")]
 pub async fn sync_on_leave(app: &AppHandle) {
     if let Some(space) = crate::sync::live_watch::target(app) {
@@ -94,6 +141,11 @@ async fn sync_documents(
     let sync = app.state::<SyncState>();
     let _guard = sync.lock.lock().await;
     let vault = app.state::<Vault>();
+
+    if !syncs_here(&vault, app, space)? {
+        return Ok(unsynced());
+    }
+
     let client = kladde_sync::http().map_err(|e| sync_error(&e))?;
 
     if !full {
@@ -174,9 +226,39 @@ async fn sync_all_docs(
     renew_session(vault, app, client)
         .await
         .map_err(|e| sync_error(&e))?;
-    let renewed = sync_latest_once(app, vault, client, space).await;
 
-    renewed.map_err(|e| sync_error(&e))
+    match sync_latest_once(app, vault, client, space).await {
+        Err(kladde_sync::Error::Auth) => unsynced_if_removed(app, vault, client, space).await,
+        renewed => renewed.map_err(|e| sync_error(&e)),
+    }
+}
+
+async fn unsynced_if_removed(
+    app: &AppHandle,
+    vault: &Vault,
+    client: &reqwest::Client,
+    space: Uuid,
+) -> Result<Report, String> {
+    let refused = sync_error(&kladde_sync::Error::Auth);
+    let access = confirmed_access(vault, app)?.ok_or("Not connected")?;
+    let Ok(spaces) = fetch_spaces(client, &access).await else {
+        return Err(refused);
+    };
+
+    if spaces.iter().any(|(listed, _)| *listed == space) {
+        return Err(refused);
+    }
+
+    store_space_keys(vault, app, &access, &spaces)?;
+
+    Ok(unsynced())
+}
+
+fn unsynced() -> Report {
+    Report {
+        stopped: Some(UNSYNCED),
+        ..Report::default()
+    }
 }
 
 #[tauri::command]
@@ -194,4 +276,19 @@ pub fn discard_rescued(
     };
 
     engine::discard_rescued(&local, &access, id).map_err(|e| sync_error(&e))
+}
+
+#[tauri::command]
+pub async fn repair_sync(space: Uuid, app: AppHandle) -> Result<(), String> {
+    let sync = app.state::<SyncState>();
+    let _guard = sync.lock.lock().await;
+    let vault = app.state::<Vault>();
+    let access = for_space(&vault, &app, space)?;
+    let local = Device {
+        vault: &vault,
+        app: &app,
+        space,
+    };
+
+    engine::resync(&local, &access).map_err(|e| sync_error(&e))
 }

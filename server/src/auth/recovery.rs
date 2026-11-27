@@ -4,7 +4,9 @@ use super::{
 };
 
 use crate::{
-    App, BLOB_CHARGE_FLOOR, Fault, ROW_CHARGE, Result, Shared, bad, blobs::storage::BlobStorage,
+    App, BLOB_CHARGE_FLOOR, Fault, ROW_CHARGE, Result, Shared, bad,
+    blobs::storage::BlobStorage,
+    closings::{close_spaces, rotation_state},
     denied,
 };
 
@@ -83,10 +85,15 @@ pub async fn recovery_keys(
         .iter()
         .map(|r| (r.get(0), r.get(1)))
         .collect();
+    let state = rotation_state(&relay, account).await?;
+
     Ok(Json(RecoveryInfo {
         nonce: open_challenge(&relay, Challenge::Rekey(account))?,
         bundle: decode(&row.get::<Vec<u8>, _>(2))?,
         spaces,
+        heads: state.heads,
+        closings: state.closings,
+        signers: state.signers,
     }))
 }
 
@@ -142,7 +149,9 @@ async fn replace_space_keys(
     if !provided.windows(2).all(|w| w[0] < w[1])
         || provided.iter().any(|id| !owned.contains(id))
         || (!repairs && !dropped.is_empty())
-        || spaces.iter().any(|(_, k)| !(48..=8192).contains(&k.len()))
+        || spaces
+            .iter()
+            .any(|(_, k)| !(48..=MAX_WRAPPED_KEYS).contains(&k.len()))
     {
         return Err(Fault(StatusCode::CONFLICT));
     }
@@ -158,7 +167,7 @@ async fn replace_space_keys(
     Ok(dropped)
 }
 
-async fn drop_spaces(
+pub(super) async fn drop_spaces(
     tx: &mut sqlx_postgres::PgConnection,
     account: Uuid,
     spaces: &[Uuid],
@@ -222,6 +231,8 @@ pub async fn recovery_finish(
     let record = ServerRegistration::<Suite>::finish(
         RegistrationUpload::deserialize(&input.record).map_err(|_| bad())?,
     );
+
+    close_spaces(&mut tx, account, &input.bundle.identity, &input.closings).await?;
     let repairs = input.login_ticket.is_none();
     let dropped = replace_space_keys(&mut tx, account, &input.spaces, repairs).await?;
     let files = drop_spaces(&mut tx, account, &dropped).await?;
@@ -252,7 +263,7 @@ pub async fn recovery_finish(
     Ok(Json(true))
 }
 
-async fn erase_unreferenced(relay: &App, account: Uuid, files: Vec<Uuid>) {
+pub(super) async fn erase_unreferenced(relay: &App, account: Uuid, files: Vec<Uuid>) {
     for file in files {
         let referenced = query("SELECT 1 FROM blobs b JOIN memberships m ON m.space=b.space WHERE b.id=$1 AND m.account=$2")
             .bind(file)

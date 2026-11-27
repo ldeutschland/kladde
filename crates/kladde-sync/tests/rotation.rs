@@ -1,9 +1,13 @@
 use ed25519_dalek::SigningKey;
 use kladde_crypto as crypto;
-use kladde_protocol::{self as p, Client, Envelope};
+use kladde_protocol::{
+    self as p, Client, Envelope,
+    account::{MAX_EPOCHS, MAX_JSON_KEYS, MAX_WRAPPED_KEYS},
+};
+
 use kladde_sync::{
     Cursor,
-    account::{Access, extend_keyset, keyset},
+    account::{Access, Ring, extend_keyset, keyset},
 };
 
 use serde::Serialize;
@@ -151,4 +155,32 @@ fn legacy_keys_and_cursors_remain_readable() {
     let again = Cursor::decode(&p::encode(&cursor).unwrap()).unwrap();
 
     assert_eq!((again.seq, again.epoch), (3, 1));
+}
+
+#[test]
+fn the_largest_key_sets_still_fit_through_the_relay() {
+    let identity = SigningKey::from_bytes(&[8; 32]).verifying_key().to_bytes();
+    let mut full = Vec::new();
+
+    for _ in 0..MAX_EPOCHS {
+        full = extend_keyset(&full, &identity).unwrap().to_vec();
+    }
+
+    let (account, space) = (Uuid::new_v4(), Uuid::new_v4());
+    let wrap = |id, purpose, plain: &[u8]| crypto::wrap(&[1; 32], id, purpose, plain).unwrap();
+    let ring = Ring {
+        password: wrap(account, crypto::Purpose::Password, &[2; 32]),
+        recovery: wrap(account, crypto::Purpose::Recovery, &[2; 32]),
+        identity: wrap(account, crypto::Purpose::Identity, &[2; 32]),
+        agreement: wrap(account, crypto::Purpose::Agreement, &[2; 32]),
+        workspace: wrap(space, crypto::Purpose::Workspace, &full),
+    };
+
+    let account_keys = p::encode(&ring).unwrap();
+    let space_keys = p::encode(&wrap(space, crypto::Purpose::Workspace, &full)).unwrap();
+
+    for wrapped in [account_keys, space_keys] {
+        assert!(wrapped.len() <= MAX_WRAPPED_KEYS);
+        assert!(serde_json::to_vec(&wrapped).unwrap().len() <= MAX_JSON_KEYS);
+    }
 }

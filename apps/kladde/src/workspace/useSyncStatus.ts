@@ -3,6 +3,7 @@ import type { Notebook } from "../notebook/notebook";
 import type { T } from "../locale/locale";
 import { SYNC_OFF, withFiles, type SyncStatus } from "../sync/sync";
 import { startSyncLoop } from "../sync/syncLoop";
+import { mergeAiTrees } from "../ai/aiPages";
 
 function recoveredText(titles: string[], t: T) {
   return t("syncRecovered").replace(
@@ -16,12 +17,15 @@ export function useSyncStatus(
   t: T,
   notify: (text: string) => void,
   removed: (ids: string[]) => void,
+  arrived: () => Promise<void>,
 ) {
   const [status, setStatus] = useState<SyncStatus>(SYNC_OFF),
     [slow, setSlow] = useState(false);
   const onRemoved = useRef(removed);
+  const onArrived = useRef(arrived);
 
   onRemoved.current = removed;
+  onArrived.current = arrived;
   useEffect(
     () =>
       startSyncLoop(book, {
@@ -30,8 +34,10 @@ export function useSyncStatus(
         result: (report) => {
           if (report.recovered.length)
             notify(recoveredText(report.recovered, t));
+          if (report.changed.length) void mergeAiTrees(book).catch(() => {});
           onRemoved.current(report.removed);
         },
+        arrived: () => void onArrived.current().catch(() => {}),
       }),
     [book, t, notify],
   );

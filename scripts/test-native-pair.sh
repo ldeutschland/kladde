@@ -2,7 +2,7 @@ set -eu
 : "${TEST_DATABASE_URL:?Use an isolated disposable PostgreSQL database}"
 : "${KLADDE_QA_DIR:?Use the same private directory as build-native-pair.sh}"
 q="$KLADDE_QA_DIR"
-export DATABASE_URL="$TEST_DATABASE_URL" OPAQUE_SETUP_FILE="$q/opaque" BLOB_DIR="$q/blobs" LISTEN_ADDR=127.0.0.1:17446
+export DATABASE_URL="$TEST_DATABASE_URL" OPAQUE_SETUP_FILE="$q/opaque" BLOB_DIR="$q/blobs" LISTEN_ADDR=127.0.0.1:17446 OPEN_REGISTRATION=1
 cargo build --locked -p kladde-server
 binary="${CARGO_TARGET_DIR:-target}/debug/kladde-server"
 if [ ! -f "$OPAQUE_SETUP_FILE" ]; then "$binary" init-setup "$OPAQUE_SETUP_FILE"; fi

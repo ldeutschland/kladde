@@ -1,5 +1,5 @@
-import { markdown, writeMarkdown } from "../notebook/content";
-import { memoryPage } from "./aiPages";
+import { writeMarkdown } from "../notebook/content";
+import { markdownForAi, memoryPage, sharingChecker } from "./aiPages";
 import { startRun, stopRun, streamTurn } from "./assistant";
 import {
   MEMORY_SYSTEM,
@@ -26,7 +26,7 @@ export async function rememberExchange(
   answer: string,
 ): Promise<MemoryResult> {
   const entry = await memoryPage(book, t);
-  const current = markdown(entry);
+  const current = markdownForAi(entry, sharingChecker(book.pages));
   const run = await startRun(book.id);
 
   try {

@@ -39,4 +39,27 @@ impl Store {
 
         Ok(())
     }
+
+    pub fn untracked(&self, space: Uuid, tracked_by: &str) -> Result<Vec<Uuid>, Error> {
+        Ok(self
+            .0
+            .prepare("SELECT id FROM notes n WHERE space=?1 AND NOT EXISTS(SELECT 1 FROM outbox o WHERE o.id=n.id) AND NOT EXISTS(SELECT 1 FROM private_state s WHERE s.id=?2||n.id) ORDER BY rowid")?
+            .query_map(params![space.to_string(), tracked_by], |r| uuid_col(r, 0))?
+            .collect::<Result<_, _>>()?)
+    }
+
+    pub fn queue(&mut self, ids: &[Uuid]) -> Result<(), Error> {
+        let tx = self.0.transaction()?;
+
+        for id in ids {
+            tx.execute(
+                "INSERT INTO outbox SELECT id,rev FROM notes WHERE id=?1 ON CONFLICT(id) DO NOTHING",
+                [id.to_string()],
+            )?;
+        }
+
+        tx.commit()?;
+
+        Ok(())
+    }
 }

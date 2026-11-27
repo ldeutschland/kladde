@@ -1,8 +1,20 @@
-use crate::{Error, Store, listing, uuid_col};
+use crate::{
+    Error, Store, listing, parts,
+    shared_versions::{self, LISTED_MAP},
+    uuid_col,
+};
+
 use rusqlite::{Connection, OptionalExtension, params};
 use uuid::Uuid;
 
 const DISCARD_BATCH: i64 = 2000;
+const FORGOTTEN_NOTES: &str =
+    "SELECT id,data FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row'))";
+const ERASE_TEXT: &str = "INSERT OR IGNORE INTO erased_texts VALUES(?1,?2,?3,?4)";
+const SENT_FILES: [&str; 2] = [
+    "INSERT OR IGNORE INTO erased_files SELECT id,?2 FROM sent_files WHERE doc IN (SELECT id FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row')))",
+    "INSERT OR IGNORE INTO erased_file_docs SELECT id,?1 FROM sent_files WHERE doc IN (SELECT id FROM notes WHERE space=?2 AND (id=?1 OR (parent=?1 AND kind='row')))",
+];
 const CHILDREN_LEFT: &str = "SELECT exists(SELECT 1 FROM notes c JOIN notes p ON p.id=c.parent WHERE c.parent=?1 AND c.kind!='index' AND NOT (c.kind='row' AND p.kind='database'))";
 
 const DISCARD_ROWS: [&str; 3] = [
@@ -11,8 +23,11 @@ const DISCARD_ROWS: [&str; 3] = [
     "INSERT OR IGNORE INTO discards SELECT id,space,?1 FROM notes WHERE parent=?1 AND kind IN ('row','index')",
 ];
 
-const REMOVE_ROWS: [&str; 9] = [
+const SHARED_TEXT_MARKS: &str = "DELETE FROM private_state WHERE substr(id,1,12)='shared-text:' AND substr(id,-36) IN (SELECT file FROM page_files WHERE doc=?1)";
+
+const REMOVE_ROWS: [&str; 10] = [
     "DELETE FROM row_marks WHERE parent=?1",
+    "DELETE FROM private_state WHERE substr(id,1,12)='shared-text:' AND substr(id,-36) IN (SELECT f.file FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row')",
     "DELETE FROM file_words WHERE rowid IN (SELECT f.rowid FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row')",
     "DELETE FROM private_state WHERE id IN (SELECT 'asset:' || f.space || ':' || f.id FROM file_owners f JOIN notes n ON n.id=f.doc WHERE n.parent=?1 AND n.kind='row')",
     "DELETE FROM private_state WHERE substr(id,1,5) IN ('head:','wire:') AND substr(id,-36) IN (SELECT id FROM notes WHERE parent=?1 AND kind IN ('row','index'))",
@@ -55,6 +70,8 @@ impl Store {
             "INSERT INTO deletions(space,id) VALUES(?1,?2)",
             params![space.to_string(), id.to_string()],
         )?;
+        Self::erase_referenced(&tx, space, id)?;
+        Self::erase_sent(&tx, space, id)?;
 
         if kind == "database" {
             Self::discard_rows(&tx, id)?;
@@ -78,6 +95,74 @@ impl Store {
         Ok(())
     }
 
+    fn erase_referenced(tx: &Connection, space: Uuid, owner: Uuid) -> Result<(), Error> {
+        let mut statement = tx.prepare(FORGOTTEN_NOTES)?;
+        let notes = statement.query_map(params![owner.to_string(), space.to_string()], |r| {
+            Ok((uuid_col(r, 0)?, r.get::<_, Vec<u8>>(1)?))
+        })?;
+
+        for note in notes {
+            let (doc, data) = note?;
+
+            Self::erase_files_of(tx, space, owner, doc, &data)?;
+        }
+
+        Ok(())
+    }
+
+    fn erase_files_of(
+        tx: &Connection,
+        space: Uuid,
+        owner: Uuid,
+        doc: Uuid,
+        data: &[u8],
+    ) -> Result<(), Error> {
+        let files = parts::file_blobs(data).unwrap_or_default();
+        let versions = parts::listed_ids(data, LISTED_MAP).unwrap_or_default();
+        let (space, owner, doc) = (space.to_string(), owner.to_string(), doc.to_string());
+
+        for (file, _) in &files {
+            tx.execute(ERASE_TEXT, params![doc, file.to_string(), space, owner])?;
+        }
+
+        for blob in files.iter().flat_map(|(_, blobs)| blobs).chain(&versions) {
+            Self::erase_blob(tx, &space, &owner, &doc, &blob.to_string())?;
+        }
+
+        Ok(())
+    }
+
+    fn erase_sent(tx: &Connection, space: Uuid, owner: Uuid) -> Result<(), Error> {
+        for statement in SENT_FILES {
+            tx.execute(statement, params![owner.to_string(), space.to_string()])?;
+        }
+
+        Ok(())
+    }
+
+    fn erase_blob(
+        tx: &Connection,
+        space: &str,
+        owner: &str,
+        doc: &str,
+        blob: &str,
+    ) -> Result<(), Error> {
+        if shared_versions::owned_elsewhere(tx, doc, blob)? {
+            return Ok(());
+        }
+
+        tx.execute(
+            "INSERT OR IGNORE INTO erased_files VALUES(?1,?2)",
+            params![blob, space],
+        )?;
+        tx.execute(
+            "INSERT OR IGNORE INTO erased_file_docs VALUES(?1,?2)",
+            params![blob, owner],
+        )?;
+
+        Ok(())
+    }
+
     fn discard_rows(tx: &Connection, database: Uuid) -> Result<(), Error> {
         let database = database.to_string();
 
@@ -94,6 +179,18 @@ impl Store {
         }
 
         Ok(())
+    }
+
+    pub fn owned_by(&self, space: Uuid, owner: Uuid) -> Result<Vec<Uuid>, Error> {
+        Ok(self
+            .0
+            .prepare(
+                "SELECT id FROM notes WHERE space=?1 AND parent=?2 AND kind IN ('row','index')",
+            )?
+            .query_map(params![space.to_string(), owner.to_string()], |r| {
+                uuid_col(r, 0)
+            })?
+            .collect::<Result<_, _>>()?)
     }
 
     pub fn rows_waiting(&self, database: Uuid) -> Result<bool, Error> {
@@ -161,6 +258,10 @@ impl Store {
             params![id, space],
         )?;
         tx.execute("DELETE FROM erased_file_docs WHERE doc=?1", [&id])?;
+        tx.execute(
+            "DELETE FROM erased_texts WHERE owner=?1 AND space=?2",
+            params![id, space],
+        )?;
         tx.execute("DELETE FROM discards WHERE owner=?1", [&id])?;
         tx.commit()?;
 
@@ -181,6 +282,8 @@ impl Store {
         let database = known.is_some_and(|(_, kind, _)| kind == "database");
         let tx = self.0.transaction()?;
 
+        Self::erase_sent(&tx, space, id)?;
+
         if database {
             Self::remove_rows(&tx, &id.to_string())?;
         }
@@ -200,6 +303,7 @@ impl Store {
         listing::mark_gone(tx, id)?;
         let id = id.to_string();
 
+        tx.execute(SHARED_TEXT_MARKS, [&id])?;
         tx.execute(
             "DELETE FROM file_words WHERE rowid IN (SELECT rowid FROM page_files WHERE doc=?1)",
             [&id],

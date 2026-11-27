@@ -1,4 +1,5 @@
 mod batches;
+mod closings;
 mod deletions;
 mod doc_exchange;
 mod doc_state_keys;
@@ -10,18 +11,25 @@ mod relay_link;
 mod relay_requests;
 mod remote_removals;
 mod report;
+mod resync;
 mod space_state;
 mod space_sync;
+mod space_title;
+mod untracked_docs;
 
 #[cfg(test)]
 mod tests;
 
+pub use closings::remember_fresh_sign_in;
+pub use deletions::{erase_blob, remove_space};
 pub use relay_features::{Relay, handshake};
 pub use relay_requests::{call, require_success};
 pub use remote_removals::discard_rescued;
 pub use report::{Report, error_code};
+pub use resync::resync;
 pub use space_state::{remote_blobs, remote_state};
 pub use space_sync::{sync_changes, sync_changes_except, sync_latest, sync_space};
+pub use space_title::space_title;
 
 use crate::Error;
 use kladde_store::Store;

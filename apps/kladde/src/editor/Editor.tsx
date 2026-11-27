@@ -6,7 +6,6 @@ import type { Entry, Notebook } from "../notebook/notebook";
 import type { T } from "../locale/locale";
 import type { Policy } from "../ai/assistant";
 import type { Reveal } from "../search/reveal";
-import { linkedPage } from "../notebook/links";
 import { aiExcluded } from "../ai/aiPages";
 import { keepBefore } from "../versions/versions";
 import { FileViewer } from "../viewer/FileViewer";
@@ -26,8 +25,15 @@ import { useKeyboardReveal } from "./useKeyboardReveal";
 import { handleEditorKey } from "./editorKeys";
 import { SuggestionMenus } from "./SuggestionMenus";
 import { FormattingBar } from "./FormattingBar";
+import { LinkBar } from "./LinkBar";
 import { BlockedImages } from "./BlockedImages";
 import { SelectionMarks } from "./SelectionMarks";
+import { openLink } from "./openLink";
+import { setPageLinkContext } from "./pageLinkSpec";
+
+const EDITOR_LINK = ".bn-editor a[href]";
+const LINK_TEXT = '[data-inline-content-type="link"]';
+const MIDDLE_BUTTON = 1;
 
 export interface EditorProps {
   entry: Entry;
@@ -55,15 +61,22 @@ function focusEnd(editor: BlockNoteEditor, event: MouseEvent<HTMLElement>) {
   editor.focus();
 }
 
-function openPageLink(props: EditorProps, event: MouseEvent<HTMLElement>) {
-  const anchor = (event.target as Element).closest("a");
+function selectingLinkText(target: Element) {
+  return !!target.closest(LINK_TEXT) && !document.getSelection()?.isCollapsed;
+}
 
-  if (!anchor) return;
+function followLink(
+  props: EditorProps,
+  event: MouseEvent<HTMLElement>,
+  inNewTab: boolean,
+) {
+  const target = event.target as Element;
+  const href = target.closest(EDITOR_LINK)?.getAttribute("href");
+
+  if (!href) return;
   event.preventDefault();
-  const target = linkedPage(anchor.getAttribute("href") ?? "");
-
-  if (target && props.book.pages.has(target))
-    props.open(target, event.metaKey || event.ctrlKey);
+  if (event.shiftKey || selectingLinkText(target)) return;
+  openLink(props, href, inNewTab);
 }
 
 export function Editor(props: EditorProps) {
@@ -77,6 +90,7 @@ export function Editor(props: EditorProps) {
   });
   const viewer = useFileViewer({ ...props, editor });
 
+  setPageLinkContext(editor, { book, t, open: props.open, notify });
   useReveal({ ...props, editor, section, view: viewer.setViewing });
   const selection = useBlockSelection(editor, section, !mobile);
   const marking = useEditorState({
@@ -87,7 +101,7 @@ export function Editor(props: EditorProps) {
 
   useRegisteredEditor(editor, files, props.register);
   useKeyboardReveal(editor, mobile);
-  const drop = useEditorDrop({ editor, book, entry, t, section });
+  const drop = useEditorDrop({ editor, book, entry, section });
   const inline = useInlineAiStart({ editor, section, excluded, t, notify });
   const askAi = ai.enabled ? () => inline.start() : undefined;
 
@@ -107,7 +121,12 @@ export function Editor(props: EditorProps) {
         })
       }
       onClick={(event) => focusEnd(editor, event)}
-      onClickCapture={(event) => openPageLink(props, event)}
+      onClickCapture={(event) =>
+        followLink(props, event, event.metaKey || event.ctrlKey)
+      }
+      onAuxClickCapture={(event) => {
+        if (event.button === MIDDLE_BUTTON) followLink(props, event, true);
+      }}
       onDoubleClick={viewer.viewImage}
       onDragOver={drop.dragOver}
       onDragLeave={drop.dragLeave}
@@ -119,10 +138,12 @@ export function Editor(props: EditorProps) {
         theme={props.dark ? "dark" : "light"}
         slashMenu={false}
         formattingToolbar={false}
+        linkToolbar={false}
         sideMenu={!mobile}
         onChange={() => storePlainText(editor, entry)}
       >
         {(!mobile || marking) && <FormattingBar t={t} askAi={askAi} />}
+        <LinkBar />
         <SuggestionMenus
           {...props}
           editor={editor}

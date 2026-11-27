@@ -1,9 +1,15 @@
 use super::Local;
-use super::relay_requests::{proof, require_success, signed_call};
+use super::relay_requests::{proof, require_success, signed_call, signed_request};
 use crate::{Error, Origin, account::Access};
-use kladde_protocol::account::{PROOF_HEADER, discard_message, erase_blob_message, purge_message};
+use kladde_protocol::{
+    account::{
+        PROOF_HEADER, discard_message, erase_blob_message, purge_message, remove_space_message,
+    },
+    compat::Side,
+};
+
 use kladde_store::Store;
-use reqwest::Method;
+use reqwest::{Method, StatusCode};
 use std::collections::BTreeSet;
 use uuid::Uuid;
 
@@ -31,6 +37,42 @@ impl Erased {
     }
 }
 
+async fn erase(
+    client: &reqwest::Client,
+    access: &Access,
+    erased: Erased,
+    id: Uuid,
+) -> Result<(), Error> {
+    let path = erased.path(access, id);
+    let message = erased.message(access, id)?;
+
+    signed_call(client, access, Method::DELETE, &path, &message).await?;
+
+    Ok(())
+}
+
+pub async fn erase_blob(client: &reqwest::Client, access: &Access, id: Uuid) -> Result<(), Error> {
+    erase(client, access, Erased::Blobs, id).await
+}
+
+pub async fn remove_space(
+    client: &reqwest::Client,
+    access: &Access,
+    space: Uuid,
+) -> Result<(), Error> {
+    let path = format!("v1/workspaces/{space}");
+    let message = remove_space_message(access.account, space)?;
+    let response = signed_request(client, access, Method::DELETE, &path, &message).await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        return Err(Error::Outdated(Side::Server));
+    }
+
+    require_success(response)?;
+
+    Ok(())
+}
+
 async fn purge_all(
     client: &reqwest::Client,
     access: &Access,
@@ -42,11 +84,8 @@ async fn purge_all(
     let mut refused = Vec::new();
 
     for id in ids {
-        let path = erased.path(access, id);
-        let message = erased.message(access, id)?;
-
-        match signed_call(client, access, Method::DELETE, &path, &message).await {
-            Ok(_) => local.with(|store| done(store, id))?,
+        match erase(client, access, erased, id).await {
+            Ok(()) => local.with(|store| done(store, id))?,
             Err(Error::Denied) => refused.push(id),
             Err(e) => return Err(e),
         }
@@ -98,6 +137,21 @@ async fn purge_singly(
     purge_all(client, access, ids, Erased::Docs, done, local).await
 }
 
+fn locate_texts(local: &impl Local, access: &Access) -> Result<(), Error> {
+    let texts = local.with(|store| store.erased_texts(access.space))?;
+
+    if texts.is_empty() {
+        return Ok(());
+    }
+
+    let blobs = texts
+        .into_iter()
+        .map(|(doc, file)| Ok((doc, file, access.text_id(doc, file)?)))
+        .collect::<Result<Vec<_>, Error>>()?;
+
+    local.with(|store| store.erase_text_blobs(access.space, &blobs))
+}
+
 fn publishable_deletions(local: &impl Local, space: Uuid) -> Result<Vec<Uuid>, Error> {
     if local.with(|store| store.listing_waits(space))? {
         return Ok(Vec::new());
@@ -145,6 +199,7 @@ pub(super) async fn push_deletions(
     .await?;
 
     refused.extend(discard_rows(local, client, access).await?);
+    locate_texts(local, access)?;
     let files = local.with(|store| store.erased_files(space))?;
     let erase = |store: &mut Store, id| store.file_erased(space, id);
 

@@ -5,6 +5,7 @@ pub mod error_messages;
 pub mod live_watch;
 pub mod session;
 pub mod shared_versions;
+pub mod space_choices;
 pub mod stored_account;
 pub mod workspaces;
 

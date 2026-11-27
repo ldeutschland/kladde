@@ -11,6 +11,7 @@ import {
   Mic,
   MoveHorizontal,
   Pencil,
+  Search,
   Star,
   Table2,
   Trash2,
@@ -31,6 +32,7 @@ export interface PageMenuActions {
   create: (kind: "page" | "database", parent: string) => void;
   record: () => void;
   history: (target: string) => void;
+  find: () => void;
   export: (page: Page) => void;
   trash: (page: Page) => void;
 }
@@ -209,6 +211,12 @@ export function PageMenu({
           <button onClick={actions.record}>
             <Mic />
             {t("audioNote")}
+          </button>
+        )}
+        {current && page.kind !== "database" && (
+          <button onClick={actions.find}>
+            <Search />
+            {t("findInPage")}
           </button>
         )}
         {current && (

@@ -1,6 +1,6 @@
 import { erasePage, restorePage } from "./commands";
 import { ModalLayer, type ModalActions, type ModalState } from "./ModalLayer";
-import { newWorkspace } from "./pageActions";
+import { newWorkspace, switchBook } from "./pageActions";
 import type { WorkspaceScope } from "./useWorkspaceViews";
 
 export function WorkspaceModals({ workspace }: { workspace: WorkspaceScope }) {
@@ -49,10 +49,25 @@ function modalActionsFor(workspace: WorkspaceScope): ModalActions {
     notify: toasts.notify,
     open: navigation.open,
     changeBook,
+    reloadBooks: workspace.reloadBooks,
     restore: (target) => void restorePage(book, target),
     erase: (target) => void erasePage(book, ask, t, target),
     palette: paletteActionsFor(workspace),
     settings: settingsActionsFor(workspace),
+    books: booksActionsFor(workspace),
+  };
+}
+
+function booksActionsFor(workspace: WorkspaceScope): ModalActions["books"] {
+  const { context, overlays } = workspace;
+
+  return {
+    close: () => overlays.setModal(null),
+    open: (target) => void switchBook(context, target),
+    create: () => void newWorkspace(context),
+    changeBook: workspace.changeBook,
+    reloadBooks: workspace.reloadBooks,
+    notify: workspace.toasts.notify,
   };
 }
 
@@ -83,6 +98,7 @@ function settingsActionsFor(
     clipper: () => setModal("clipper"),
     privacy: () => setModal("privacy"),
     support: () => setModal("support"),
+    books: () => setModal("books"),
     newBook: () => void newWorkspace(workspace.context),
     open: workspace.navigation.open,
     notify,

@@ -1,4 +1,4 @@
-import { listedParts, recordFile } from "../files/attachments";
+import { recordFile, storedParts } from "../files/attachments";
 import { command } from "../platform/native";
 import { keepBefore } from "../versions/versions";
 import { noteSavedEdit } from "../files/fileEdits";
@@ -22,16 +22,20 @@ export async function savePdf(
   const edit = {
     pages: pages.map(({ source, turn, marks }) => ({ source, turn, marks })),
   };
-  const saved = await command<{ parts?: unknown; size?: unknown }>("edit_pdf", {
+  const saved = await command<{
+    parts?: unknown;
+    sha256?: unknown;
+    size?: unknown;
+  }>("edit_pdf", {
     ...source,
     edit,
   });
-  const parts = listedParts(saved?.parts);
+  const stored = storedParts(saved);
 
-  if (!parts || typeof saved.size !== "number" || saved.size < 0)
+  if (typeof saved.size !== "number" || saved.size < 0)
     throw Error("Invalid file");
   const name = savedName(target.name, PDF_TYPE, copy, t);
-  const id = recordFile(entry, parts, {
+  const id = recordFile(entry, stored, {
     type: PDF_TYPE,
     name,
     size: saved.size,

@@ -105,7 +105,7 @@ function AiPages({
       {aiRoot ? (
         <Tree {...tree} root={aiRoot} />
       ) : (
-        <button className="addpage" onClick={() => ensureAiTree(book, t)}>
+        <button className="addpage" onClick={() => void ensureAiTree(book, t)}>
           <Brain />
           {t("aiTreeCreate")}
         </button>

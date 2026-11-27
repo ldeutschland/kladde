@@ -32,3 +32,8 @@ body:has(.phone) .viewer:has(.viewertools) .viewerpill {
 body:has(.phone) .viewerpill {
   bottom: max(16px, env(safe-area-inset-bottom));
 }
+body:has(.phone) .viewer .findbar {
+  right: 8px;
+  left: 8px;
+  width: auto;
+}

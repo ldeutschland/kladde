@@ -277,10 +277,8 @@ pub async fn edit_pdf(
     tokio::task::spawn_blocking(move || {
         let output = edited(&bytes, &plan)?;
         let vault = app.state::<Vault>();
-        let (parts, size) =
-            encrypted_files::store_parts(&app, &vault, space, doc, &mut output.as_slice())?;
 
-        Ok(Saved { parts, size })
+        encrypted_files::store_parts(&app, &vault, space, doc, &mut output.as_slice())
     })
     .await
     .map_err(|_| UNAVAILABLE)?

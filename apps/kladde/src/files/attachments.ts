@@ -8,11 +8,18 @@ const MAX_FILE_PARTS = 65536;
 const FILE_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
+export const SHA256 = /^[0-9a-f]{64}$/;
+
 export interface FileMeta {
   type: string;
   name: string;
   size: number;
   parts?: string[];
+}
+
+export interface StoredParts {
+  parts: string[];
+  sha256: string[];
 }
 
 export function listedParts(value: unknown) {
@@ -29,6 +36,32 @@ export function listedParts(value: unknown) {
   if (new Set(parts).size !== parts.length) throw Error("Invalid file");
 
   return parts;
+}
+
+export function storedParts(value: unknown): StoredParts {
+  const { parts, sha256 } = (value ?? {}) as Record<string, unknown>;
+  const listed = listedParts(parts);
+
+  if (
+    !listed ||
+    !Array.isArray(sha256) ||
+    sha256.length !== listed.length ||
+    !sha256.every((hash) => typeof hash === "string" && SHA256.test(hash))
+  )
+    throw Error("Invalid file");
+
+  return { parts: listed, sha256: sha256 as string[] };
+}
+
+export async function contentHash(data: Blob) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    await data.arrayBuffer(),
+  );
+
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 export function fileMeta(entry: Entry, id: string): FileMeta | undefined {
@@ -97,10 +130,11 @@ export async function fileBlob(
 }
 
 async function storeParts(book: Notebook, doc: string, file: Blob) {
-  const parts: string[] = [];
+  const stored: StoredParts = { parts: [], sha256: [] };
 
   for (let offset = 0; offset === 0 || offset < file.size;) {
     const part = file.slice(offset, offset + FILE_PART_BYTES);
+    const hash = await contentHash(part);
     const id = await command<string>("add_file", {
       space: book.id,
       doc,
@@ -109,32 +143,34 @@ async function storeParts(book: Notebook, doc: string, file: Blob) {
 
     if (typeof id !== "string" || !FILE_ID.test(id))
       throw Error("Invalid file");
-    parts.push(id);
+    stored.parts.push(id);
+    stored.sha256.push(hash);
     offset += FILE_PART_BYTES;
   }
 
-  if (parts.length > MAX_FILE_PARTS) throw Error("Invalid file");
+  if (stored.parts.length > MAX_FILE_PARTS) throw Error("Invalid file");
 
-  return parts;
+  return stored;
 }
 
 export function recordFile(
   entry: Entry,
-  parts: string[],
+  stored: StoredParts,
   meta: Omit<FileMeta, "parts">,
 ) {
+  const { parts, sha256 } = stored;
   const id = parts.length === 1 ? parts[0] : crypto.randomUUID();
   const listed = parts.length === 1 ? {} : { parts };
 
-  entry.doc.getMap("files").set(id, { ...meta, ...listed });
+  entry.doc.getMap("files").set(id, { ...meta, ...listed, sha256 });
 
   return id;
 }
 
 export async function saveFile(book: Notebook, entry: Entry, file: File) {
   await book.flush();
-  const parts = await storeParts(book, entry.id, file);
-  const id = recordFile(entry, parts, {
+  const stored = await storeParts(book, entry.id, file);
+  const id = recordFile(entry, stored, {
     type: file.type,
     name: file.name.slice(0, 255),
     size: file.size,
@@ -153,18 +189,19 @@ export async function copyFile(
   const meta = fileMeta(from, id);
 
   if (!meta) return undefined;
-  const parts: string[] = [];
+  const stored: StoredParts = { parts: [], sha256: [] };
 
   for (const part of meta.parts ?? [id]) {
     const bytes = await awaitedPart(source, from.id, part);
-    const [copied] = await storeParts(destination, to.id, new Blob([bytes]));
+    const copied = await storeParts(destination, to.id, new Blob([bytes]));
 
-    parts.push(copied);
+    stored.parts.push(...copied.parts);
+    stored.sha256.push(...copied.sha256);
   }
 
   const { type, name, size } = meta;
 
-  return recordFile(to, parts, { type, name, size });
+  return recordFile(to, stored, { type, name, size });
 }
 
 export async function localFile(book: Notebook, entry: Entry, url: string) {

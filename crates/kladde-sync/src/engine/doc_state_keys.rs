@@ -9,6 +9,10 @@ pub(super) fn read_cursor(store: &Store, key: &str) -> Result<Cursor, kladde_sto
     }
 }
 
+pub(super) fn head_prefix(access: &Access) -> String {
+    format!("head:{}:{}:", access.account, access.space)
+}
+
 pub(super) struct DocKeys {
     pub(super) id: Uuid,
     pub(super) head: String,
@@ -19,7 +23,7 @@ impl DocKeys {
     pub(super) fn new(access: &Access, id: Uuid) -> Self {
         Self {
             id,
-            head: format!("head:{}:{}:{id}", access.account, access.space),
+            head: format!("{}{id}", head_prefix(access)),
             pending: format!("wire:{}:{id}", access.account),
         }
     }

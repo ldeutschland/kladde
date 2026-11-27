@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { Notebook } from "../notebook/notebook";
+import type { Finding } from "../search/FindBar";
 import { useAsk } from "../ui/dialog";
 import { openRow, type WorkspaceContext } from "./pageActions";
 import { useRail } from "./Rail";
@@ -27,6 +28,7 @@ export interface WorkspaceProps {
   mobile: boolean;
   books: [string, string][];
   changeBook: (id?: string) => Promise<void>;
+  reloadBooks: () => Promise<void>;
   initialSync: boolean;
 }
 
@@ -40,6 +42,11 @@ export function useWorkspaceModel(props: WorkspaceProps) {
   const [side, setSide] = useState(!mobile);
   const [nativeChrome, setNativeChrome] = useState(false);
   const [coverTools, setCoverTools] = useState<string | null>(null);
+  const [finding, setFinding] = useState<Finding>({
+    page: null,
+    query: "",
+    requested: 0,
+  });
   const photoPicker = useRef<HTMLInputElement>(null);
   const toasts = useToast();
   const search = useSearch(book, overlays.modal === "search");
@@ -51,10 +58,16 @@ export function useWorkspaceModel(props: WorkspaceProps) {
   const [rail, setRail] = useRail(book);
   const shared = useSharedItems(book, mobile, overlays.modal);
   const pageData = usePageData(book, navigation.id, navigation.page?.parent);
-  const sync = useSyncStatus(book, t, toasts.notify, (removed) => {
-    if (navigation.id && removed.includes(navigation.id))
-      void navigation.open(null);
-  });
+  const sync = useSyncStatus(
+    book,
+    t,
+    toasts.notify,
+    (removed) => {
+      if (navigation.id && removed.includes(navigation.id))
+        void navigation.open(null);
+    },
+    props.reloadBooks,
+  );
   const context: WorkspaceContext = {
     book,
     t,
@@ -67,7 +80,7 @@ export function useWorkspaceModel(props: WorkspaceProps) {
     toast: toasts.setToast,
   };
 
-  useBookEvents(book);
+  useBookEvents(book, t);
   useQuickCapture(() => overlays.setModal("capture"));
   useClipInbox(
     book,
@@ -93,6 +106,8 @@ export function useWorkspaceModel(props: WorkspaceProps) {
     setNativeChrome,
     coverTools,
     setCoverTools,
+    finding,
+    setFinding,
     photoPicker,
     toasts,
     search,
@@ -144,7 +159,7 @@ function usePageData(
     database,
     all,
     small: !!book.settings.get("small"),
-    bookName: String(book.manifest.doc.getMap("meta").get("title")),
+    bookName: book.title,
   };
 }
 

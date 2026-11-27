@@ -2,6 +2,13 @@ use super::Certificate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub const MAX_EPOCHS: usize = 1024;
+const EPOCH_BYTES: usize = 64;
+const BESIDE_EPOCHS: usize = 1024;
+const JSON_PER_BYTE: usize = 4;
+pub const MAX_WRAPPED_KEYS: usize = MAX_EPOCHS * EPOCH_BYTES + BESIDE_EPOCHS;
+pub const MAX_JSON_KEYS: usize = MAX_WRAPPED_KEYS * JSON_PER_BYTE;
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct AccountBundle {
@@ -97,6 +104,10 @@ pub fn space_key_message(
     super::encode(&(b"kladde/v1/space-key", account, space, wrapped))
 }
 
+pub fn remove_space_message(account: Uuid, space: Uuid) -> Result<Vec<u8>, super::Invalid> {
+    super::encode(&(b"kladde/v1/remove-space", account, space))
+}
+
 pub const PROOF_HEADER: &str = "kladde-proof";
 
 pub fn purge_message(account: Uuid, space: Uuid, doc: Uuid) -> Result<Vec<u8>, super::Invalid> {
@@ -126,11 +137,62 @@ pub struct Erase {
     pub ticket: String,
 }
 
+pub type ChainHead = (Uuid, Uuid, u64, [u8; 32]);
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SpaceHeads {
+    pub space: Uuid,
+    pub mark: i64,
+    pub heads: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ClosingProof {
+    pub space: Uuid,
+    pub mark: i64,
+    pub heads: Vec<u8>,
+    pub proof: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Closing {
+    pub signer: Option<Certificate>,
+    pub heads: Vec<u8>,
+    pub proof: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SpaceClosings {
+    pub space: Uuid,
+    pub lists: Vec<Closing>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeviceClosing {
+    pub heads: Vec<u8>,
+    pub proof: Vec<u8>,
+}
+
+pub fn closing_message(
+    account: Uuid,
+    space: Uuid,
+    digest: &[u8; 32],
+) -> Result<Vec<u8>, super::Invalid> {
+    super::encode(&(b"kladde/v1/closing", account, space, digest))
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RecoveryInfo {
     pub nonce: Uuid,
     pub bundle: AccountBundle,
     pub spaces: Vec<(Uuid, Vec<u8>)>,
+    #[serde(default)]
+    pub heads: Vec<SpaceHeads>,
+    #[serde(default)]
+    pub closings: Vec<SpaceClosings>,
+    #[serde(default)]
+    pub signers: Vec<Certificate>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,6 +203,8 @@ pub struct Reset {
     pub bundle: AccountBundle,
     pub spaces: Vec<(Uuid, Vec<u8>)>,
     pub proof: Vec<u8>,
+    #[serde(default)]
+    pub closings: Vec<ClosingProof>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -165,10 +229,21 @@ pub fn renew_message(challenge: Uuid, device: Uuid) -> Result<Vec<u8>, super::In
     super::encode(&(b"kladde/v1/renew", challenge, device))
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Tombstone {
+    pub doc: Uuid,
+    pub device: Uuid,
+    pub proof: Vec<u8>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SpaceState {
     pub docs: Vec<(Uuid, i64)>,
     pub deleted: Vec<Uuid>,
+    #[serde(default)]
+    pub tombstones: Vec<Tombstone>,
+    #[serde(default)]
+    pub signers: Vec<Certificate>,
     #[serde(default)]
     pub checkpoints: bool,
     #[serde(default)]

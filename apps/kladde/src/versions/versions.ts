@@ -16,6 +16,7 @@ export interface Shares {
     time: number;
     label: string | null;
     cause: string | null;
+    sha256?: string;
   }[];
   gone: string[];
 }
@@ -35,6 +36,7 @@ const CAUSES: ReadonlySet<string> = new Set([
 ]);
 const FILE_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SHA256 = /^[0-9a-f]{64}$/;
 const SHARE_DELAY_MS = 4000;
 const SHARE_BATCH = 8;
 const FOREIGN_REV = 0;
@@ -114,11 +116,30 @@ export function allVersions(local: Version[], entry: Entry) {
   return [...local, ...newest].sort((a, b) => b.time - a.time);
 }
 
+function sameHashes(known: unknown, own: Shares["own"][number]) {
+  if (own.sha256 === undefined) return known === undefined;
+
+  return Array.isArray(known) && known.length === 1 && known[0] === own.sha256;
+}
+
 function sameEntry(known: unknown, own: Shares["own"][number]) {
   if (!known || typeof known !== "object") return false;
-  const { time, label, cause } = known as Record<string, unknown>;
+  const { time, label, cause, sha256 } = known as Record<string, unknown>;
 
-  return time === own.time && label === own.label && cause === own.cause;
+  return (
+    time === own.time &&
+    label === own.label &&
+    cause === own.cause &&
+    sameHashes(sha256, own)
+  );
+}
+
+function listedShare(own: Shares["own"][number]) {
+  const { time, label, cause, sha256 } = own;
+
+  return sha256 === undefined
+    ? { time, label, cause }
+    : { time, label, cause, sha256: [sha256] };
 }
 
 export function applyShares(entry: Entry, shares: Shares) {
@@ -128,11 +149,11 @@ export function applyShares(entry: Entry, shares: Shares) {
     for (const file of shares.gone) listed.delete(file);
 
     for (const own of shares.own) {
-      if (!FILE_ID.test(own.file) || sameEntry(listed.get(own.file), own))
-        continue;
-      const { time, label, cause } = own;
+      const hashed = own.sha256 === undefined || SHA256.test(own.sha256);
 
-      listed.set(own.file, { time, label, cause });
+      if (!FILE_ID.test(own.file) || !hashed) continue;
+      if (sameEntry(listed.get(own.file), own)) continue;
+      listed.set(own.file, listedShare(own));
     }
   });
 }

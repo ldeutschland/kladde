@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use std::path::Path;
 use zeroize::Zeroizing;
 
-const SCHEMA_VERSION: i64 = 6;
+const SCHEMA_VERSION: i64 = 7;
 const FULL_AUTO_VACUUM: i64 = 1;
 const MAX_REBUILT_BYTES: i64 = 256 * 1024 * 1024;
 const USED_BYTES: &str = "SELECT (c.page_count-f.freelist_count)*s.page_size FROM pragma_page_count() c,pragma_freelist_count() f,pragma_page_size() s";
@@ -65,6 +65,13 @@ impl Store {
 
         if version < 6 {
             search::reindex(&conn)?;
+        }
+
+        if version < 7 {
+            conn.execute(
+                "UPDATE page_files SET status='pending',retry_at=0 WHERE status='unsupported'",
+                [],
+            )?;
         }
 
         backup::abandon_all(&conn)?;

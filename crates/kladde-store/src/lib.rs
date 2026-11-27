@@ -9,19 +9,22 @@ mod merge;
 mod notes;
 mod opening;
 mod outbox;
+mod part_hashes;
 mod parts;
 mod private_state;
 mod readable;
 mod search;
 mod shared_versions;
+mod space_deletion;
 
 pub use archive::Archive;
 pub use backup::{Bundle, Record};
 pub use database_rows::{ROW_PAGE, RowChange, RowRecord};
 pub use history::Version;
 pub use merge::{Incoming, wire_form};
+pub use part_hashes::{Hash, Listing};
 pub use parts::MAX_FILE_PARTS;
-pub use search::{Attachment, AttachmentJob, Passage, SearchHit};
+pub use search::{Attachment, AttachmentJob, ExtractedText, Passage, SearchHit};
 pub use shared_versions::{SharedVersion, Shares};
 
 use rusqlite::Connection;

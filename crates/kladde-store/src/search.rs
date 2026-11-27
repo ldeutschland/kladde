@@ -42,6 +42,13 @@ pub struct AttachmentJob {
     pub name: String,
 }
 
+pub struct ExtractedText {
+    pub doc: Uuid,
+    pub file: Uuid,
+    pub status: String,
+    pub text: String,
+}
+
 const EXCERPT_LEAD: u32 = 60;
 const EXCERPT_WINDOW: u32 = 240;
 
@@ -474,6 +481,30 @@ impl Store {
         })
     }
 
+    pub fn attachment_words(
+        &self,
+        space: Uuid,
+        doc: Uuid,
+        file: Uuid,
+    ) -> Result<Option<ExtractedText>, Error> {
+        Ok(self
+            .0
+            .query_row(
+                "SELECT f.status,w.body FROM page_files f JOIN file_words w ON w.rowid=f.rowid JOIN notes n ON n.id=f.doc
+             WHERE n.space=?1 AND n.archived=0 AND f.doc=?2 AND f.file=?3 AND f.status IN ('ready','partial')",
+                params![space.to_string(), doc.to_string(), file.to_string()],
+                |r| {
+                    Ok(ExtractedText {
+                        doc,
+                        file,
+                        status: r.get(0)?,
+                        text: r.get(1)?,
+                    })
+                },
+            )
+            .optional()?)
+    }
+
     pub fn pending_attachments(&self, space: Uuid) -> Result<u32, Error> {
         Ok(self.0.query_row("SELECT count(*) FROM page_files f JOIN notes n ON n.id=f.doc WHERE n.space=?1 AND n.archived=0 AND f.status='pending'", [space.to_string()], |r|r.get(0))?)
     }
@@ -483,6 +514,20 @@ impl Store {
             "SELECT n.space,f.doc,f.file,f.name FROM page_files f JOIN notes n ON n.id=f.doc
              WHERE f.status='pending' AND f.retry_at<=unixepoch() AND n.archived=0 ORDER BY f.retry_at,f.rowid LIMIT 1",
             [], |r| Ok(AttachmentJob { space:uuid_col(r,0)?, doc:uuid_col(r,1)?, file:uuid_col(r,2)?, name:r.get(3)? })
+        ).optional()?)
+    }
+
+    pub fn next_unshared_text(
+        &self,
+        space: Uuid,
+        marker: &str,
+    ) -> Result<Option<ExtractedText>, Error> {
+        Ok(self.0.query_row(
+            "SELECT f.doc,f.file,f.status,w.body FROM page_files f JOIN file_words w ON w.rowid=f.rowid JOIN notes n ON n.id=f.doc
+             WHERE n.space=?1 AND n.archived=0 AND f.status IN ('ready','partial')
+             AND NOT EXISTS(SELECT 1 FROM private_state s WHERE s.id=?2||f.file) ORDER BY f.rowid LIMIT 1",
+            params![space.to_string(), marker],
+            |r| Ok(ExtractedText { doc: uuid_col(r, 0)?, file: uuid_col(r, 1)?, status: r.get(2)?, text: r.get(3)? }),
         ).optional()?)
     }
 

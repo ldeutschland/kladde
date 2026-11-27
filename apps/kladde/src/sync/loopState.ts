@@ -11,6 +11,7 @@ export interface SyncHooks {
   status: (update: StatusUpdate) => void;
   slow: (slow: boolean) => void;
   result: (result: SyncResult) => void;
+  arrived?: () => void;
 }
 
 export interface Need {
@@ -29,6 +30,7 @@ export interface LoopState {
   contended: number;
   retryAt: number;
   dueAt: number;
+  othersDue: number;
   editStart: number;
   seenSaves: number;
   watched: string | null | undefined;
@@ -54,6 +56,7 @@ export function createLoopState(book: Notebook, hooks: SyncHooks): LoopState {
     contended: 0,
     retryAt: 0,
     dueAt: Infinity,
+    othersDue: 0,
     editStart: 0,
     seenSaves: book.saves,
     watched: undefined,

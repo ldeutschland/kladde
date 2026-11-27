@@ -1,10 +1,11 @@
 use super::{
-    encrypted_files::{Blob, Local, decrypt_local, store_locally, unwrap_file_key},
+    encrypted_files::{Blob, Local, content_hash, decrypt_local, store_locally, unwrap_file_key},
     uploads::upload_marker,
 };
 
 use crate::{notebook::vault::Vault, sync::stored_account::for_space};
 use kladde_protocol::{MAX_ENCODED_ATTACHMENT, decode_attachment, encode};
+use kladde_store::Listing;
 use kladde_sync::account::Access;
 use std::time::Duration;
 use tauri::AppHandle;
@@ -39,12 +40,11 @@ pub fn keep_fetched(
     })
 }
 
-pub async fn download_blob(
+pub async fn fetch_bytes(
     client: &reqwest::Client,
     access: &Access,
     id: Uuid,
-    doc: Uuid,
-) -> Result<Local, String> {
+) -> Result<Vec<u8>, String> {
     use futures_util::StreamExt;
 
     let response = client
@@ -72,6 +72,16 @@ pub async fn download_blob(
         bytes.extend(c)
     }
 
+    Ok(bytes)
+}
+
+pub async fn fetch_blob(
+    client: &reqwest::Client,
+    access: &Access,
+    id: Uuid,
+    doc: Uuid,
+) -> Result<Local, String> {
+    let bytes = fetch_bytes(client, access, id).await?;
     let blob: Blob = decode_attachment(&bytes).map_err(|_| "Invalid blob")?;
 
     if blob.id != id || blob.doc != doc || blob.version != 1 {
@@ -79,16 +89,38 @@ pub async fn download_blob(
     }
 
     let key = unwrap_file_key(access, doc, id, &blob.key)?;
-    let local = Local {
+
+    Ok(Local {
         version: 1,
         id,
         doc,
-        key: key.as_slice().try_into().map_err(|_| "Invalid file key")?,
+        key: *key,
         file: blob.file,
         uploaded: true,
-    };
+    })
+}
 
-    decrypt_local(&local, doc, id).map_err(|_| "Invalid blob")?;
+fn matches(listing: Listing, plain: &[u8]) -> bool {
+    match listing {
+        Listing::Hashed(hash) => content_hash(plain) == hash,
+        Listing::Unhashed => true,
+        Listing::Unlisted => false,
+    }
+}
+
+pub async fn download_blob(
+    client: &reqwest::Client,
+    access: &Access,
+    id: Uuid,
+    doc: Uuid,
+    listing: Listing,
+) -> Result<Local, String> {
+    let local = fetch_blob(client, access, id, doc).await?;
+    let plain = decrypt_local(&local, doc, id).map_err(|_| "Invalid blob")?;
+
+    if !matches(listing, &plain) {
+        return Err("Invalid blob".into());
+    }
 
     Ok(local)
 }
@@ -102,8 +134,9 @@ pub async fn fetch_for_backup(
 ) -> Result<kladde_store::Record, String> {
     let account = for_space(vault, app, space)
         .map_err(|_| "Backup needs the sync connection to retrieve missing attachments")?;
+    let listing = vault.access(app, |store| store.blob_listing(space, doc, id))?;
     let client = kladde_sync::http().map_err(|e| e.to_string())?;
-    let local = download_blob(&client, &account, id, doc).await?;
+    let local = download_blob(&client, &account, id, doc, listing).await?;
     let bytes = encode(&local).map_err(|_| "Invalid attachment")?;
 
     keep_fetched(app, vault, &account, &local)?;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { KeyboardEvent } from "react";
-import { viewerKeys } from "../../src/viewer/viewerKeys";
+import { findShortcut, viewerKeys } from "../../src/viewer/viewerKeys";
 import type { Zoom } from "../../src/viewer/useZoom";
 
 let typing = false;
@@ -33,6 +33,30 @@ function setup() {
   };
 
   return { zoom, history, press };
+}
+
+function pressFind(
+  key: string,
+  extra: Record<string, unknown> = {},
+  editing = false,
+) {
+  const show = vi.fn();
+  const event = {
+    key,
+    metaKey: false,
+    ctrlKey: false,
+    nativeEvent: { isComposing: false },
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
+    ...extra,
+  };
+  const handled = findShortcut(
+    event as unknown as KeyboardEvent<HTMLElement>,
+    editing,
+    show,
+  );
+
+  return { handled, event, show };
 }
 
 beforeEach(() => {
@@ -94,5 +118,40 @@ describe("viewer keys", () => {
     typing = true;
     expect(press("=", { metaKey: true }).handled).toBe(false);
     expect(zoom.zoomIn).not.toHaveBeenCalled();
+  });
+});
+
+describe("find shortcut", () => {
+  it("opens find in the file with Cmd or Ctrl and F", () => {
+    const command = pressFind("f", { metaKey: true });
+    const control = pressFind("F", { ctrlKey: true });
+
+    expect(command.handled).toBe(true);
+    expect(command.show).toHaveBeenCalledOnce();
+    expect(control.show).toHaveBeenCalledOnce();
+    expect(command.event.preventDefault).toHaveBeenCalled();
+    expect(command.event.stopPropagation).toHaveBeenCalled();
+  });
+
+  it("keeps find in the page behind closed while the file is edited", () => {
+    const editing = pressFind("f", { metaKey: true }, true);
+
+    expect(editing.handled).toBe(true);
+    expect(editing.show).not.toHaveBeenCalled();
+    expect(editing.event.stopPropagation).toHaveBeenCalled();
+  });
+
+  it("leaves other keys, a plain F and composed text alone", () => {
+    const presses = [
+      pressFind("f"),
+      pressFind("g", { metaKey: true }),
+      pressFind("f", { metaKey: true, nativeEvent: { isComposing: true } }),
+    ];
+
+    for (const { handled, event, show } of presses) {
+      expect(handled).toBe(false);
+      expect(show).not.toHaveBeenCalled();
+      expect(event.stopPropagation).not.toHaveBeenCalled();
+    }
   });
 });

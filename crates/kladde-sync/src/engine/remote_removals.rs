@@ -2,8 +2,87 @@ use super::Local;
 use super::doc_state_keys::DocKeys;
 use super::report::Report;
 use crate::{Error, account::Access};
+use ed25519_dalek::{Signature, VerifyingKey};
+use kladde_crypto as c;
+use kladde_protocol::{
+    Certificate,
+    account::{SpaceState, Tombstone, purge_message},
+};
+
 use kladde_store::Store;
+use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
+
+pub(super) fn tombstoned_docs(
+    local: &impl Local,
+    access: &Access,
+    tombstones: &BTreeSet<Uuid>,
+) -> Result<Vec<Uuid>, Error> {
+    let mut ids = local.with(|store| store.ids(access.space))?;
+
+    ids.retain(|id| tombstones.contains(id));
+
+    Ok(ids)
+}
+
+pub(super) fn signed_among(access: &Access, state: &SpaceState, ids: &[Uuid]) -> Vec<Uuid> {
+    let candidates: BTreeSet<Uuid> = ids.iter().copied().collect();
+    let signers = signer_keys(access, &state.signers);
+    let signed: BTreeSet<Uuid> = state
+        .tombstones
+        .iter()
+        .filter(|tombstone| candidates.contains(&tombstone.doc))
+        .filter(|tombstone| {
+            signers
+                .get(&tombstone.device)
+                .is_some_and(|key| proves_removal(access, key, tombstone))
+        })
+        .map(|tombstone| tombstone.doc)
+        .collect();
+
+    ids.iter()
+        .copied()
+        .filter(|id| signed.contains(id))
+        .collect()
+}
+
+fn signer_keys(access: &Access, signers: &[Certificate]) -> BTreeMap<Uuid, VerifyingKey> {
+    let Ok(identity) = VerifyingKey::from_bytes(&access.identity) else {
+        return BTreeMap::new();
+    };
+
+    signers
+        .iter()
+        .filter_map(|cert| {
+            let key = c::device_key(&identity, access.account, cert).ok()?;
+
+            Some((cert.device, key))
+        })
+        .collect()
+}
+
+fn proves_removal(access: &Access, key: &VerifyingKey, tombstone: &Tombstone) -> bool {
+    let Ok(message) = purge_message(access.account, access.space, tombstone.doc) else {
+        return false;
+    };
+
+    Signature::from_slice(&tombstone.proof)
+        .is_ok_and(|signature| key.verify_strict(&message, &signature).is_ok())
+}
+
+pub(super) fn orphans_of(
+    local: &impl Local,
+    access: &Access,
+    deleted: impl IntoIterator<Item = Uuid>,
+) -> Result<BTreeSet<Uuid>, Error> {
+    let mut orphans = BTreeSet::new();
+
+    for owner in deleted {
+        orphans.extend(local.with(|store| store.owned_by(access.space, owner))?);
+    }
+
+    Ok(orphans)
+}
 
 pub(super) fn remove_deleted(
     local: &impl Local,

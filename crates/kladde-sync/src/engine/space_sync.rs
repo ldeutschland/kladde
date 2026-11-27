@@ -1,14 +1,17 @@
 use super::Local;
 use super::batches::sync_docs;
+use super::closings::ensure_chains;
 use super::deletions::push_deletions;
 use super::doc_exchange::exchange_doc;
 use super::listings::{listings_current, sync_listings, wanted_listings};
 use super::marks::{has_mark, known_mark, remember_mark};
 use super::relay_features::{agree_on_format, handshake, remember_checkpoints};
 use super::relay_link::Link;
-use super::remote_removals::remove_deleted;
+use super::remote_removals::{orphans_of, remove_deleted, signed_among, tombstoned_docs};
 use super::report::{Report, error_code};
+use super::resync::follow_keyset;
 use super::space_state::remote_changes;
+use super::untracked_docs::{has_untracked_docs, queue_untracked_docs};
 use crate::{Error, account::Access};
 use kladde_protocol::account::SpaceState;
 use std::collections::{BTreeMap, BTreeSet};
@@ -21,10 +24,8 @@ pub async fn sync_space(
     state: &SpaceState,
     report: &mut Report,
 ) {
-    let remote: BTreeMap<Uuid, i64> = state.docs.iter().copied().collect();
-    let tombstones: BTreeSet<Uuid> = state.deleted.iter().copied().collect();
     let synced = match remember_checkpoints(local, access, state.checkpoints) {
-        Ok(()) => sync_all(local, access, &remote, &tombstones, report).await,
+        Ok(()) => sync_all(local, access, state, report).await,
         Err(e) => Err(e),
     };
 
@@ -37,12 +38,14 @@ pub async fn sync_latest(
     access: &Access,
     report: &mut Report,
 ) -> Result<(), Error> {
+    follow_keyset(local, access)?;
     let relay = handshake(client, access).await?;
 
     agree_on_format(local, client, access, &relay, report).await?;
+    ensure_chains(local, client, access).await?;
     let after = known_mark(local, access)?;
 
-    if after > 0 {
+    if after > 0 && !has_untracked_docs(local, access)? {
         let state = remote_changes(client, access, after, &relay).await?;
 
         if state.mark.is_some_and(|mark| mark >= after) {
@@ -69,31 +72,47 @@ async fn sync_recent(
     report: &mut Report,
 ) {
     let remote: BTreeMap<Uuid, i64> = state.docs.iter().copied().collect();
-    let synced = match gone_docs(local, access, state) {
-        Ok(gone) => sync_some(local, access, &remote, &BTreeSet::new(), &gone, report).await,
+    let synced = match recent_removals(local, access, state) {
+        Ok(removals) => {
+            sync_some(local, access, &remote, &BTreeSet::new(), &removals, report).await
+        }
         Err(e) => Err(e),
     };
 
     finish_round(local, client, access, synced, report).await;
 }
 
-fn gone_docs(
+#[derive(Default)]
+struct Removals {
+    gone: BTreeSet<Uuid>,
+    doomed: BTreeSet<Uuid>,
+}
+
+fn recent_removals(
     local: &impl Local,
     access: &Access,
     state: &SpaceState,
-) -> Result<BTreeSet<Uuid>, Error> {
+) -> Result<Removals, Error> {
     remember_checkpoints(local, access, state.checkpoints)?;
     let prefix = format!("rescue:{}:{}:", access.account, access.space);
-    let rescued = local.with(|store| store.state_keys(&prefix))?;
-    let mut gone: BTreeSet<Uuid> = state.deleted.iter().copied().collect();
+    let rescued: Vec<Uuid> = local
+        .with(|store| store.state_keys(&prefix))?
+        .iter()
+        .filter_map(|key| key[prefix.len()..].parse::<Uuid>().ok())
+        .collect();
+    let tombstones: BTreeSet<Uuid> = state.deleted.iter().copied().collect();
+    let tombstoned = tombstoned_docs(local, access, &tombstones)?;
+    let mut removals = Removals {
+        gone: tombstones,
+        doomed: signed_among(access, state, &tombstoned)
+            .into_iter()
+            .collect(),
+    };
 
-    gone.extend(
-        rescued
-            .iter()
-            .filter_map(|key| key[prefix.len()..].parse::<Uuid>().ok()),
-    );
+    removals.gone.extend(&rescued);
+    removals.doomed.extend(rescued);
 
-    Ok(gone)
+    Ok(removals)
 }
 
 pub async fn sync_changes(
@@ -115,7 +134,10 @@ pub async fn sync_changes_except(
     report: &mut Report,
 ) {
     let remote: BTreeMap<Uuid, i64> = hints.iter().copied().collect();
-    let synced = sync_some(local, access, &remote, stuck, &BTreeSet::new(), report).await;
+    let synced = match follow_keyset(local, access) {
+        Ok(()) => sync_some(local, access, &remote, stuck, &Removals::default(), report).await,
+        Err(e) => Err(e),
+    };
 
     finish_round(local, client, access, synced, report).await;
 }
@@ -176,20 +198,24 @@ fn held_back_docs(local: &impl Local, access: &Access) -> Result<BTreeSet<Uuid>,
 async fn sync_all(
     local: &impl Local,
     access: &Access,
-    remote: &BTreeMap<Uuid, i64>,
-    tombstones: &BTreeSet<Uuid>,
+    state: &SpaceState,
     report: &mut Report,
 ) -> Result<(), Error> {
+    let remote: BTreeMap<Uuid, i64> = state.docs.iter().copied().collect();
+    let tombstones: BTreeSet<Uuid> = state.deleted.iter().copied().collect();
+
+    queue_untracked_docs(local, access, &tombstones)?;
     let mut link = Link::open(local, access)?;
     let outbox = outbox_docs(local, access)?;
-    let listings = wanted_listings(local, access, |_| true)?;
+    let tombstoned = tombstoned_docs(local, access, &tombstones)?;
+    let orphans = orphans_of(local, access, tombstoned.iter().copied())?;
+    let listings = wanted_listings(local, access, |id| !orphans.contains(id))?;
 
-    sync_listings(local, &mut link, &listings, remote, &outbox, report).await?;
-    let mut doomed = local.with(|store| store.ids(access.space))?;
+    sync_listings(local, &mut link, &listings, &remote, &outbox, report).await?;
 
-    doomed.retain(|id| tombstones.contains(id));
+    if listings_current(local, access, &listings, &remote)? {
+        let doomed = signed_among(access, state, &tombstoned);
 
-    if listings_current(local, access, &listings, remote)? {
         remove_deleted(local, access, doomed, report)?;
     }
 
@@ -197,9 +223,14 @@ async fn sync_all(
     let mut docs: BTreeSet<Uuid> = remote.keys().copied().collect();
 
     docs.extend(local.with(|store| store.ids(access.space))?);
-    docs.retain(|id| !listings.contains(id) && !tombstones.contains(id) && !held.contains(id));
+    docs.retain(|id| {
+        !listings.contains(id)
+            && !tombstones.contains(id)
+            && !held.contains(id)
+            && !orphans.contains(id)
+    });
 
-    sync_docs(local, &mut link, &docs, remote, &outbox, report).await
+    sync_docs(local, &mut link, &docs, &remote, &outbox, report).await
 }
 
 async fn sync_some(
@@ -207,23 +238,26 @@ async fn sync_some(
     access: &Access,
     remote: &BTreeMap<Uuid, i64>,
     stuck: &BTreeSet<Uuid>,
-    gone: &BTreeSet<Uuid>,
+    removals: &Removals,
     report: &mut Report,
 ) -> Result<(), Error> {
     let mut link = Link::open(local, access)?;
     let outbox = outbox_docs(local, access)?;
     let held = held_back_docs(local, access)?;
+    let orphans = orphans_of(local, access, removals.gone.iter().copied())?;
     let mut docs: BTreeSet<Uuid> = remote.keys().copied().collect();
 
     docs.extend(outbox.iter().filter(|id| !stuck.contains(id)).copied());
-    docs.retain(|id| !held.contains(id) && !gone.contains(id));
+    docs.retain(|id| !held.contains(id) && !removals.gone.contains(id) && !orphans.contains(id));
     let listings = wanted_listings(local, access, |id| docs.contains(id))?;
 
     docs.retain(|id| !listings.contains(id));
     let revived = sync_listings(local, &mut link, &listings, remote, &outbox, report).await?;
 
     if listings_current(local, access, &listings, remote)? {
-        remove_deleted(local, access, gone.iter().copied().collect(), report)?;
+        let doomed = removals.doomed.iter().copied().collect();
+
+        remove_deleted(local, access, doomed, report)?;
     }
 
     for id in revived {

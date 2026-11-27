@@ -17,7 +17,7 @@ import type { Reveal } from "../search/reveal";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
 import { PageImage } from "./PageImage";
 import { PageIcon } from "./tree";
-import { linkedPage } from "../notebook/links";
+import { pagesLinkedIn } from "../notebook/links";
 import { comparePages, pageSort } from "../notebook/pageSort";
 import { appendFiles } from "../editor/fileBlocks";
 import { allowDrop, carriesFiles, droppedFiles } from "../ui/dragDrop";
@@ -50,14 +50,6 @@ export interface EditorSetup {
   record: () => void;
 }
 
-function linkedIds(text: string) {
-  return new Set(
-    Array.from(text.matchAll(/kladde:[^\s)\]"']+/gi), (match) =>
-      linkedPage(match[0]),
-    ),
-  );
-}
-
 function ChildPages({
   book,
   entry,
@@ -67,7 +59,9 @@ function ChildPages({
   entry: Entry;
   render: (page: Page) => ReactNode;
 }) {
-  const linked = linkedIds(String(entry.doc.getMap("meta").get("text") ?? ""));
+  const linked = new Set(
+    pagesLinkedIn(String(entry.doc.getMap("meta").get("text") ?? "")),
+  );
   const children = Array.from(book.pages.values())
     .filter(
       (p) =>

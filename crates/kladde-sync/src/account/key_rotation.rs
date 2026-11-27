@@ -7,14 +7,21 @@ use super::{
     space_keys::{SpaceKeys, open_space},
 };
 
-use crate::{Error, Origin, post};
-use ed25519_dalek::{Signer, SigningKey};
+use crate::{
+    Error, Origin,
+    closing_lists::{current_devices, rotation_heads},
+    post, post_limited,
+};
+
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use kladde_crypto::{self as c, Key, Purpose};
 use kladde_protocol::{account::*, decode, encode};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+
+const ROTATION_REPLY_LIMIT: usize = 64 * 1024 * 1024;
 
 fn open_spaces(auth: &Authorized) -> Result<Vec<SpaceKeys>, Error> {
     let identity = &auth.info.bundle.identity;
@@ -67,7 +74,14 @@ async fn recovery_info(
         proof,
     };
 
-    let info: RecoveryInfo = post(client, origin, "v1/recovery/keys", &keys).await?;
+    let info: RecoveryInfo = post_limited(
+        client,
+        origin,
+        "v1/recovery/keys",
+        &keys,
+        ROTATION_REPLY_LIMIT,
+    )
+    .await?;
 
     check_bundle(&info.bundle)?;
 
@@ -209,11 +223,51 @@ impl Rotation {
     }
 }
 
+fn lists_of(info: &RecoveryInfo, space: Uuid) -> &[Closing] {
+    info.closings
+        .iter()
+        .find(|listed| listed.space == space)
+        .map(|listed| listed.lists.as_slice())
+        .unwrap_or_default()
+}
+
+fn closings_for(
+    fresh: &Fresh,
+    identity: &VerifyingKey,
+    info: &RecoveryInfo,
+    spaces: &[(Uuid, Vec<u8>)],
+) -> Result<Vec<ClosingProof>, Error> {
+    let account = info.bundle.account;
+    let current = current_devices(identity, account, &info.signers);
+    let rotated =
+        |space: Uuid| space == info.bundle.space || spaces.iter().any(|(id, _)| *id == space);
+    let mut closings = Vec::new();
+
+    for listed in info.heads.iter().filter(|listed| rotated(listed.space)) {
+        let lists = lists_of(info, listed.space);
+        let heads = rotation_heads(
+            account,
+            listed.space,
+            identity,
+            &current,
+            &listed.heads,
+            lists,
+        )?;
+
+        closings.push(fresh.close(account, listed.space, listed.mark, heads)?);
+    }
+
+    closings.sort_by_key(|closing| closing.space);
+
+    Ok(closings)
+}
+
 fn signed_reset(
     auth: &Authorized,
     record: Vec<u8>,
     bundle: AccountBundle,
     spaces: Vec<(Uuid, Vec<u8>)>,
+    closings: Vec<ClosingProof>,
 ) -> Result<Reset, Error> {
     let nonce = auth.info.nonce;
     let signed = encode(&(
@@ -232,6 +286,7 @@ fn signed_reset(
         bundle,
         spaces,
         proof: auth.signer.sign(&signed).to_bytes().to_vec(),
+        closings,
     })
 }
 
@@ -250,11 +305,12 @@ pub async fn prepare_rekey(
     };
 
     let old = &auth.info.bundle;
-    let (_, relayed) = open_ring(old, &auth.master)?;
+    let (identity, relayed) = open_ring(old, &auth.master)?;
     let fresh = Fresh::new();
     let workspace = extend_keyset(&relayed, &fresh.public())?;
     let opened = open_spaces(&auth)?;
     let spaces = fresh.rewrap_spaces(&opened)?;
+    let closings = closings_for(&fresh, &identity.verifying_key(), &auth.info, &spaces)?;
     let (record, export) = new_record(client, origin, user, password).await?;
     let ring = fresh.ring(&export, recovery, old.account, old.space, &workspace)?;
     let bundle = fresh.bundle(old.account, old.space, recovery, &ring)?;
@@ -267,7 +323,7 @@ pub async fn prepare_rekey(
     };
 
     Ok(Rotation {
-        reset: signed_reset(&auth, record, bundle, spaces)?,
+        reset: signed_reset(&auth, record, bundle, spaces, closings)?,
         expected,
         relayed: Relayed {
             workspace: relayed,

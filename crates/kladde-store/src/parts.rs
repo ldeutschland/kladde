@@ -4,7 +4,7 @@ use uuid::Uuid;
 use yrs::{Any, Doc, Map, Out, Transact, Update};
 
 pub const MAX_FILE_PARTS: usize = 65_536;
-const FILES: &str = "files";
+pub(crate) const FILES: &str = "files";
 
 pub(crate) fn file_id(key: &str) -> Result<Uuid, Error> {
     let id: Uuid = key.parse().map_err(|_| Error::Invalid)?;
@@ -23,7 +23,7 @@ fn part_id(item: &Any) -> Result<Uuid, Error> {
     }
 }
 
-fn listed_parts(meta: &Out) -> Result<Option<Vec<Uuid>>, Error> {
+pub(crate) fn listed_parts(meta: &Out) -> Result<Option<Vec<Uuid>>, Error> {
     let Out::Any(Any::Map(fields)) = meta else {
         return Ok(None);
     };
@@ -50,7 +50,7 @@ fn listed_parts(meta: &Out) -> Result<Option<Vec<Uuid>>, Error> {
     Ok(Some(parts))
 }
 
-fn opened(data: &[u8], map: &str) -> Result<(Doc, yrs::MapRef), Error> {
+pub(crate) fn opened(data: &[u8], map: &str) -> Result<(Doc, yrs::MapRef), Error> {
     let doc = Doc::new();
     let entries = doc.get_or_insert_map(map);
     let update = Update::decode_complete_v1(data).map_err(|_| Error::Invalid)?;
@@ -71,23 +71,32 @@ pub(crate) fn listed_ids(data: &[u8], map: &str) -> Result<BTreeSet<Uuid>, Error
         .collect())
 }
 
-pub(crate) fn stored_files(data: &[u8]) -> Result<Vec<Uuid>, Error> {
+pub(crate) fn file_blobs(data: &[u8]) -> Result<Vec<(Uuid, Vec<Uuid>)>, Error> {
     let (doc, files) = opened(data, FILES)?;
     let tx = doc.transact();
-    let mut stored = Vec::new();
+    let mut found = Vec::new();
 
     for (key, meta) in files.iter(&tx) {
         let Ok(id) = file_id(key) else {
             continue;
         };
 
-        match listed_parts(&meta) {
-            Ok(Some(parts)) => stored.extend(parts),
-            _ => stored.push(id),
-        }
+        let blobs = match listed_parts(&meta) {
+            Ok(Some(parts)) => parts,
+            _ => vec![id],
+        };
+
+        found.push((id, blobs));
     }
 
-    Ok(stored)
+    Ok(found)
+}
+
+pub(crate) fn stored_files(data: &[u8]) -> Result<Vec<Uuid>, Error> {
+    Ok(file_blobs(data)?
+        .into_iter()
+        .flat_map(|(_, blobs)| blobs)
+        .collect())
 }
 
 impl Store {

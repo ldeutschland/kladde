@@ -405,13 +405,13 @@ pub async fn audio_save(
 fn stored_recording(app: &AppHandle, space: Uuid, doc: Uuid, file: &Path) -> Result<Saved, String> {
     let mut source = std::fs::File::open(file).map_err(|_| "Recording could not be read")?;
     let vault = app.state::<Vault>();
-    let (parts, size) = encrypted_files::store_parts(app, &vault, space, doc, &mut source)?;
+    let saved = encrypted_files::store_parts(app, &vault, space, doc, &mut source)?;
 
-    if parts.is_empty() {
+    if saved.parts.is_empty() {
         return Err("Recording is empty".into());
     }
 
-    Ok(Saved { parts, size })
+    Ok(saved)
 }
 
 fn suffix(name: &str) -> &str {

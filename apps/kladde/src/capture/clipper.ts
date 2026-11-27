@@ -1,4 +1,5 @@
 import { command } from "../platform/native";
+import { SHA256, contentHash } from "../files/attachments";
 import { markdown, writeMarkdown } from "../notebook/content";
 import { addView, fields, newField } from "../database/fields";
 import { readOnlyTypes } from "../database/types";
@@ -35,6 +36,7 @@ interface StoredImage {
   id: string;
   mime: string;
   size: number;
+  sha256: string;
 }
 interface ClipTarget {
   database: string;
@@ -233,11 +235,18 @@ function readStoredImage(value: unknown): StoredImage {
     !FILE_ID.test(raw.id) ||
     typeof raw.mime !== "string" ||
     !IMAGE_TYPES.test(raw.mime) ||
-    !Number.isSafeInteger(raw.size)
+    !Number.isSafeInteger(raw.size) ||
+    typeof raw.sha256 !== "string" ||
+    !SHA256.test(raw.sha256)
   )
     throw Error("Invalid image");
 
-  return { id: raw.id, mime: raw.mime, size: Number(raw.size) };
+  return {
+    id: raw.id,
+    mime: raw.mime,
+    size: Number(raw.size),
+    sha256: raw.sha256,
+  };
 }
 
 function clipField(
@@ -331,12 +340,15 @@ export async function storeImage(
     type: image.mime,
     name: imageName(address),
     size: image.size,
+    sha256: [image.sha256],
   });
 
   return "kladde-file:" + image.id;
 }
 
 async function storeFile(book: Notebook, row: Entry, file: InboundFile) {
+  const bytes = Uint8Array.from(atob(file.data), (char) => char.charCodeAt(0));
+  const sha256 = [await contentHash(new Blob([bytes]))];
   const id = await command<string>("add_file", {
     space: book.id,
     doc: row.id,
@@ -346,7 +358,7 @@ async function storeFile(book: Notebook, row: Entry, file: InboundFile) {
   if (typeof id !== "string" || !FILE_ID.test(id)) throw Error("Invalid image");
   row.doc
     .getMap("files")
-    .set(id, { type: file.mime, name: file.name, size: file.size });
+    .set(id, { type: file.mime, name: file.name, size: file.size, sha256 });
 
   return "kladde-file:" + id;
 }

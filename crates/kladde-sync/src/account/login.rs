@@ -3,7 +3,7 @@ use super::{
     credentials::{check_bundle, check_user, opaque_error, open_ring},
 };
 
-use crate::{Error, Origin, post};
+use crate::{Error, Origin, post, post_limited};
 use ed25519_dalek::{Signer, SigningKey};
 use kladde_crypto::{self as c, Purpose, opaque::*};
 use kladde_protocol::{account::*, decode, encode};
@@ -11,6 +11,8 @@ use rand::rngs::OsRng;
 use reqwest::Client;
 use uuid::Uuid;
 use zeroize::Zeroizing;
+
+const KEYS_REPLY_LIMIT: usize = MAX_JSON_KEYS + 64 * 1024;
 
 pub(super) async fn unlock(
     client: &Client,
@@ -45,7 +47,7 @@ pub(super) async fn unlock(
             },
         )
         .map_err(opaque_error)?;
-    let keys: GetKeys = post(
+    let keys: GetKeys = post_limited(
         client,
         origin,
         "v1/login/finish",
@@ -53,6 +55,7 @@ pub(super) async fn unlock(
             challenge: reply.challenge,
             message: result.message.serialize().to_vec(),
         },
+        KEYS_REPLY_LIMIT,
     )
     .await?;
 

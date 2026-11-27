@@ -2,8 +2,10 @@ use super::{file_reading::FileReadError, ipc_file_data::FileInput};
 use crate::notebook::vault::Vault;
 use kladde_crypto::{self as c, Purpose, Wrapped, files::File};
 use kladde_protocol::{MAX_ATTACHMENT_BYTES, decode_attachment, encode};
+use kladde_store::Hash;
 use kladde_sync::account::Access;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
 use zeroize::Zeroizing;
@@ -41,6 +43,10 @@ pub fn asset_key(space: Uuid, id: Uuid) -> String {
     format!("asset:{space}:{id}")
 }
 
+pub fn content_hash(data: &[u8]) -> Hash {
+    Sha256::digest(data).into()
+}
+
 pub fn store_locally(
     app: &AppHandle,
     vault: &Vault,
@@ -60,24 +66,37 @@ fn doc_key(access: &Access, doc: Uuid, epoch: u32) -> Result<c::Key, String> {
     c::derive(workspace.as_ref(), doc.as_bytes(), b"kladde/v1/doc").map_err(|e| e.to_string())
 }
 
+pub fn wrap_file_key(access: &Access, doc: Uuid, id: Uuid, key: &[u8]) -> Result<Wrapped, String> {
+    let doc_key = doc_key(access, doc, access.epoch())?;
+
+    c::wrap(doc_key.as_ref(), id, Purpose::File, key).map_err(|e| e.to_string())
+}
+
+pub fn unwrap_epoch_key(
+    access: &Access,
+    doc: Uuid,
+    id: Uuid,
+    epoch: u32,
+    wrapped: &Wrapped,
+) -> Result<c::Key, String> {
+    let doc_key = doc_key(access, doc, epoch)?;
+    let key = c::unwrap(doc_key.as_ref(), id, Purpose::File, wrapped).map_err(|e| e.to_string())?;
+
+    Ok(Zeroizing::new(
+        key.as_slice().try_into().map_err(|_| "Invalid file key")?,
+    ))
+}
+
 pub fn unwrap_file_key(
     access: &Access,
     doc: Uuid,
     id: Uuid,
     wrapped: &Wrapped,
-) -> Result<Zeroizing<Vec<u8>>, String> {
-    for epoch in (1..=access.epoch()).rev() {
-        if let Ok(key) = c::unwrap(
-            doc_key(access, doc, epoch)?.as_ref(),
-            id,
-            Purpose::File,
-            wrapped,
-        ) {
-            return Ok(key);
-        }
-    }
-
-    Err("Invalid file key".into())
+) -> Result<c::Key, String> {
+    (1..=access.epoch())
+        .rev()
+        .find_map(|epoch| unwrap_epoch_key(access, doc, id, epoch, wrapped).ok())
+        .ok_or_else(|| "Invalid file key".into())
 }
 
 #[tauri::command]
@@ -93,9 +112,10 @@ pub fn add_file(
     store_new(&app, &vault, space, doc, &data)
 }
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct Saved {
     pub parts: Vec<Uuid>,
+    pub sha256: Vec<String>,
     pub size: u64,
 }
 
@@ -105,11 +125,10 @@ pub fn store_parts(
     space: Uuid,
     doc: Uuid,
     source: &mut impl std::io::Read,
-) -> Result<(Vec<Uuid>, u64), String> {
+) -> Result<Saved, String> {
     use std::io::Read;
 
-    let mut parts = Vec::new();
-    let mut size = 0u64;
+    let mut saved = Saved::default();
 
     loop {
         let mut part = Zeroizing::new(Vec::new());
@@ -120,15 +139,16 @@ pub fn store_parts(
             .read_to_end(&mut part)
             .map_err(|_| "File could not be read")?;
         if part.is_empty() {
-            return Ok((parts, size));
+            return Ok(saved);
         }
 
-        if parts.len() == kladde_store::MAX_FILE_PARTS {
+        if saved.parts.len() == kladde_store::MAX_FILE_PARTS {
             return Err("File has too many parts".into());
         }
 
-        size += part.len() as u64;
-        parts.push(store_new(app, vault, space, doc, &part)?);
+        saved.size += part.len() as u64;
+        saved.sha256.push(hex::encode(content_hash(&part)));
+        saved.parts.push(store_new(app, vault, space, doc, &part)?);
     }
 }
 
@@ -161,14 +181,11 @@ pub fn store_new(
 }
 
 pub fn seal_for_upload(access: &Access, local: &Local) -> Result<Vec<u8>, String> {
-    let doc_key = doc_key(access, local.doc, access.epoch())?;
-    let key = c::wrap(doc_key.as_ref(), local.id, Purpose::File, &local.key)
-        .map_err(|e| e.to_string())?;
     let blob = Blob {
         version: 1,
         id: local.id,
         doc: local.doc,
-        key,
+        key: wrap_file_key(access, local.doc, local.id, &local.key)?,
         file: local.file.clone(),
     };
 

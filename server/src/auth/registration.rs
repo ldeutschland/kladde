@@ -1,10 +1,23 @@
 use super::checks::{admit_client, charge_password_attempt, check_bundle, check_username};
-use crate::{App, Result, bad};
-use axum::{Json, extract::State, http::HeaderMap};
+use crate::{App, Fault, Result, Shared, bad};
+use axum::{
+    Json,
+    extract::State,
+    http::{HeaderMap, StatusCode},
+};
+
 use kladde_crypto::opaque::*;
 use kladde_protocol::{account::*, encode};
 use sqlx_core::query::query;
 use uuid::Uuid;
+
+fn require_open(relay: &Shared) -> Result<()> {
+    if !relay.registration {
+        return Err(Fault(StatusCode::FORBIDDEN));
+    }
+
+    Ok(())
+}
 
 pub async fn register_start(
     State(relay): State<App>,
@@ -34,6 +47,7 @@ pub async fn register_finish(
     headers: HeaderMap,
     Json(input): Json<Register>,
 ) -> Result<Json<bool>> {
+    require_open(&relay)?;
     admit_client(&relay, &headers)?;
     check_username(&input.user)?;
     check_bundle(&input.bundle)?;

@@ -20,6 +20,7 @@ export function ViewerEnd({
   editable,
   edit,
   save,
+  find,
 }: {
   viewer: ViewerProps;
   session: SessionState;
@@ -27,6 +28,7 @@ export function ViewerEnd({
   editable: boolean;
   edit: () => void;
   save: (copy: boolean) => Promise<void>;
+  find: () => void;
 }) {
   const { book, entry, target, t } = viewer;
   const { history } = session;
@@ -51,6 +53,7 @@ export function ViewerEnd({
       t={t}
       editable={editable}
       edit={edit}
+      find={find}
       download={() =>
         void downloadFile(book, entry, target.url, target.name).catch(() => {})
       }

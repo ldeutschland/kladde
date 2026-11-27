@@ -1,5 +1,6 @@
 mod auth;
 mod blobs;
+mod closings;
 mod compat;
 mod space_documents;
 mod sync_socket;
@@ -9,7 +10,7 @@ use axum::{
     extract::{DefaultBodyLimit, Request, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
 };
 
 use blobs::storage::{BlobStorage, Volume};
@@ -84,7 +85,7 @@ struct Shared {
     client_requests: Option<throttle::Throttle>,
     account_requests: throttle::Throttle,
     account_messages: throttle::Throttle,
-    sockets: Mutex<HashMap<Uuid, u8>>,
+    sockets: Mutex<HashMap<Uuid, sync_socket::AccountSockets>>,
     uploads: Mutex<HashMap<Uuid, u8>>,
     downloads: Mutex<HashMap<Uuid, u8>>,
     blobs: Volume,
@@ -93,6 +94,7 @@ struct Shared {
         Mutex<HashMap<Uuid, tokio::sync::broadcast::Sender<sync_socket::change_feed::Change>>>,
     history: tokio::sync::Semaphore,
     quota: i64,
+    registration: bool,
 }
 
 type App = Arc<Shared>;
@@ -122,12 +124,20 @@ fn account_quota() -> std::result::Result<i64, &'static str> {
     }
 }
 
-fn trusts_forwarded_for() -> std::result::Result<bool, &'static str> {
-    match std::env::var("TRUST_FORWARDED_FOR").as_deref() {
+fn switch(name: &str, problem: &'static str) -> std::result::Result<bool, &'static str> {
+    match std::env::var(name).as_deref() {
         Err(std::env::VarError::NotPresent) | Ok("0") => Ok(false),
         Ok("1") => Ok(true),
-        _ => Err("TRUST_FORWARDED_FOR must be 0 or 1"),
+        _ => Err(problem),
     }
+}
+
+fn trusts_forwarded_for() -> std::result::Result<bool, &'static str> {
+    switch("TRUST_FORWARDED_FOR", "TRUST_FORWARDED_FOR must be 0 or 1")
+}
+
+fn opens_registration() -> std::result::Result<bool, &'static str> {
+    switch("OPEN_REGISTRATION", "OPEN_REGISTRATION must be 0 or 1")
 }
 
 fn throttled() -> Fault {
@@ -206,6 +216,8 @@ type Startup<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const DEFAULT_LISTEN_ADDR: &str = "127.0.0.1:7341";
 const MAX_CONNECTIONS: u32 = 12;
 const MAX_REQUEST_BODY: usize = 131072;
+const MAX_ROTATION_BODY: usize = 64 * 1024 * 1024;
+const MAX_CLOSING_BODY: usize = 64 * 1024 * 1024;
 
 fn write_setup_file(path: &str) -> Startup<()> {
     use std::{io::Write, os::unix::fs::OpenOptionsExt};
@@ -249,6 +261,7 @@ async fn open_blob_volume(pool: &PgPool) -> Startup<Volume> {
 async fn shared_state() -> Startup<App> {
     let quota = account_quota()?;
     let forwarded = trusts_forwarded_for()?;
+    let registration = opens_registration()?;
     let pool = open_database().await?;
     let bytes = Zeroizing::new(std::fs::read(std::env::var("OPAQUE_SETUP_FILE")?)?);
     let setup = ServerSetup::<Suite>::deserialize(&bytes).map_err(|_| "Invalid OPAQUE setup")?;
@@ -272,6 +285,7 @@ async fn shared_state() -> Startup<App> {
         watchers: Mutex::default(),
         history: tokio::sync::Semaphore::new(sync_socket::HISTORY_BUDGET_KIB),
         quota,
+        registration,
     }))
 }
 
@@ -293,10 +307,17 @@ fn account_routes() -> Router<App> {
         .route("/v1/session", delete(auth::sessions::logout))
         .route("/v1/recovery/start", post(auth::recovery::recovery_start))
         .route("/v1/recovery/keys", post(auth::recovery::recovery_keys))
-        .route("/v1/recovery/finish", post(auth::recovery::recovery_finish))
+        .route(
+            "/v1/recovery/finish",
+            post(auth::recovery::recovery_finish).layer(DefaultBodyLimit::max(MAX_ROTATION_BODY)),
+        )
         .route(
             "/v1/workspaces",
             get(auth::account::list_spaces).post(auth::account::add_space),
+        )
+        .route(
+            "/v1/workspaces/{space}",
+            delete(auth::account::remove_space),
         )
         .route("/v1/devices", get(auth::account::devices))
         .route("/v1/devices/formats", get(compat::device_formats))
@@ -317,6 +338,11 @@ fn sync_routes() -> Router<App> {
         )
         .route("/v1/spaces/{space}/discard", post(space_documents::discard))
         .route("/v1/spaces/{space}/blobs", get(blobs::list_blobs))
+        .route("/v1/spaces/{space}/closings", get(closings::closings))
+        .route(
+            "/v1/spaces/{space}/closing",
+            put(closings::share_closing).layer(DefaultBodyLimit::max(MAX_CLOSING_BODY)),
+        )
         .route(
             "/v1/spaces/{space}/blobs/{id}",
             get(blobs::get_blob)

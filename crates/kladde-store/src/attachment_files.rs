@@ -2,6 +2,10 @@ use crate::{Error, Store, private_state::SET_STATE, uuid_col};
 use rusqlite::params;
 use uuid::Uuid;
 
+const TEXT_BLOB_FILES: &str = "INSERT OR IGNORE INTO erased_files SELECT ?4,space FROM erased_texts WHERE doc=?1 AND file=?2 AND space=?3";
+const TEXT_BLOB_DOCS: &str = "INSERT OR IGNORE INTO erased_file_docs SELECT ?4,owner FROM erased_texts WHERE doc=?1 AND file=?2 AND space=?3";
+const ORPHAN_OWNER: &str = "INSERT OR IGNORE INTO erased_file_docs SELECT ?1,COALESCE((SELECT owner FROM discards WHERE id=?2),?2)";
+
 impl Store {
     pub fn store_asset(
         &mut self,
@@ -60,5 +64,68 @@ impl Store {
         )?;
 
         Ok(())
+    }
+
+    pub fn erased_texts(&self, space: Uuid) -> Result<Vec<(Uuid, Uuid)>, Error> {
+        Ok(self
+            .0
+            .prepare("SELECT doc,file FROM erased_texts WHERE space=?1")?
+            .query_map([space.to_string()], |r| {
+                Ok((uuid_col(r, 0)?, uuid_col(r, 1)?))
+            })?
+            .collect::<Result<_, _>>()?)
+    }
+
+    pub fn erase_text_blobs(
+        &mut self,
+        space: Uuid,
+        blobs: &[(Uuid, Uuid, Uuid)],
+    ) -> Result<(), Error> {
+        let tx = self.0.transaction()?;
+        let space = space.to_string();
+
+        for (doc, file, blob) in blobs {
+            let (doc, file, blob) = (doc.to_string(), file.to_string(), blob.to_string());
+
+            tx.execute(TEXT_BLOB_FILES, params![doc, file, space, blob])?;
+            tx.execute(TEXT_BLOB_DOCS, params![doc, file, space, blob])?;
+            tx.execute(
+                "DELETE FROM erased_texts WHERE doc=?1 AND file=?2 AND space=?3",
+                params![doc, file, space],
+            )?;
+        }
+
+        tx.commit()?;
+
+        Ok(())
+    }
+
+    pub fn keep_sent(&mut self, space: Uuid, doc: Uuid, blob: Uuid) -> Result<bool, Error> {
+        let tx = self.0.transaction()?;
+        let (space, doc, blob) = (space.to_string(), doc.to_string(), blob.to_string());
+        let kept: bool = tx.query_row(
+            "SELECT exists(SELECT 1 FROM notes WHERE id=?1 AND space=?2)",
+            params![doc, space],
+            |r| r.get(0),
+        )?;
+
+        if kept {
+            tx.execute(
+                "INSERT OR IGNORE INTO sent_files VALUES(?1,?2)",
+                params![blob, doc],
+            )?;
+            tx.commit()?;
+
+            return Ok(true);
+        }
+
+        tx.execute(
+            "INSERT OR IGNORE INTO erased_files VALUES(?1,?2)",
+            params![blob, space],
+        )?;
+        tx.execute(ORPHAN_OWNER, params![blob, doc])?;
+        tx.commit()?;
+
+        Ok(false)
     }
 }

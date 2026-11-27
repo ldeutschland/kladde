@@ -102,6 +102,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         attachments::attachment_text::read_attachment,
         attachments::previews::preview_attachment,
         attachments::previews::find_in_attachment,
+        attachments::previews::find_all_in_attachment,
         attachments::previews::attachment_thumbnail,
         attachments::pdf_editing::pdf_pages,
         attachments::pdf_editing::edit_pdf,
@@ -128,10 +129,16 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         sync::account_setup::connect_account,
         sync::account_setup::phrase,
         sync::document_sync::sync_now,
+        sync::document_sync::sync_others,
         sync::workspaces::remote_spaces,
+        sync::space_choices::sync_choices,
+        sync::space_choices::exclude_space,
+        sync::space_choices::remove_space,
+        sync::space_choices::delete_space,
         sync::devices::account_info,
         sync::devices::device_action,
         sync::document_sync::discard_rescued,
+        sync::document_sync::repair_sync,
         sync::live_watch::sync_watch,
         notebook::backup::export_backup,
         attachments::encrypted_files::add_file,
@@ -165,6 +172,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    attachments::text_and_previews::restrict_image_types();
     with_shared_state(with_plugins(tauri::Builder::default()))
         .setup(start_background_work)
         .invoke_handler(commands())

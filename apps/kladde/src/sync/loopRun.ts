@@ -20,6 +20,7 @@ import {
 const SLOW_MS = 1500;
 const CONTENDED_MS = 1000;
 const MAX_CONTENDED = 5;
+const OTHERS_MS = 300000;
 
 type Account = [string, string, string, string] | null;
 
@@ -96,6 +97,19 @@ async function syncAccount(state: LoopState, current: Need) {
   }
 }
 
+function syncOthers(state: LoopState, current: Need) {
+  const now = Date.now();
+
+  if (!current.full || now < state.othersDue) return;
+  state.othersDue = now + OTHERS_MS;
+  void command<unknown>("sync_others", { open: state.book.id })
+    .then((arrived) => {
+      if (state.live && Array.isArray(arrived) && arrived.length)
+        state.hooks.arrived?.();
+    })
+    .catch(() => {});
+}
+
 async function syncOnce(state: LoopState, current: Need) {
   const { book } = state;
   const account = await command<Account>("account_info", { space: book.id });
@@ -104,13 +118,17 @@ async function syncOnce(state: LoopState, current: Need) {
     watch(state, null);
     state.failures = 0;
     state.hooks.status(() => SYNC_OFF);
+    syncOthers(state, current);
 
     return true;
   }
 
   watch(state, book.id);
+  const synced = await syncAccount(state, current);
 
-  return syncAccount(state, current);
+  if (synced && state.live) syncOthers(state, current);
+
+  return synced;
 }
 
 async function attempt(state: LoopState, current: Need) {

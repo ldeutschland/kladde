@@ -18,6 +18,7 @@ pub fn error_code(error: &Error) -> &'static str {
         Error::Conflict
         | Error::Stale
         | Error::Unreadable
+        | Error::Uncovered
         | Error::Crypto(_)
         | Error::Protocol(_) => "integrity",
     }

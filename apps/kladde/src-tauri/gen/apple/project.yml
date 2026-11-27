@@ -51,7 +51,7 @@ targets:
         NSSpeechRecognitionUsageDescription: "Kladde wandelt deine Aufnahmen auf diesem Gerät in Text um."
         NSCameraUsageDescription: "Kladde verwendet die Kamera, wenn du ein Foto aufnimmst, um es in eine Notiz einzufügen."
         NSPhotoLibraryAddUsageDescription: "Kladde legt Bilder in deiner Fotomediathek ab, wenn du „Bild sichern“ wählst."
-        ITSAppUsesNonExemptEncryption: true
+        ITSAppUsesNonExemptEncryption: false
         UIBackgroundModes: [audio]
         LSRequiresIPhoneOS: true
         UILaunchStoryboardName: LaunchScreen
@@ -65,8 +65,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.1.0
-        CFBundleVersion: "0.1.0"
+        CFBundleShortVersionString: 1.2.0
+        CFBundleVersion: "1.2.0"
     entitlements:
       path: kladde_iOS/kladde_iOS.entitlements
       properties: &shareEntitlements
@@ -123,8 +123,8 @@ targets:
       path: Share/Info.plist
       properties:
         CFBundleDisplayName: Kladde
-        CFBundleShortVersionString: 0.1.0
-        CFBundleVersion: "0.1.0"
+        CFBundleShortVersionString: 1.2.0
+        CFBundleVersion: "1.2.0"
         CaptureKeychainGroup: "$(AppIdentifierPrefix)de.kladde.notebook.capture"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services

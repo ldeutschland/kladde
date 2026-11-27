@@ -37,6 +37,7 @@
   --drop: rgba(127, 99, 217, 0.16);
   --found: rgba(255, 212, 0, 0.35);
   --found-edge: rgba(214, 160, 0, 0.9);
+  --found-current: rgba(255, 140, 0, 0.55);
   --ring: inset 0 0 0 1px var(--focus), 0 0 0 2px rgba(127, 99, 217, 0.25);
   --red: #eb5757;
   --star: #e9a820;

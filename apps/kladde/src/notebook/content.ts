@@ -1,18 +1,31 @@
-import { BlockNoteEditor } from "@blocknote/core";
+import { BlockNoteEditor, BlockNoteSchema } from "@blocknote/core";
 import type * as Y from "yjs";
 import {
   blocksToYXmlFragment,
   yXmlFragmentToBlocks,
 } from "@blocknote/core/yjs";
-import type { Entry } from "./notebook";
+import type { Entry, Notebook } from "./notebook";
+import type { T } from "../locale/locale";
 import { isValidLink } from "./links";
+import { pageLinkSpec, setPageLinkContext } from "../editor/pageLinkSpec";
+
+const documentSchema = BlockNoteSchema.create().extend({
+  inlineContentSpecs: { pageLink: pageLinkSpec },
+});
 
 let converter: BlockNoteEditor | undefined;
 
 export function blockEditor() {
-  converter ??= BlockNoteEditor.create({ links: { isValidLink } });
+  converter ??= BlockNoteEditor.create({
+    schema: documentSchema,
+    links: { isValidLink },
+  }) as unknown as BlockNoteEditor;
 
   return converter;
+}
+
+export function namePageLinksFrom(book: Notebook, t: T) {
+  setPageLinkContext(blockEditor(), { book, t });
 }
 export function blocks(e: Entry) {
   return yXmlFragmentToBlocks(blockEditor(), e.doc.getXmlFragment("blocks"));

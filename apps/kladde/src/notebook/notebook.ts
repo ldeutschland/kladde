@@ -153,6 +153,7 @@ export function treeParent(pages: PageLookup, page: Page) {
   return parent.id;
 }
 
+export const MAX_TITLE = 200;
 const TEXT_EDIT_INTERVAL_MS = 5000;
 const MODIFIED = "Notebook was modified";
 const REFUSED = "Invalid notebook data";
@@ -178,7 +179,7 @@ export class Notebook {
     this.watch(manifest);
     this.pages = new Pages(this, (shard) => loadState(shard, id, "index", 0));
   }
-  static async open(id: string) {
+  static async openManifest(id: string) {
     const buffer = await command<ArrayBuffer>("load_manifest", { id });
     const state = readState(buffer);
 
@@ -186,12 +187,11 @@ export class Notebook {
     const doc = new Y.Doc();
 
     Y.applyUpdate(doc, state.data);
-    const book = new Notebook(id, {
-      id,
-      kind: "workspace",
-      doc,
-      rev: state.rev,
-    });
+
+    return new Notebook(id, { id, kind: "workspace", doc, rev: state.rev });
+  }
+  static async open(id: string) {
+    const book = await Notebook.openManifest(id);
 
     await book.pages.open();
     const account = await command("account_info", { space: id }).catch(() => 1);
@@ -206,10 +206,16 @@ export class Notebook {
     const book = new Notebook(id, { id, doc, kind: "workspace", rev: 0 });
 
     book.pages.settled = true;
-    doc.getMap("meta").set("title", title.slice(0, 200));
+    book.rename(title);
     await book.flush();
 
     return book;
+  }
+  get title() {
+    return String(this.manifest.doc.getMap("meta").get("title") ?? "");
+  }
+  rename(title: string) {
+    this.manifest.doc.getMap("meta").set("title", title.slice(0, MAX_TITLE));
   }
   get settings() {
     return this.manifest.doc.getMap<unknown>("settings");
@@ -305,7 +311,7 @@ export class Notebook {
   ) {
     if (!mayMove(this.pages, id, parent) || this.pages.has(id))
       throw Error("Invalid parent or ID");
-    const page = freshPage(id, title.slice(0, 200), kind, parent);
+    const page = freshPage(id, title.slice(0, MAX_TITLE), kind, parent);
     const e = { id, doc: new Y.Doc(), rev: 0, kind };
 
     this.watch(e);

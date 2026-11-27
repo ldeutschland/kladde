@@ -557,6 +557,46 @@ const copy = {
   light: ["Hell", "Light"],
   dark: ["Dunkel", "Dark"],
   workspaceName: ["Name des Notizbuchs", "Notebook name"],
+  manageBooks: ["Notizbücher verwalten", "Manage notebooks"],
+  renameBook: ["Notizbuch umbenennen", "Rename notebook"],
+  renameBookLabel: ["„{name}“ umbenennen", "Rename “{name}”"],
+  deleteBook: ["Notizbuch löschen", "Delete notebook"],
+  deleteBookLabel: ["„{name}“ löschen", "Delete “{name}”"],
+  deleteBookQuestion: ["„{name}“ löschen?", "Delete “{name}”?"],
+  deleteBookDetail: [
+    "Alle Seiten, Datenbanken und Anhänge dieses Notizbuchs werden von diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen.",
+    "All pages, databases and attachments in this notebook are deleted from this device. This cannot be undone.",
+  ],
+  deleteBookFromServer: [
+    "Auch vom Sync-Server löschen",
+    "Also delete from the sync server",
+  ],
+  deleteBookOthersKeep: [
+    "Deine anderen Geräte behalten ihre Kopie, gleichen sie aber nicht mehr ab.",
+    "Your other devices keep their copy but no longer sync it.",
+  ],
+  deleteBookStays: [
+    "Es bleibt auf dem Sync-Server und deinen anderen Geräten. Dieses Gerät gleicht es nicht mehr ab – unter Sync kannst du es wieder einschalten.",
+    "It stays on the sync server and your other devices. This device stops syncing it – you can switch it on again under Sync.",
+  ],
+  deleteBookPrimaryStays: [
+    "Es bleibt auf dem Sync-Server und deinen anderen Geräten, weil dein Konto damit erstellt wurde. Dieses Gerät gleicht es nicht mehr ab.",
+    "It stays on the sync server and your other devices because your account was created with it. This device stops syncing it.",
+  ],
+  deleteBookLast: [
+    "Das letzte Notizbuch auf diesem Gerät lässt sich nicht löschen.",
+    "The last notebook on this device cannot be deleted.",
+  ],
+  deleteBookUnsynced: [
+    "Dieses Notizbuch hat Änderungen, die noch nicht synchronisiert sind. Synchronisiere es zuerst oder schalte es unter Sync für dieses Gerät aus.",
+    "This notebook has changes that are not synced yet. Sync it first, or switch it off for this device under Sync.",
+  ],
+  deleteBookFailed: [
+    "„{name}“ wurde nicht gelöscht.",
+    "“{name}” was not deleted.",
+  ],
+  deleting: ["Wird gelöscht …", "Deleting…"],
+  bookDeleted: ["„{name}“ gelöscht", "Deleted “{name}”"],
   tree: ["Seitenbaum", "Page tree"],
   toggle: ["Seitenleiste umschalten", "Toggle sidebar"],
   back: ["Zurück", "Back"],
@@ -618,6 +658,15 @@ const copy = {
   syncFailed: [
     "Nicht synchronisiert ({n}): {titles}",
     "Not synced ({n}): {titles}",
+  ],
+  repairSync: ["Sync reparieren", "Repair sync"],
+  repairSyncQuestion: [
+    "Notizbuch komplett neu abgleichen?",
+    "Sync this notebook again from scratch?",
+  ],
+  repairSyncDetail: [
+    "Kladde lädt alle Seiten neu vom Sync-Server, führt sie mit diesem Gerät zusammen und überträgt alles erneut. Dabei vertraut Kladde dem Verlauf, den der Server jetzt liefert – nutze das nur, wenn du weißt, dass er zurückgesetzt oder aus einer Sicherung wiederhergestellt wurde, und dann auf jedem Gerät. Auf diesem Gerät geht nichts verloren.",
+    "Kladde fetches all pages from the sync server again, merges them with this device and uploads everything again. Kladde then trusts the history the server provides now – only use this if you know it was reset or restored from a backup, and then on every device. Nothing on this device is lost.",
   ],
   syncOfflineDetail: [
     "Server nicht erreichbar. Deine Änderungen bleiben auf diesem Gerät und werden automatisch übertragen, sobald die Verbindung wieder steht.",
@@ -681,6 +730,48 @@ const copy = {
     "Another device uses an older version of Kladde. New data formats stay off until it is updated.",
   ],
   syncUnknownDetail: ["Der Sync wurde unterbrochen.", "Sync was interrupted."],
+  syncBooks: ["Notizbücher", "Notebooks"],
+  syncBooksHint: [
+    "Eingeschaltete Notizbücher gleicht dieses Gerät ab, auch wenn sie gerade nicht geöffnet sind. Ausschalten schließt ein Notizbuch nur hier aus – gelöscht wird nichts.",
+    "This device syncs the notebooks that are switched on, even when they are not open. Switching one off only excludes it here – nothing is deleted.",
+  ],
+  bookArriving: ["Wird heruntergeladen …", "Downloading …"],
+  bookExcludedHere: [
+    "Auf diesem Gerät ausgeschlossen",
+    "Excluded on this device",
+  ],
+  bookExcludedAway: [
+    "Ausgeschlossen, nur auf dem Server",
+    "Excluded, only on the server",
+  ],
+  bookOnServer: ["Notizbuch auf dem Server", "Notebook on the server"],
+  bookOpen: ["geöffnet", "open"],
+  syncBookLabel: [
+    "„{name}“ auf diesem Gerät synchronisieren",
+    "Sync “{name}” on this device",
+  ],
+  uploadBookQuestion: ["„{name}“ synchronisieren?", "Sync “{name}”?"],
+  uploadBookDetail: [
+    "Kladde lädt das Notizbuch Ende-zu-Ende-verschlüsselt auf den Sync-Server und gleicht es mit deinen anderen Geräten ab. Dort kannst du es jeweils ausschließen. Vom Server entfernen kannst du es hier jederzeit wieder.",
+    "Kladde uploads the notebook end-to-end encrypted to the sync server and syncs it with your other devices, where you can exclude it individually. You can remove it from the server here at any time.",
+  ],
+  removeFromServer: ["Vom Server entfernen", "Remove from server"],
+  removeBookLabel: [
+    "„{name}“ vom Server entfernen",
+    "Remove “{name}” from the server",
+  ],
+  removeBookQuestion: [
+    "„{name}“ vom Server entfernen?",
+    "Remove “{name}” from the server?",
+  ],
+  removeBookDetail: [
+    "Kladde löscht das Notizbuch samt Anhängen vom Sync-Server. Die Kopie auf diesem Gerät bleibt erhalten. Deine anderen Geräte behalten ihre Kopie, gleichen sie aber nicht mehr ab.",
+    "Kladde deletes the notebook and its attachments from the sync server. The copy on this device stays. Your other devices keep their copy but no longer sync it.",
+  ],
+  removeBookFailed: [
+    "„{name}“ wurde nicht vom Server entfernt.",
+    "“{name}” was not removed from the server.",
+  ],
   err: ["Fehler", "Error"],
   send: ["Senden", "Send"],
   aiPrivacy: [
@@ -899,6 +990,14 @@ const copy = {
     "The run ended before the answer was complete.",
   ],
   noResults: ["Keine Ergebnisse", "No results"],
+  findInPage: ["Im Dokument suchen", "Find in page"],
+  findInPageField: ["Im Dokument suchen …", "Find in page…"],
+  findNext: ["Nächster Treffer", "Next match"],
+  findPrevious: ["Vorheriger Treffer", "Previous match"],
+  findCount: ["{n} von {total}", "{n} of {total}"],
+  findInFile: ["In der Datei suchen", "Find in file"],
+  findInFileField: ["In der Datei suchen …", "Find in file…"],
+  findSearching: ["Sucht …", "Searching…"],
   actions: ["Aktionen", "Actions"],
   trashed: ["In den Papierkorb verschoben", "Moved to trash"],
   undoShort: ["Rückgängig", "Undo"],
@@ -963,6 +1062,15 @@ const copy = {
   pageUnavailable: [
     "Diese Seite gibt es nicht mehr.",
     "This page no longer exists.",
+  ],
+  pageTrashed: [
+    "Diese Seite liegt im Papierkorb.",
+    "This page is in the trash.",
+  ],
+  pageMissing: ["Seite nicht gefunden", "Page not found"],
+  linkFailed: [
+    "Der Link konnte nicht geöffnet werden.",
+    "The link could not be opened.",
   ],
   uploadFailed: [
     "Datei konnte nicht hinzugefügt werden.",

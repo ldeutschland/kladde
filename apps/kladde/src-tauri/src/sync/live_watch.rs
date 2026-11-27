@@ -1,4 +1,8 @@
-use crate::{notebook::vault::Vault, sync::stored_account::for_space};
+use crate::{
+    notebook::vault::Vault,
+    sync::stored_account::{excluded_here, for_space},
+};
+
 use kladde_sync::{
     Error,
     watch::{Notice, Watch},
@@ -72,6 +76,13 @@ async fn watch_loop(app: AppHandle) {
             watching.wake.notified().await;
             continue;
         };
+
+        if excluded_here(&app.state::<Vault>(), &app, space).unwrap_or(false) {
+            let _ = app.emit("sync-live", Live { space, live: false });
+
+            watching.wake.notified().await;
+            continue;
+        }
 
         let Err(e) = watch_space(&app, &watching, space, &mut failures).await else {
             continue;

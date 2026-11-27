@@ -9,6 +9,7 @@ use kladde_sync::{
     account::{self, Access, Expected, Known},
 };
 
+use std::collections::BTreeSet;
 use tauri::AppHandle;
 use uuid::Uuid;
 use zeroize::Zeroizing;
@@ -16,9 +17,109 @@ use zeroize::Zeroizing;
 pub const ACCOUNT: &str = "account";
 const EXPECTED_KEYS: &str = "rekey";
 pub const UNCONFIRMED: &str = "sync:unconfirmed";
+const EXCLUDED: &str = "Workspace excluded";
+
+fn space_state_prefix(account: Uuid) -> String {
+    format!("workspace:{account}:")
+}
+
+fn excluded_state_prefix(account: Uuid) -> String {
+    format!("excluded:{account}:")
+}
 
 pub fn space_state(account: Uuid, space: Uuid) -> String {
-    format!("workspace:{account}:{space}")
+    format!("{}{space}", space_state_prefix(account))
+}
+
+pub fn excluded_state(account: Uuid, space: Uuid) -> String {
+    format!("{}{space}", excluded_state_prefix(account))
+}
+
+fn spaces_under(vault: &Vault, app: &AppHandle, prefix: &str) -> Result<BTreeSet<Uuid>, String> {
+    let keys = vault.access(app, |store| store.state_keys(prefix))?;
+
+    Ok(keys
+        .iter()
+        .filter_map(|key| key.strip_prefix(prefix)?.parse().ok())
+        .collect())
+}
+
+pub fn known_remote_spaces(
+    vault: &Vault,
+    app: &AppHandle,
+    access: &Access,
+) -> Result<BTreeSet<Uuid>, String> {
+    let mut spaces = spaces_under(vault, app, &space_state_prefix(access.account))?;
+
+    spaces.insert(access.space);
+
+    Ok(spaces)
+}
+
+pub fn excluded_spaces(
+    vault: &Vault,
+    app: &AppHandle,
+    account: Uuid,
+) -> Result<BTreeSet<Uuid>, String> {
+    spaces_under(vault, app, &excluded_state_prefix(account))
+}
+
+pub fn is_excluded(
+    vault: &Vault,
+    app: &AppHandle,
+    account: Uuid,
+    space: Uuid,
+) -> Result<bool, String> {
+    let marker = vault.access(app, |store| store.state(&excluded_state(account, space)))?;
+
+    Ok(marker.is_some())
+}
+
+pub fn syncs_here(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<bool, String> {
+    let Some(access) = confirmed_access(vault, app)? else {
+        return Ok(false);
+    };
+
+    let known = known_remote_spaces(vault, app, &access)?.contains(&space);
+
+    Ok(known && !is_excluded(vault, app, access.account, space)?)
+}
+
+pub fn excluded_here(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<bool, String> {
+    let Some(access) = confirmed_access(vault, app)? else {
+        return Ok(false);
+    };
+
+    is_excluded(vault, app, access.account, space)
+}
+
+pub fn unlisted_spaces(
+    vault: &Vault,
+    app: &AppHandle,
+    account: Uuid,
+    listed: &[Uuid],
+) -> Result<Vec<Uuid>, String> {
+    let stored = spaces_under(vault, app, &space_state_prefix(account))?;
+
+    Ok(stored
+        .into_iter()
+        .filter(|space| !listed.contains(space))
+        .collect())
+}
+
+pub fn forget_space(
+    vault: &Vault,
+    app: &AppHandle,
+    account: Uuid,
+    space: Uuid,
+) -> Result<(), String> {
+    let keys = space_state(account, space);
+    let marker = excluded_state(account, space);
+
+    vault.access(app, |store| store.replace_states(&[], &[&keys, &marker]))?;
+    crate::attachments::uploads::verify_again(app, space);
+
+    Ok(())
 }
 
 pub fn stored_access(vault: &Vault, app: &AppHandle) -> Result<Option<Access>, String> {
@@ -66,6 +167,16 @@ pub fn space_keyset(
 }
 
 pub fn for_space(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<Access, String> {
+    let access = space_access(vault, app, space)?;
+
+    if is_excluded(vault, app, access.account, space)? {
+        return Err(EXCLUDED.into());
+    }
+
+    Ok(access)
+}
+
+pub fn space_access(vault: &Vault, app: &AppHandle, space: Uuid) -> Result<Access, String> {
     let mut access = confirmed_access(vault, app)?.ok_or("Not connected")?;
 
     if access.space != space {

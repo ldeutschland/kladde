@@ -2,7 +2,7 @@ set -eu
 : "${TEST_DATABASE_URL:?Set TEST_DATABASE_URL to an empty disposable PostgreSQL database}"
 work=$(mktemp -d)
 port=${KLADDE_TEST_PORT:-17341}
-export DATABASE_URL="$TEST_DATABASE_URL" OPAQUE_SETUP_FILE="$work/setup" BLOB_DIR="$work/blobs" LISTEN_ADDR="127.0.0.1:$port" ACCOUNT_QUOTA_BYTES=8388608
+export DATABASE_URL="$TEST_DATABASE_URL" OPAQUE_SETUP_FILE="$work/setup" BLOB_DIR="$work/blobs" LISTEN_ADDR="127.0.0.1:$port" ACCOUNT_QUOTA_BYTES=8388608 OPEN_REGISTRATION=1
 cargo build --locked -p kladde-server
 binary="${CARGO_TARGET_DIR:-target}/debug/kladde-server"
 "$binary" init-setup "$OPAQUE_SETUP_FILE"
@@ -23,4 +23,4 @@ else
   pg_dump --data-only "$TEST_DATABASE_URL" > "$work/dump"
 fi
 test -s "$work/dump"
-if grep -aqE 'KLADDE_PRIVATE_CANARY_84191|zweite Notiz|test-only-long-password|Offline am iPhone|offline ergänzt|Nach Erneuerung|ruhig|eins zwei|Seite 3 neu|vom Telefon|eigen neu|fremd neu|phone3|wiederbelebt|bleibt liegen|geht raus|im Verzeichnis|nur das Neue|unterwegs ergänzt|während des Abrufs|zurückgeholt|xxxxxxxxxxxxxxxx' "$work/dump"; then exit 1; fi
+if grep -aqE 'KLADDE_PRIVATE_CANARY_84191|zweite Notiz|test-only-long-password|Offline am iPhone|offline ergänzt|Nach Erneuerung|ruhig|eins zwei|Seite 3 neu|vom Telefon|eigen neu|fremd neu|phone3|wiederbelebt|bleibt liegen|geht raus|im Verzeichnis|nur das Neue|unterwegs ergänzt|während des Abrufs|zurückgeholt|vor dem Wechsel|nur am Telefon|und ergänzt|ungesichert|überlebt den Wechsel|im neuen Konto gelöscht|unterwegs gerettet|vor der Wiederherstellung|unberührt|xxxxxxxxxxxxxxxx' "$work/dump"; then exit 1; fi

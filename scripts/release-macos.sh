@@ -16,7 +16,8 @@ bundle="${CARGO_TARGET_DIR:-target}/release/bundle/macos"
 app="$bundle/Kladde.app"
 cmp "$signing_dir/embedded.provisionprofile" "$app/Contents/embedded.provisionprofile"
 codesign --verify --deep --strict "$app"
-codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -extract com.apple.security.app-sandbox raw - | grep -Fxq true
+codesign -d --entitlements - --xml "$app" > "$signing_dir/signed.entitlements" 2>/dev/null
+test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$signing_dir/signed.entitlements")" = true
 test -f "$app/Contents/Resources/PrivacyInfo.xcprivacy"
 xcrun productbuild --sign "$APPLE_INSTALLER_IDENTITY" --component "$app" /Applications "$bundle/Kladde.pkg"
 pkgutil --check-signature "$bundle/Kladde.pkg"

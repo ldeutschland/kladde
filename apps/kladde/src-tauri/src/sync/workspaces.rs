@@ -2,10 +2,11 @@ use super::{
     SyncState,
     error_messages::{success_or_message, to_message},
     session::fresh_access,
-    stored_account::{space_keyset, space_state},
+    stored_account::{space_keyset, space_state, unlisted_spaces},
 };
 
 use crate::notebook::vault::Vault;
+use kladde_protocol::account::MAX_JSON_KEYS;
 use kladde_sync::{
     Origin,
     account::{self, Access},
@@ -16,6 +17,8 @@ use uuid::Uuid;
 
 pub type SpaceList = Vec<(Uuid, Option<Vec<u8>>)>;
 const MAX_SPACES: usize = 128;
+const LISTED_SPACE: usize = 64;
+const SPACES_REPLY_LIMIT: usize = MAX_SPACES * (MAX_JSON_KEYS + LISTED_SPACE);
 
 fn workspaces_url(access: &Access) -> Result<url::Url, String> {
     Origin::parse(&access.origin)
@@ -33,7 +36,7 @@ pub async fn fetch_spaces(client: &reqwest::Client, access: &Access) -> Result<S
         .await
         .map_err(|_| "Sync offline")?;
     let response = success_or_message(response, "Authentication required")?;
-    let spaces: SpaceList = kladde_sync::json_limited(response, 100000)
+    let spaces: SpaceList = kladde_sync::json_limited(response, SPACES_REPLY_LIMIT)
         .await
         .map_err(to_message)?;
 
@@ -60,17 +63,28 @@ pub fn space_entries<'a>(
     Ok(entries)
 }
 
-fn store_space_keys(
+pub fn store_space_keys(
     vault: &Vault,
     app: &AppHandle,
     access: &Access,
     spaces: &SpaceList,
 ) -> Result<Vec<Uuid>, String> {
     let entries = space_entries(access, spaces)?;
+    let listed: Vec<Uuid> = spaces.iter().map(|(space, _)| *space).collect();
+    let gone = unlisted_spaces(vault, app, access.account, &listed)?;
+    let stale: Vec<String> = gone
+        .iter()
+        .map(|space| space_state(access.account, *space))
+        .collect();
+    let cleared: Vec<&str> = stale.iter().map(String::as_str).collect();
 
-    vault.access(app, |store| store.replace_states(&entries, &[]))?;
+    vault.access(app, |store| store.replace_states(&entries, &cleared))?;
 
-    Ok(spaces.iter().map(|(space, _)| *space).collect())
+    for space in gone {
+        crate::attachments::uploads::verify_again(app, space);
+    }
+
+    Ok(listed)
 }
 
 async fn link_space(
@@ -97,6 +111,21 @@ async fn link_space(
     success_or_message(response, "Workspace already exists or quota exceeded")?;
 
     Ok(())
+}
+
+pub async fn refreshed_spaces(
+    vault: &Vault,
+    app: &AppHandle,
+    sync: &SyncState,
+    client: &reqwest::Client,
+) -> Result<(Access, SpaceList), String> {
+    let _guard = sync.lock.lock().await;
+    let access = fresh_access(vault, app, client).await?;
+    let spaces = fetch_spaces(client, &access).await?;
+
+    store_space_keys(vault, app, &access, &spaces)?;
+
+    Ok((access, spaces))
 }
 
 #[tauri::command]

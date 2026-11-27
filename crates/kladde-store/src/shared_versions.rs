@@ -1,6 +1,13 @@
-use crate::{Error, Note, Store, history, parts};
+use crate::{
+    Error, Note, Store, history,
+    part_hashes::{self, Hash},
+    parts,
+};
+
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use uuid::Uuid;
 
 pub(crate) const LISTED_MAP: &str = "versions";
@@ -11,6 +18,7 @@ const LISTED: i64 = 1;
 const RETRACTED: i64 = 2;
 const WAITING: &str = "SELECT v.rev,v.record FROM versions v WHERE v.id=?1 AND (v.label IS NOT NULL OR (v.cause IS NOT NULL AND v.origin IS NULL)) AND NOT EXISTS(SELECT 1 FROM version_files f WHERE f.doc=v.id AND f.rev=v.rev) ORDER BY v.rev DESC LIMIT ?2";
 const ANCHOR: &str = "SELECT time,label,cause FROM versions WHERE id=?1 AND rev=?2 AND (label IS NOT NULL OR (cause IS NOT NULL AND origin IS NULL))";
+const RECORD: &str = "SELECT record FROM versions WHERE id=?1 AND rev=?2";
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct SharedVersion {
@@ -18,6 +26,7 @@ pub struct SharedVersion {
     pub time: i64,
     pub label: Option<String>,
     pub cause: Option<String>,
+    pub sha256: String,
 }
 
 #[derive(Debug, Default, PartialEq, Serialize)]
@@ -49,21 +58,41 @@ pub(crate) fn shares(db: &Connection, doc: &str) -> Result<Vec<Share>, Error> {
     Ok(rows.collect::<Result<_, _>>()?)
 }
 
-fn anchor(db: &Connection, doc: &str, share: &Share) -> Result<Option<SharedVersion>, Error> {
+fn record_hash(db: &Connection, doc: &str, rev: i64) -> Result<Hash, Error> {
+    let record: Vec<u8> = db.query_row(RECORD, params![doc, rev], |r| r.get(0))?;
+
+    Ok(Sha256::digest(record).into())
+}
+
+fn anchor(
+    db: &Connection,
+    doc: &str,
+    share: &Share,
+    hashes: &BTreeMap<Uuid, Hash>,
+) -> Result<Option<SharedVersion>, Error> {
     let Some(rev) = share.rev else {
         return Ok(None);
     };
 
     let found = db.query_row(ANCHOR, params![doc, rev], |r| {
-        Ok(SharedVersion {
-            file: share.file,
-            time: r.get(0)?,
-            label: r.get(1)?,
-            cause: r.get(2)?,
-        })
+        Ok((r.get(0)?, r.get(1)?, r.get(2)?))
     });
+    let Some((time, label, cause)) = found.optional()? else {
+        return Ok(None);
+    };
 
-    Ok(found.optional()?)
+    let hash = match hashes.get(&share.file) {
+        Some(listed) => *listed,
+        None => record_hash(db, doc, rev)?,
+    };
+
+    Ok(Some(SharedVersion {
+        file: share.file,
+        time,
+        label,
+        cause,
+        sha256: hex::encode(hash),
+    }))
 }
 
 pub(crate) fn owned_elsewhere(db: &Connection, doc: &str, file: &str) -> Result<bool, Error> {
@@ -117,12 +146,13 @@ fn settle(
     note: &Note,
     share: &Share,
     listed: bool,
+    hashes: &BTreeMap<Uuid, Hash>,
     result: &mut Shares,
 ) -> Result<(), Error> {
     let doc = note.id.to_string();
     let kept = match share.state {
         RETRACTED => None,
-        _ => anchor(db, &doc, share)?,
+        _ => anchor(db, &doc, share, hashes)?,
     };
 
     match (kept, listed, share.state) {
@@ -185,13 +215,14 @@ impl Store {
         };
 
         let listed = parts::listed_ids(&note.data, LISTED_MAP)?;
+        let hashes = part_hashes::version_hashes(&note.data)?;
         let tx = self.0.savepoint()?;
         let mut result = Shares::default();
 
         for share in shares(&tx, &doc.to_string())? {
             let known = listed.contains(&share.file);
 
-            settle(&tx, &note, &share, known, &mut result)?;
+            settle(&tx, &note, &share, known, &hashes, &mut result)?;
         }
 
         tx.commit()?;

@@ -1,11 +1,12 @@
 use super::{
-    encrypted_files::{asset_key, decrypt_local},
+    encrypted_files::{Local, asset_key, decrypt_local},
     ipc_file_data::file_response,
     relay_blobs::{download_blob, keep_fetched},
 };
 
 use crate::{notebook::vault::Vault, sync::stored_account::for_space};
 use kladde_protocol::decode_attachment;
+use kladde_store::Listing;
 use tauri::{AppHandle, State, ipc::Response};
 use uuid::Uuid;
 use zeroize::Zeroizing;
@@ -59,6 +60,12 @@ pub async fn file_bytes(
     }
 }
 
+fn is_stored(app: &AppHandle, vault: &Vault, space: Uuid, id: Uuid) -> Result<bool, String> {
+    vault.access(app, |store| {
+        Ok(store.state(&asset_key(space, id))?.is_some())
+    })
+}
+
 fn parts_of(
     app: &AppHandle,
     vault: &Vault,
@@ -66,11 +73,7 @@ fn parts_of(
     doc: Uuid,
     id: Uuid,
 ) -> Result<Vec<Uuid>, FileReadError> {
-    let stored = vault.access(app, |store| {
-        Ok(store.state(&asset_key(space, id))?.is_some())
-    })?;
-
-    if stored {
+    if is_stored(app, vault, space, id)? {
         return Ok(vec![id]);
     }
 
@@ -120,6 +123,33 @@ async fn joined(
     Ok(whole)
 }
 
+async fn fetch_part(
+    app: &AppHandle,
+    vault: &Vault,
+    space: Uuid,
+    doc: Uuid,
+    id: Uuid,
+) -> Result<Local, FileReadError> {
+    let access = for_space(vault, app, space)?;
+
+    if access.space != space {
+        return Err(FileReadError::Invalid);
+    }
+
+    let listing = vault.access(app, |store| store.blob_listing(space, doc, id))?;
+
+    if listing == Listing::Unlisted {
+        return Err(FileReadError::Invalid);
+    }
+
+    let http = kladde_sync::http().map_err(|e| e.to_string())?;
+    let item = download_blob(&http, &access, id, doc, listing).await?;
+
+    keep_fetched(app, vault, &access, &item)?;
+
+    Ok(item)
+}
+
 async fn part_bytes(
     app: &AppHandle,
     vault: &Vault,
@@ -131,26 +161,40 @@ async fn part_bytes(
         Some(bytes) => {
             decode_attachment(&Zeroizing::new(bytes)).map_err(|_| FileReadError::Invalid)?
         }
-        None => {
-            let access = for_space(vault, app, space)?;
-
-            if access.space != space {
-                return Err(FileReadError::Invalid);
-            }
-
-            let item = download_blob(
-                &kladde_sync::http().map_err(|e| e.to_string())?,
-                &access,
-                id,
-                doc,
-            )
-            .await?;
-
-            keep_fetched(app, vault, &access, &item)?;
-
-            item
-        }
+        None => fetch_part(app, vault, space, doc, id).await?,
     };
 
     decrypt_local(&local, doc, id)
+}
+
+pub fn is_offline(
+    app: &AppHandle,
+    vault: &Vault,
+    space: Uuid,
+    doc: Uuid,
+    id: Uuid,
+) -> Result<bool, FileReadError> {
+    for part in parts_of(app, vault, space, doc, id)? {
+        if !is_stored(app, vault, space, part)? {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+pub async fn keep_offline(
+    app: &AppHandle,
+    vault: &Vault,
+    space: Uuid,
+    doc: Uuid,
+    id: Uuid,
+) -> Result<(), FileReadError> {
+    for part in parts_of(app, vault, space, doc, id)? {
+        if !is_stored(app, vault, space, part)? {
+            fetch_part(app, vault, space, doc, part).await?;
+        }
+    }
+
+    Ok(())
 }

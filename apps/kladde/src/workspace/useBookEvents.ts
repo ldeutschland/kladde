@@ -1,9 +1,12 @@
 import { useEffect } from "react";
 import type { Notebook } from "../notebook/notebook";
+import type { T } from "../locale/locale";
+import { namePageLinksFrom } from "../notebook/content";
 import { shareLater } from "../versions/versions";
 import { keepEditsOf } from "../files/fileEdits";
 
-export function useBookEvents(book: Notebook) {
+export function useBookEvents(book: Notebook, t: T) {
+  namePageLinksFrom(book, t);
   useEffect(() => {
     book.onSaved = (saved) => shareLater(book, saved);
     book.onArrived = (entry) => void keepEditsOf(book, entry).catch(() => {});

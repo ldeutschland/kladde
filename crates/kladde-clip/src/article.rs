@@ -21,9 +21,10 @@ const MAX_TREE_DEPTH: usize = 512;
 const MAX_TITLE: usize = 200;
 const MAX_META: usize = 200;
 const MIN_PARAGRAPH: usize = 25;
+const MIN_ARTICLE_SHARE_PERCENT: usize = 10;
 const SCORED: &str = "p, pre, td";
-const HIDDEN: &str =
-    "[hidden], [aria-hidden=true], [role=navigation], [role=complementary], [role=dialog]";
+const HIDDEN: &str = "[hidden], [role=navigation], [role=complementary], [role=dialog]";
+const DECORATIVE: &str = "[aria-hidden=true] :is(p, pre, td), :is(p, pre, td)[aria-hidden=true]";
 const BOILERPLATE: &[&str] = &[
     "comment",
     "share",
@@ -219,9 +220,41 @@ fn innermost_paragraphs(doc: &Document) -> Vec<NodeRef<'_>> {
 
 fn content_root(doc: &Document) -> NodeRef<'_> {
     let fallback = doc.body().unwrap_or_else(|| doc.root());
+    let decorative: HashSet<NodeId> = doc
+        .select(DECORATIVE)
+        .nodes()
+        .iter()
+        .map(|node| node.id)
+        .collect();
+    let (content, decoration): (Vec<_>, Vec<_>) = innermost_paragraphs(doc)
+        .into_iter()
+        .partition(|paragraph| !decorative.contains(&paragraph.id));
+
+    let Some(best) = best_scored(content).or_else(|| best_scored(decoration)) else {
+        return fallback;
+    };
+
+    let article = std::iter::once(best)
+        .chain(best.ancestors_it(None))
+        .find(|node| tag(node) == "article")
+        .unwrap_or(best);
+
+    if holds_enough_text(&article, &fallback) {
+        article
+    } else {
+        fallback
+    }
+}
+
+fn holds_enough_text(part: &NodeRef, page: &NodeRef) -> bool {
+    paragraph_length(&part.text()) * 100
+        >= paragraph_length(&page.text()) * MIN_ARTICLE_SHARE_PERCENT
+}
+
+fn best_scored(paragraphs: Vec<NodeRef<'_>>) -> Option<NodeRef<'_>> {
     let mut scores: HashMap<NodeId, (NodeRef, f64)> = HashMap::new();
 
-    for paragraph in innermost_paragraphs(doc) {
+    for paragraph in paragraphs {
         let text = paragraph.text();
         let length = paragraph_length(&text);
 
@@ -241,14 +274,10 @@ fn content_root(doc: &Document) -> NodeRef<'_> {
         }
     }
 
-    let Some((best, _)) = scores.into_values().max_by(|a, b| a.1.total_cmp(&b.1)) else {
-        return fallback;
-    };
-
-    let article = std::iter::once(best)
-        .chain(best.ancestors_it(None))
-        .find(|node| tag(node) == "article");
-    article.unwrap_or(best)
+    scores
+        .into_values()
+        .max_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(node, _)| node)
 }
 
 fn remove_boilerplate(root: &NodeRef) {

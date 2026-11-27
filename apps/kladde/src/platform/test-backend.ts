@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { contentHash } from "../files/attachments";
 import type { Stored } from "../notebook/notebook";
 
 interface SimulatedSync {
@@ -8,6 +9,89 @@ interface SimulatedSync {
 
 function simulatedSync(): SimulatedSync | null {
   return JSON.parse(localStorage.getItem("kladde-test-sync") ?? "null");
+}
+
+interface SimulatedBooks {
+  remote: string[];
+  excluded: string[];
+  titles: Record<string, string>;
+  primary: string;
+}
+
+const SYNC_BOOKS = "kladde-test-sync-books";
+
+function simulatedBooks(): SimulatedBooks {
+  const stored = JSON.parse(localStorage.getItem(SYNC_BOOKS) ?? "{}");
+
+  return { remote: [], excluded: [], titles: {}, primary: "", ...stored };
+}
+
+function keepBooks(books: SimulatedBooks) {
+  localStorage.setItem(SYNC_BOOKS, JSON.stringify(books));
+}
+
+function simulatedChoices(data: Record<string, Stored>) {
+  const books = simulatedBooks();
+  const local = Object.values(data).filter((n) => n.kind === "workspace");
+  const here = new Set(local.map((n) => n.id));
+  const choice = (id: string, title: string | null, isLocal: boolean) => ({
+    id,
+    title,
+    local: isLocal,
+    remote: books.remote.includes(id),
+    excluded: books.excluded.includes(id),
+    primary: books.primary === id,
+  });
+
+  return [
+    ...local.map((n) => choice(n.id, n.title, true)),
+    ...books.remote
+      .filter((id) => !here.has(id))
+      .map((id) => choice(id, books.titles[id] ?? null, false)),
+  ];
+}
+
+function simulatedExclusion(space: string, excluded: boolean) {
+  const books = simulatedBooks();
+
+  books.excluded = books.excluded.filter((id) => id !== space);
+  if (excluded) books.excluded.push(space);
+  keepBooks(books);
+}
+
+function simulatedRemoval(space: string) {
+  const books = simulatedBooks();
+
+  books.remote = books.remote.filter((id) => id !== space);
+  books.excluded = books.excluded.filter((id) => id !== space);
+  keepBooks(books);
+}
+
+function simulatedDeletion(data: Record<string, Stored>, space: string) {
+  const workspaces = Object.values(data).filter((n) => n.kind === "workspace");
+
+  if (!workspaces.some((n) => n.id === space))
+    throw Error("Workspace not on this device");
+  if (workspaces.length < 2)
+    throw Error("The last notebook on this device stays");
+  for (const note of Object.values(data))
+    if (note.space === space) delete data[note.id];
+  localStorage.setItem("kladde-test-notes", JSON.stringify(data));
+  const books = simulatedBooks();
+
+  if (books.remote.includes(space) && !books.excluded.includes(space))
+    books.excluded.push(space);
+  keepBooks(books);
+}
+
+function simulatedLink(link: unknown) {
+  const books = simulatedBooks();
+
+  if (typeof link === "string" && !books.remote.includes(link))
+    books.remote.push(link);
+  keepBooks(books);
+
+  return books.remote;
 }
 
 const OPENED_SPACE = "kladde-test-opened-space";
@@ -30,6 +114,7 @@ const LISTED_MAP = "versions";
 const MAX_LABEL_CHARS = 80;
 const UNVERSIONED_KIND = "index";
 const REQUESTED_CAUSES = ["ai", "restore", "file"];
+const SINGLE_MAILBOX = /^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 const INVALID = "Invalid notebook data";
 
 interface SimulatedVersion {
@@ -305,6 +390,25 @@ function fileHits(notes: Stored[], query: string) {
   );
 }
 
+function simulatedMatches(args: Record<string, unknown>) {
+  const scan = simulatedScan(String(args.file));
+  const term = String(args.term).toLowerCase();
+  const text = scan?.text.toLowerCase() ?? "";
+  const found = [];
+
+  for (
+    let at = text.indexOf(term);
+    scan && at >= 0;
+    at = text.indexOf(term, at + 1)
+  ) {
+    const top = Math.min(0.85, 0.2 + found.length * 0.12);
+
+    found.push({ page: scan.page, boxes: [[0.2, top, 0.3, 0.08]] });
+  }
+
+  return found;
+}
+
 function simulatedFound(args: Record<string, unknown>) {
   const scan = simulatedScan(String(args.file));
   const term = String(args.term).toLowerCase();
@@ -346,9 +450,31 @@ export async function mock<T>(
 
   switch (name) {
     case "account_info":
-      result = simulatedSync()
-        ? ["https://sync.example.org", "test", args.space ?? "", "device"]
-        : null;
+      result =
+        simulatedSync() &&
+        !simulatedBooks().excluded.includes(String(args.space))
+          ? ["https://sync.example.org", "test", args.space ?? "", "device"]
+          : null;
+      break;
+    case "sync_choices":
+      if (!simulatedSync()) throw Error("Not connected");
+      result = simulatedChoices(data);
+      break;
+    case "exclude_space":
+      simulatedExclusion(String(args.space), args.excluded === true);
+      break;
+    case "remove_space":
+      simulatedRemoval(String(args.space));
+      break;
+    case "delete_space":
+      simulatedDeletion(data, String(args.space));
+      break;
+    case "remote_spaces":
+      result = simulatedLink(args.link);
+      break;
+    case "sync_others":
+      if (!simulatedSync()) throw Error("Not connected");
+      result = [];
       break;
     case "sync_now": {
       const sync = simulatedSync();
@@ -457,13 +583,16 @@ export async function mock<T>(
     }
     case "open_web_source": {
       const url = new URL(String(args.address));
-
-      if (
+      const webPage =
         ["https:", "http:"].includes(url.protocol) &&
         !url.username &&
-        !url.password
-      )
-        window.open(url.href, "_blank", "noopener,noreferrer");
+        !url.password;
+      const mailAddress =
+        url.protocol === "mailto:" && SINGLE_MAILBOX.test(url.pathname);
+
+      if (webPage) window.open(url.href, "_blank", "noopener,noreferrer");
+      else if (mailAddress)
+        window.open("mailto:" + url.pathname, "_blank", "noopener,noreferrer");
       break;
     }
     case "add_file": {
@@ -490,15 +619,23 @@ export async function mock<T>(
     case "find_in_attachment":
       result = simulatedFound(args);
       break;
+    case "find_all_in_attachment":
+      result = simulatedMatches(args);
+      break;
     case "edit_pdf": {
       const bytes = simulatedFiles.get(String(args.file));
 
       if (!bytes || !isSimulatedPdf(bytes)) throw new Error("Invalid file");
       const id = crypto.randomUUID();
+      const copy = bytes.slice();
 
-      simulatedFiles.set(id, bytes.slice());
+      simulatedFiles.set(id, copy);
       simulatedPdfEdits.push(args.edit);
-      result = { parts: [id], size: bytes.length };
+      result = {
+        parts: [id],
+        sha256: [await contentHash(new Blob([copy]))],
+        size: bytes.length,
+      };
       break;
     }
     case "save_download":
@@ -655,7 +792,11 @@ export async function mock<T>(
       const id = crypto.randomUUID();
 
       simulatedFiles.set(id, SIMULATED_RECORDING);
-      result = { parts: [id], size: SIMULATED_RECORDING.length };
+      result = {
+        parts: [id],
+        sha256: [await contentHash(new Blob([SIMULATED_RECORDING]))],
+        size: SIMULATED_RECORDING.length,
+      };
       break;
     }
     case "audio_transcribe":

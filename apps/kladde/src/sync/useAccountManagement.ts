@@ -27,20 +27,8 @@ export function useAccountManagement(
   props: SyncPanelProps,
   account: SyncAccount,
 ) {
-  const { book, t } = props;
-  const [devices, setDevices] = useState<string[]>([]),
-    [remote, setRemote] = useState<string[]>([]);
-
-  function linkNotebook() {
-    const { info } = account;
-
-    if (!info) return;
-    void account.attempt(async () => {
-      setRemote(await command("remote_spaces", { link: book.id }));
-      book.settings.set("syncAccount", info[1]);
-      await account.syncInto(book.id);
-    });
-  }
+  const { t } = props;
+  const [devices, setDevices] = useState<string[]>([]);
 
   async function removeDevice() {
     const confirmed = await props.ask(t("revokeQuestion"), undefined, {
@@ -59,7 +47,6 @@ export function useAccountManagement(
     account.setAction("login");
     account.setPhrase(null);
     setDevices([]);
-    setRemote([]);
     account.form.current?.reset();
     props.setStatus(SYNC_OFF);
   }
@@ -86,17 +73,6 @@ export function useAccountManagement(
     }
   }
 
-  async function openRemote(id: string) {
-    if (!id) return;
-
-    try {
-      await account.syncInto(id);
-      await props.changeBook(id);
-    } catch (problem) {
-      account.fail(readableError(problem, t));
-    }
-  }
-
   return {
     devices,
     clearDevices: () => setDevices([]),
@@ -104,11 +80,6 @@ export function useAccountManagement(
       account.attempt(async () =>
         setDevices(await command("device_action", { action: "list" })),
       ),
-    remote,
-    listRemote: () =>
-      account.attempt(async () => setRemote(await command("remote_spaces"))),
-    openRemote,
-    linkNotebook,
     removeDevice,
     removeAccount,
   };

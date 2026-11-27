@@ -45,7 +45,7 @@ function createChild(props: SuggestionMenusProps, kind: "page" | "database") {
     props.entry.id,
   );
 
-  insertPageLink(props.editor, book, t, page.id);
+  insertPageLink(props.editor, page.id);
   props.open(page.id);
 }
 

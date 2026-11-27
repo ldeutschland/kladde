@@ -43,19 +43,6 @@ export function useSyncAccount(props: SyncPanelProps) {
     }
   }
 
-  async function sync() {
-    setBusy(true);
-    fail("");
-
-    try {
-      await syncInto(book.id);
-    } catch {
-      return;
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function attempt(work: () => Promise<void>) {
     setBusy(true);
     fail("");
@@ -67,6 +54,19 @@ export function useSyncAccount(props: SyncPanelProps) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function repair() {
+    const confirmed = await props.ask(t("repairSyncQuestion"), undefined, {
+      detail: t("repairSyncDetail"),
+      action: t("repairSync"),
+    });
+
+    if (!confirmed) return;
+    await attempt(async () => {
+      await command("repair_sync", { space: book.id });
+      await syncInto(book.id);
+    });
   }
 
   function chooseAction(next: SyncAction) {
@@ -88,8 +88,8 @@ export function useSyncAccount(props: SyncPanelProps) {
     fail,
     form,
     syncInto,
-    sync,
     attempt,
+    repair,
     chooseAction,
   };
 }

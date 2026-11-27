@@ -35,7 +35,7 @@ pub(super) fn check_username(name: &str) -> Result<()> {
 pub(super) fn check_bundle(bundle: &AccountBundle) -> Result<()> {
     if bundle.version != 1
         || bundle.ksf != 1
-        || bundle.keys.len() > 8192
+        || bundle.keys.len() > MAX_WRAPPED_KEYS
         || bundle.keys.is_empty()
         || bundle.account.get_version_num() != 4
         || bundle.space.get_version_num() != 4
@@ -46,7 +46,7 @@ pub(super) fn check_bundle(bundle: &AccountBundle) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn verify_signature(public: &[u8], message: &[u8], proof: &[u8]) -> Result<()> {
+pub(crate) fn verify_signature(public: &[u8], message: &[u8], proof: &[u8]) -> Result<()> {
     VerifyingKey::from_bytes(public.try_into().map_err(|_| denied())?)
         .map_err(|_| denied())?
         .verify_strict(
@@ -79,7 +79,7 @@ pub(crate) async fn device_public(
     device_key(&identity, account, &cert).map_err(|_| denied())
 }
 
-pub(super) async fn device_signed(
+pub(crate) async fn device_signed(
     relay: &Shared,
     account: Uuid,
     device: Uuid,
@@ -101,7 +101,7 @@ pub(crate) async fn request_signed(
     account: Uuid,
     device: Uuid,
     message: &[u8],
-) -> Result<()> {
+) -> Result<Vec<u8>> {
     let proof = headers
         .get(PROOF_HEADER)
         .and_then(|v| v.to_str().ok())
@@ -109,5 +109,31 @@ pub(crate) async fn request_signed(
         .filter(|proof| proof.len() == PROOF_BYTES)
         .ok_or_else(denied)?;
 
-    device_signed(relay, account, device, message, &proof).await
+    device_signed(relay, account, device, message, &proof).await?;
+
+    Ok(proof)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bundle(keys: usize) -> AccountBundle {
+        AccountBundle {
+            version: 1,
+            ksf: 1,
+            account: Uuid::new_v4(),
+            space: Uuid::new_v4(),
+            identity: [0; 32],
+            recovery_public: [0; 32],
+            keys: vec![0; keys],
+        }
+    }
+
+    #[test]
+    fn a_bundle_may_carry_every_epoch_but_nothing_beyond() {
+        assert!(check_bundle(&bundle(MAX_WRAPPED_KEYS)).is_ok());
+        assert!(check_bundle(&bundle(MAX_WRAPPED_KEYS + 1)).is_err());
+        assert!(check_bundle(&bundle(0)).is_err());
+    }
 }
