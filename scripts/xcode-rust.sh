@@ -16,6 +16,7 @@ mkdir -p "$frameworks"
 rm -rf "$frameworks/CLiteRTLM.framework"
 ditto "$litert" "$frameworks/CLiteRTLM.framework"
 rm -rf "$frameworks/CLiteRTLM.framework/Headers" "$frameworks/CLiteRTLM.framework/Modules"
+cp "$repo/apps/kladde/src-tauri/CLiteRTLM.xcprivacy" "$frameworks/CLiteRTLM.framework/PrivacyInfo.xcprivacy"
 identity=-
 if [ "${CODE_SIGNING_ALLOWED:-NO}" = YES ] && [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
   identity=$EXPANDED_CODE_SIGN_IDENTITY
