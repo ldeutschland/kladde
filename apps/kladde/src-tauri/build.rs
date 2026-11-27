@@ -8,7 +8,7 @@ const DOCUMENT_SOURCES: [&str; 3] = [
     "src/native/pdf_editing.h",
 ];
 const LIFECYCLE_SOURCE: &str = "src/native/app_lifecycle.m";
-const PHONE_SOURCES: [&str; 1] = ["src/native/backup_exclusion.m"];
+const BACKUP_SOURCE: &str = "src/native/backup_exclusion.m";
 const MACOS_SOURCES: [&str; 4] = [
     "src/native/quick_capture_shortcut.m",
     "src/native/navigation_gestures.m",
@@ -162,11 +162,11 @@ fn compile_native() {
 
     if target == "macos" || target == "ios" {
         compile_objective_c(&[LIFECYCLE_SOURCE], "kladde_lifecycle");
+        compile_objective_c(&[BACKUP_SOURCE], "kladde_backup");
         link_frameworks(&["Network"]);
     }
 
     if target == "ios" {
-        compile_objective_c(&PHONE_SOURCES, "kladde_phone");
         link_frameworks(&["UIKit"]);
     }
 

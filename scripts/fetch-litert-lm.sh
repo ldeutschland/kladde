@@ -21,8 +21,9 @@ fetch() {
   trap - EXIT
 }
 
-fetch CLiteRTLM.xcframework ae6b2b2ea3e46964152110ad5bd64b754f39273add2eb4cc417bbbbd72c5e6e7
 if [ "${1:-}" = "--mac" ]; then
   fetch CLiteRTLM_mac.xcframework ed5943902177e8df2ec18c5a1e85b5dcb74b55e6cab84da95d0a00776fb4a270
+else
+  fetch CLiteRTLM.xcframework ae6b2b2ea3e46964152110ad5bd64b754f39273add2eb4cc417bbbbd72c5e6e7
 fi
 echo "$target"

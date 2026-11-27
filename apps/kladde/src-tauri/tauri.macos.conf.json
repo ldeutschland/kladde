@@ -1,0 +1,12 @@
+{
+  "build": {
+    "beforeBuildCommand": "sh ../../scripts/fetch-litert-lm.sh --mac > /dev/null && pnpm build"
+  },
+  "bundle": {
+    "macOS": {
+      "frameworks": [
+        "../../../.tools/litert-lm/v0.20.0/CLiteRTLM_mac.xcframework/macos-arm64_x86_64/libCLiteRTLM_mac.dylib"
+      ]
+    }
+  }
+}

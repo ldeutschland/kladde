@@ -83,7 +83,7 @@ unsafe extern "C" {
     ) -> c_int;
 }
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 unsafe extern "C" {
     fn kladde_exclude_from_backup(path: *const c_char) -> bool;
 }
@@ -109,7 +109,7 @@ pub fn fits_device(model: &LocalModel) -> bool {
 }
 
 fn exclude_from_backup(path: &Path) {
-    #[cfg(target_os = "ios")]
+    #[cfg(any(target_os = "ios", target_os = "macos"))]
     if let Some(text) = path
         .to_str()
         .and_then(|text| std::ffi::CString::new(text).ok())
@@ -117,7 +117,7 @@ fn exclude_from_backup(path: &Path) {
         unsafe { kladde_exclude_from_backup(text.as_ptr()) };
     }
 
-    #[cfg(not(target_os = "ios"))]
+    #[cfg(not(any(target_os = "ios", target_os = "macos")))]
     let _ = path;
 }
 

@@ -26,10 +26,15 @@ use uuid::Uuid;
 
 pub use models::Downloads;
 
-pub const SUPPORTED: bool = cfg!(target_os = "ios");
+pub const SUPPORTED: bool = cfg!(any(target_os = "ios", target_os = "macos"));
 const CONTEXT: usize = 8192;
 const BACKENDS: [&str; 2] = ["gpu", "cpu"];
+
+#[cfg(target_os = "ios")]
 const LIBRARY: &str = "Frameworks/CLiteRTLM.framework/CLiteRTLM";
+
+#[cfg(not(target_os = "ios"))]
+const LIBRARY: &str = "../Frameworks/libCLiteRTLM_mac.dylib";
 const CACHE: &str = "litert";
 const TOOL_WAIT: Duration = Duration::from_secs(120);
 const POLL: Duration = Duration::from_millis(100);
@@ -54,7 +59,7 @@ struct Loaded {
 
 static ENGINE: Mutex<Option<Loaded>> = Mutex::new(None);
 
-#[cfg(target_os = "ios")]
+#[cfg(any(target_os = "ios", target_os = "macos"))]
 pub fn release() {
     if let Ok(mut slot) = ENGINE.try_lock() {
         *slot = None;
@@ -202,6 +207,11 @@ impl LocalRuns {
         {
             run.cancel.store(true, Ordering::Release);
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn idle(&self) -> bool {
+        self.runs().is_ok_and(|runs| runs.is_empty())
     }
 
     pub fn cancel_space(&self, space: Uuid) {
@@ -447,6 +457,11 @@ pub fn local_ai_tool_result(
 #[tauri::command]
 pub fn local_ai_stop(runs: State<LocalRuns>, run: Uuid) -> Result<(), String> {
     runs.remove(run);
+
+    #[cfg(target_os = "macos")]
+    if runs.idle() {
+        std::thread::spawn(release);
+    }
 
     Ok(())
 }
