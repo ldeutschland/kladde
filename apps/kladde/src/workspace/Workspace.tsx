@@ -84,6 +84,7 @@ function PhoneNavigation({ workspace }: { workspace: WorkspaceScope }) {
       showTab={navigation.showTab}
       search={workspace.showSearch}
       ai={() => workspace.openAi()}
+      aiShown={workspace.ai.entry}
       add={(e) => overlays.showPopup("add", workspace.book.id, e)}
     />
   );

@@ -2,7 +2,6 @@ import type { MouseEvent, RefObject } from "react";
 import { FileText, House, Plus, Search, Sparkles } from "lucide-react";
 import type { T } from "../locale/locale";
 import type { RootTab } from "../platform/chrome";
-import { useAiOn } from "../ai/aiSwitch";
 
 export function BottomNav({
   t,
@@ -10,6 +9,7 @@ export function BottomNav({
   showTab,
   search,
   ai,
+  aiShown,
   add,
 }: {
   t: T;
@@ -17,10 +17,9 @@ export function BottomNav({
   showTab: (tab: RootTab) => void;
   search: () => void;
   ai: () => void;
+  aiShown: boolean;
   add: (e: MouseEvent<HTMLElement>) => void;
 }) {
-  const aiOn = useAiOn();
-
   return (
     <nav className="bottom" aria-label={t("navigation")}>
       <div className="bottomtabs">
@@ -42,7 +41,7 @@ export function BottomNav({
           <Search />
           {t("search")}
         </button>
-        {aiOn && (
+        {aiShown && (
           <button onClick={ai}>
             <Sparkles />
             {t("ai")}

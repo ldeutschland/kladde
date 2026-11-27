@@ -5,8 +5,11 @@ import type { Ask } from "../ui/dialog";
 import { AgentRun } from "../ai/AgentRun";
 import { memoryAuto, pageText, roleContext, ROLE_BUDGETS } from "../ai/aiPages";
 import { localDate } from "../database/rules";
-import { stopRun, type Policy } from "../ai/assistant";
+import { aiReady, onDevice, type Policy } from "../ai/assistant";
+import { stopAnyRun } from "../ai/localModel";
 import { runAgentLoop, type LoopOutcome } from "./agentLoop";
+import { runLocalAgentLoop } from "./localAgentLoop";
+import { effectiveMode } from "./modes";
 import { savingMark, withMemory } from "./memoryMarks";
 import type { AiView, Item } from "./types";
 import type { ChatThread } from "./useChatThread";
@@ -25,6 +28,7 @@ export interface AgentRunOptions {
   current: Entry | null;
   ask: Ask;
   t: T;
+  lang: string;
   policy: Policy;
   mode: string;
   pageContext: Page | undefined;
@@ -108,6 +112,7 @@ function finishedChat(options: AgentRunOptions, run: FinishedRun) {
     template: options.templates.active?.id ?? "",
     answer: outcome.answer,
     remember,
+    onDevice: onDevice(options.policy),
     shown: remember ? withMemory(items, savingMark()) : items,
   };
 }
@@ -116,7 +121,7 @@ function createTask(options: AgentRunOptions) {
   return new AgentRun(
     options.book,
     options.pageContext ? options.current : null,
-    options.mode,
+    effectiveMode(options.mode, options.policy),
     options.ask,
     options.policy.steps,
   );
@@ -138,7 +143,7 @@ type ActiveRef = RefObject<string>;
 
 function stopTask(running: RunRef, active: ActiveRef) {
   if (running.current) running.current.stopped = true;
-  void stopRun(active.current);
+  stopAnyRun(active.current);
 }
 
 function useStopOnLeave(book: Notebook, running: RunRef, active: ActiveRef) {
@@ -162,7 +167,7 @@ export function useAgentRun(options: AgentRunOptions) {
   const running = useRef<AgentRun | null>(null);
   const active = useRef("");
   const sending = useRef(false);
-  const ready = policy.enabled && !!policy.model;
+  const ready = aiReady(policy);
 
   useStopOnLeave(book, running, active);
 
@@ -207,15 +212,22 @@ export function useAgentRun(options: AgentRunOptions) {
     const showReply = (reply: Item) => chat.showIfAlive([...asked, reply]);
 
     showReply({ role: "assistant", text: "" });
-    const outcome = await runAgentLoop({
+    const request = {
       ...loopSettings(options, task),
       question,
       history,
       pages,
       active,
-      show: (answer) =>
+      show: (answer: string) =>
         showReply({ role: "assistant", text: answer, steps: [...task.trace] }),
-    });
+    };
+    const outcome = onDevice(policy)
+      ? await runLocalAgentLoop({
+          ...request,
+          t: options.t,
+          lang: options.lang,
+        })
+      : await runAgentLoop(request);
 
     running.current = null;
     if (!chat.alive.current) return;

@@ -3,7 +3,8 @@ import type { Entry, Notebook } from "../notebook/notebook";
 import type { Ask } from "../ui/dialog";
 import type { T, Word } from "../locale/locale";
 import type { SearchHit } from "../search/search";
-import { savePolicy, type Policy } from "../ai/assistant";
+import { aiReady, savePolicy, type Policy } from "../ai/assistant";
+import type { LocalStatus } from "../ai/localModel";
 import { aiExcluded, prepareAiHome } from "../ai/aiPages";
 import { AiLibrary } from "./AiLibrary";
 import { AiSettings } from "./AiSettings";
@@ -22,6 +23,7 @@ import { useAgentRun } from "./useAgentRun";
 import { useChatNavigation } from "./useChatNavigation";
 import { useAgentRequests } from "./useAgentRequests";
 import { useReplyActions } from "./useReplyActions";
+import { enabledPolicy } from "./aiConsent";
 
 const DEFAULT_MODE = "propose";
 const HISTORY_CHATS = 100;
@@ -37,6 +39,7 @@ export interface AgentPanelProps {
   editor: () => BlockNoteEditor | null;
   policy: Policy;
   setPolicy: (policy: Policy) => void;
+  local: LocalStatus | null;
   view: AiView;
   setView: (view: AiView) => void;
   prompt: string;
@@ -145,22 +148,18 @@ function usePanelState(props: AgentPanelProps) {
 
 export function AgentPanel(props: AgentPanelProps) {
   const { book, policy, view, setView, t } = props;
+  const { local } = props;
   const state = usePanelState(props);
   const { agent, navigation, templates } = state;
   const applyTemplate = (id: string) => templates.apply(id, agent.busy);
 
   async function enable() {
-    const agreed = await props.ask(t("aiPrivacy"), undefined, {
-      detail: t("aiPrivacyDetail"),
-      action: t("aiEnable"),
-    });
+    const next = await enabledPolicy(policy, local, props.ask, t);
 
-    if (!agreed) return;
-    const next = { ...policy, enabled: true };
-
+    if (!next) return;
     await savePolicy(book.id, next);
     props.setPolicy(next);
-    setView(next.model ? "chat" : "settings");
+    setView(aiReady(next) ? "chat" : "settings");
   }
 
   async function openAiHome() {
@@ -178,6 +177,7 @@ export function AgentPanel(props: AgentPanelProps) {
           book={book}
           policy={policy}
           setPolicy={props.setPolicy}
+          local={local}
           mode={state.mode}
           ask={props.ask}
           t={t}
@@ -197,7 +197,8 @@ export function AgentPanel(props: AgentPanelProps) {
           apply={applyTemplate}
         />
       );
-    if (!policy.enabled) return <AiIntro t={t} enable={() => void enable()} />;
+    if (!policy.enabled)
+      return <AiIntro t={t} local={local} enable={() => void enable()} />;
     if (view === "history")
       return (
         <ChatHistory

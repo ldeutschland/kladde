@@ -33,6 +33,7 @@ function DockedAgentPanel({ workspace }: { workspace: WorkspaceScope }) {
         editor={() => editor.editor.current}
         policy={ai.policy}
         setPolicy={ai.setPolicy}
+        local={ai.local}
         view={ai.view}
         setView={ai.setView}
         prompt={ai.prompt}

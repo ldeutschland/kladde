@@ -46,6 +46,7 @@ extern "C" fn network_changed() {
 
 #[cfg(target_os = "ios")]
 extern "C" fn leaving() {
+    crate::local_ai::release();
     let hold = Hold::adopted();
     let Some(app) = APP.get().cloned() else {
         return;

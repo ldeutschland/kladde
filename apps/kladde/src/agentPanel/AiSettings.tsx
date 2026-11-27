@@ -1,11 +1,13 @@
 import { ArrowUpRight } from "lucide-react";
 import { Select } from "../ui/Select";
 import { memoryAuto, setMemoryAuto } from "../ai/aiPages";
-import type { Policy } from "../ai/assistant";
+import { onDevice, providerOf, type Policy } from "../ai/assistant";
+import { localOffered, type LocalStatus } from "../ai/localModel";
 import type { Notebook } from "../notebook/notebook";
 import type { Ask } from "../ui/dialog";
 import type { T } from "../locale/locale";
-import { modeChoices } from "./modes";
+import { LocalModels } from "./LocalModels";
+import { effectiveMode, modeChoices } from "./modes";
 import { useAiSettings } from "./useAiSettings";
 
 const BUDGET_MAX = 50;
@@ -126,27 +128,88 @@ function LimitFields({ settings, policy, t }: SectionProps) {
   );
 }
 
-function EnabledSettings({
-  book,
-  mode,
-  openHome,
-  ...section
-}: SectionProps & { book: Notebook; mode: string; openHome: () => void }) {
+function ProviderField({ settings, policy, t }: SectionProps) {
+  const choices = [
+    { value: "local", label: t("localModel") },
+    { value: "openrouter", label: t("cloudModel") },
+  ];
+
+  return (
+    <label>
+      {t("aiWhere")}
+      <Select
+        label={t("aiWhere")}
+        value={providerOf(policy)}
+        choices={choices}
+        change={(next) =>
+          void settings.chooseProvider(
+            next === "local" ? "local" : "openrouter",
+          )
+        }
+      />
+    </label>
+  );
+}
+
+function CloudModel(section: SectionProps) {
+  return (
+    <>
+      <KeyForm settings={section.settings} t={section.t} />
+      <ModelField {...section} />
+    </>
+  );
+}
+
+function CloudLimits(section: SectionProps) {
   const { settings, policy, t } = section;
 
   return (
     <>
-      <KeyForm settings={settings} t={t} />
-      <ModelField {...section} />
-      <label>
-        {t("mode")}
-        <Select
-          label={t("mode")}
-          value={mode}
-          choices={modeChoices(t)}
-          change={(next) => book.settings.set("agentMode", next)}
-        />
-      </label>
+      <SwitchItem
+        label={t("zdr")}
+        pressed={policy.zdr}
+        toggle={() => void settings.toggleZdr()}
+      />
+      <LimitFields {...section} />
+    </>
+  );
+}
+
+function ModeField({
+  book,
+  mode,
+  policy,
+  t,
+}: {
+  book: Notebook;
+  mode: string;
+  policy: Policy;
+  t: T;
+}) {
+  return (
+    <label>
+      {t("mode")}
+      <Select
+        label={t("mode")}
+        value={effectiveMode(mode, policy)}
+        choices={modeChoices(t, policy)}
+        change={(next) => book.settings.set("agentMode", next)}
+      />
+    </label>
+  );
+}
+
+function MemorySettings({
+  book,
+  t,
+  openHome,
+}: {
+  book: Notebook;
+  t: T;
+  openHome: () => void;
+}) {
+  return (
+    <>
       <SwitchItem
         label={t("aiMemoryAuto")}
         pressed={memoryAuto(book)}
@@ -158,20 +221,60 @@ function EnabledSettings({
         <span className="grow">{t("aiOpenHome")}</span>
       </button>
       <p className="settinghint">{t("aiOpenHomeHint")}</p>
-      <SwitchItem
-        label={t("zdr")}
-        pressed={policy.zdr}
-        toggle={() => void settings.toggleZdr()}
-      />
-      <LimitFields {...section} />
     </>
   );
+}
+
+function EnabledSettings({
+  book,
+  mode,
+  openHome,
+  local,
+  ask,
+  ...section
+}: SectionProps & {
+  book: Notebook;
+  mode: string;
+  openHome: () => void;
+  local: LocalStatus | null;
+  ask: Ask;
+}) {
+  const { policy, settings, t } = section;
+  const onPhone = onDevice(policy);
+
+  return (
+    <>
+      {(onPhone || localOffered(local)) && <ProviderField {...section} />}
+      {onPhone ? (
+        <LocalModels
+          policy={policy}
+          local={local}
+          choose={(model) => void settings.change({ model })}
+          ask={ask}
+          t={t}
+        />
+      ) : (
+        <CloudModel {...section} />
+      )}
+      <ModeField book={book} mode={mode} policy={policy} t={t} />
+      {onPhone && <p className="settinghint">{t("localDrafts")}</p>}
+      <MemorySettings book={book} t={t} openHome={openHome} />
+      {!onPhone && <CloudLimits {...section} />}
+    </>
+  );
+}
+
+function introWord(policy: Policy, local: LocalStatus | null) {
+  const prefersDevice = policy.enabled ? onDevice(policy) : localOffered(local);
+
+  return prefersDevice ? "aiIntroLocal" : "aiIntro";
 }
 
 export function AiSettings({
   book,
   policy,
   setPolicy,
+  local,
   mode,
   ask,
   t,
@@ -180,12 +283,13 @@ export function AiSettings({
   book: Notebook;
   policy: Policy;
   setPolicy: (policy: Policy) => void;
+  local: LocalStatus | null;
   mode: string;
   ask: Ask;
   t: T;
   openHome: () => void;
 }) {
-  const settings = useAiSettings({ book, policy, setPolicy, ask, t });
+  const settings = useAiSettings({ book, policy, setPolicy, local, ask, t });
 
   return (
     <div className="aisettings">
@@ -199,12 +303,14 @@ export function AiSettings({
           book={book}
           mode={mode}
           openHome={openHome}
+          local={local}
+          ask={ask}
           settings={settings}
           policy={policy}
           t={t}
         />
       )}
-      <p className="muted">{t("aiIntro")}</p>
+      <p className="muted">{t(introWord(policy, local))}</p>
       {settings.note && <p role="status">{settings.note}</p>}
     </div>
   );

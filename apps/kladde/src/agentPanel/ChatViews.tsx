@@ -19,6 +19,7 @@ import type { Notebook, Page } from "../notebook/notebook";
 import type { T, Word } from "../locale/locale";
 import type { AiView } from "./types";
 import { useAiOn } from "../ai/aiSwitch";
+import { localFailure, localOffered, type LocalStatus } from "../ai/localModel";
 
 const SUGGESTED_TEMPLATES = 6;
 
@@ -91,14 +92,27 @@ export function AiHeader({
   );
 }
 
-export function AiIntro({ t, enable }: { t: T; enable: () => void }) {
+export function AiIntro({
+  t,
+  local,
+  enable,
+}: {
+  t: T;
+  local: LocalStatus | null;
+  enable: () => void;
+}) {
+  const offered = localOffered(local);
+
   return (
     <div className="aiintro">
       <span className="aiorb">
         <Sparkles />
       </span>
       <h2>{t("aiTitle")}</h2>
-      <p>{t("aiIntro")}</p>
+      <p>{t(offered ? "aiIntroLocal" : "aiIntro")}</p>
+      {offered && local && !local.available && (
+        <p role="status">{localFailure(local.reason, t)}</p>
+      )}
       <button className="primary" onClick={enable}>
         {t("aiEnable")}
       </button>

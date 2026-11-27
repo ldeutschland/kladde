@@ -393,6 +393,74 @@ const copy = {
     "The AI reads, searches, writes and organises in this notebook. It stays off until you turn it on. Shared content is sent in plaintext to OpenRouter and the chosen provider.",
   ],
   aiEnable: ["KI aktivieren", "Turn on AI"],
+  aiIntroLocal: [
+    "Die KI sucht, liest und entwirft in diesem Notizbuch, direkt auf deinem Gerät mit Gemma 4. Dafür lädst du einmalig ein Modell herunter (2,6 oder 3,7 GB). Danach verlassen deine Inhalte das Gerät nicht. Sie ist ausgeschaltet, bis du sie einschaltest.",
+    "The AI searches, reads and drafts in this notebook, right on your device with Gemma 4. You download a model once (2.6 or 3.7 GB). After that your content never leaves the device. It stays off until you turn it on.",
+  ],
+  aiLocalPrivacyDetail: [
+    "Die KI läuft mit Gemma 4 auf diesem Gerät. Das Modell lädst du einmalig von Hugging Face herunter. Hugging Face sieht dabei deine IP-Adresse, aber keine Inhalte. Was du der KI gibst und welche Seiten sie liest, bleibt auf dem Gerät. Von der KI ausgeschlossene Seiten bleiben ausgeschlossen. Du kannst die KI jederzeit wieder ausschalten.",
+    "The AI runs on this device with Gemma 4. You download the model once from Hugging Face, which sees your IP address but no content. What you give the AI and the pages it reads stay on the device. Pages excluded from AI stay excluded. You can turn AI off again at any time.",
+  ],
+  aiCloudSwitch: ["Zu OpenRouter wechseln?", "Switch to OpenRouter?"],
+  aiWhere: ["Wo die KI läuft", "Where the AI runs"],
+  localModel: ["Auf diesem Gerät (Gemma 4)", "On this device (Gemma 4)"],
+  cloudModel: ["OpenRouter (Cloud)", "OpenRouter (cloud)"],
+  localHint: [
+    "Läuft mit Gemma 4 direkt auf diesem Gerät. Nichts verlässt das Gerät, und du brauchst keinen Schlüssel. E2B ist schneller, E4B gründlicher. Lade das Modell am besten im WLAN.",
+    "Runs on this device with Gemma 4. Nothing leaves the device and you need no key. E2B is faster, E4B more thorough. Best downloaded over Wi-Fi.",
+  ],
+  localDrafts: [
+    "Auf dem Gerät legt die KI nur Entwürfe an, die du vor dem Übernehmen prüfst.",
+    "On this device the AI only creates drafts that you review before applying them.",
+  ],
+  modelFast: ["schneller", "faster"],
+  modelThorough: ["gründlicher", "more thorough"],
+  modelDownload: ["Laden", "Download"],
+  modelResume: ["Fortsetzen", "Resume"],
+  modelVerifying: ["Wird geprüft …", "Verifying…"],
+  modelActive: ["Aktiv", "Active"],
+  modelTooLarge: ["Zu groß für dieses Gerät", "Too large for this device"],
+  modelDeleteAsk: ["Modell löschen?", "Delete model?"],
+  modelDeleteDetail: [
+    "Du kannst es später erneut herunterladen.",
+    "You can download it again later.",
+  ],
+  localDevice: [
+    "Dieses Gerät hat zu wenig Arbeitsspeicher für die lokalen Modelle.",
+    "This device doesn't have enough memory for the local models.",
+  ],
+  localUnavailable: [
+    "Das lokale Modell ist gerade nicht verfügbar.",
+    "The local model isn't available right now.",
+  ],
+  localMissing: [
+    "Lade zuerst in den KI-Einstellungen ein Modell herunter.",
+    "Download a model in the AI settings first.",
+  ],
+  localContext: [
+    "Das ist zu viel Text für das Modell auf dem Gerät. Markiere weniger Text oder stell eine kürzere Frage.",
+    "That's too much text for the on-device model. Select less text or ask a shorter question.",
+  ],
+  localBusy: [
+    "Das lokale Modell ist gerade beschäftigt. Versuch es gleich noch einmal.",
+    "The local model is busy right now. Try again shortly.",
+  ],
+  localFailed: [
+    "Das lokale Modell konnte nicht antworten.",
+    "The local model couldn't answer.",
+  ],
+  localNetwork: [
+    "Der Download wurde unterbrochen. Tippe auf „Fortsetzen“, sobald du wieder online bist.",
+    "The download was interrupted. Tap “Resume” once you're back online.",
+  ],
+  localStorage: [
+    "Nicht genug freier Speicher für das Modell.",
+    "Not enough free storage for the model.",
+  ],
+  localChecksum: [
+    "Die geladene Datei war beschädigt und wurde verworfen. Bitte lade sie erneut.",
+    "The downloaded file was damaged and has been discarded. Please download it again.",
+  ],
   aiSetup: [
     "Hinterlege einen OpenRouter-Schlüssel und wähle ein Modell.",
     "Add an OpenRouter key and choose a model.",

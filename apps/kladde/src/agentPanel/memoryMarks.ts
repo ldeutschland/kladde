@@ -38,9 +38,10 @@ export async function rememberReply(
   t: T,
   question: string,
   answer: string,
+  onDevice = false,
 ): Promise<MemoryMark | undefined> {
   try {
-    const result = await rememberExchange(book, t, question, answer);
+    const result = await rememberExchange(book, t, question, answer, onDevice);
 
     return result.changed ? savedMark(result) : undefined;
   } catch (error) {

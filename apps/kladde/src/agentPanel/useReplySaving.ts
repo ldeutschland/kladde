@@ -9,6 +9,7 @@ import type { ChatThread } from "./useChatThread";
 export interface FinishedChat extends ChatToStore {
   answer: string;
   remember: boolean;
+  onDevice: boolean;
 }
 
 export function useReplySaving(book: Notebook, t: T, chat: ChatThread) {
@@ -16,8 +17,8 @@ export function useReplySaving(book: Notebook, t: T, chat: ChatThread) {
     savedChat = useRef<Promise<string> | null>(null);
 
   async function remember(finished: FinishedChat, chatId: string) {
-    const { question, answer, items } = finished;
-    const mark = await rememberReply(book, t, question, answer);
+    const { question, answer, items, onDevice } = finished;
+    const mark = await rememberReply(book, t, question, answer, onDevice);
 
     if (mark) {
       await chat.patchReply(chatId, items.length - 1, { memory: mark });

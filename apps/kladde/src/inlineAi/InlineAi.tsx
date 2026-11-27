@@ -145,7 +145,7 @@ export function InlineAi(props: InlineAiProps) {
   const box = useRef<HTMLDivElement>(null),
     field = useRef<HTMLInputElement>(null);
   const prompt = useInlinePrompt();
-  const run = useInlineRun(props.space, policy, prompt.clear);
+  const run = useInlineRun(props.space, policy, prompt.clear, props.t);
   const commands = useInlineCommands({ ...props, prompt, run, box, field });
   const results = useResultActions(props, run);
 

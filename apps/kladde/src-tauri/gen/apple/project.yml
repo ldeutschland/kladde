@@ -69,9 +69,10 @@ targets:
         CFBundleVersion: "1.2.0"
     entitlements:
       path: kladde_iOS/kladde_iOS.entitlements
-      properties: &shareEntitlements
+      properties:
         com.apple.security.application-groups: [group.de.kladde.notebook.capture]
         keychain-access-groups: ["$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)", "$(AppIdentifierPrefix)de.kladde.notebook.capture"]
+        com.apple.developer.kernel.increased-memory-limit: true
     scheme:
       environmentVariables:
         RUST_BACKTRACE: full
@@ -139,7 +140,9 @@ targets:
               NSExtensionActivationSupportsFileWithMaxCount: 1
     entitlements:
       path: Share/Share.entitlements
-      properties: *shareEntitlements
+      properties:
+        com.apple.security.application-groups: [group.de.kladde.notebook.capture]
+        keychain-access-groups: ["$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)", "$(AppIdentifierPrefix)de.kladde.notebook.capture"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.kladde.notebook.share

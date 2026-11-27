@@ -58,6 +58,14 @@ pub struct Model {
     pub request: f64,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Provider {
+    #[default]
+    Openrouter,
+    Local,
+}
+
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Policy {
@@ -65,6 +73,8 @@ pub struct Policy {
     pub zdr: bool,
     #[serde(default)]
     pub web_search: bool,
+    #[serde(default)]
+    pub provider: Provider,
     pub model: String,
     pub budget: f64,
     pub steps: u32,
@@ -76,6 +86,7 @@ impl Default for Policy {
             enabled: false,
             zdr: true,
             web_search: false,
+            provider: Provider::Openrouter,
             model: String::new(),
             budget: 0.5,
             steps: 25,
@@ -92,11 +103,16 @@ impl Policy {
             || self.budget > 50.0
             || self.steps == 0
             || self.steps > 100
+            || (self.provider == Provider::Local && self.web_search)
         {
             return Err(Error::Policy);
         }
 
         Ok(())
+    }
+
+    pub fn uses_openrouter(&self) -> bool {
+        self.enabled && self.provider == Provider::Openrouter
     }
 }
 
@@ -202,7 +218,7 @@ fn check_turn(policy: &Policy, model: &Model, turn: &Turn, remaining: f64) -> Re
         return Err(Error::TooManyTools);
     }
 
-    if !policy.enabled
+    if !policy.uses_openrouter()
         || model.id != policy.model
         || !remaining.is_finite()
         || remaining <= 0.

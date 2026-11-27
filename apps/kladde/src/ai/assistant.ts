@@ -8,10 +8,12 @@ import {
   type ToolDelta,
 } from "./toolCalls";
 
+export type Provider = "openrouter" | "local";
 export interface Policy {
   enabled: boolean;
   zdr: boolean;
   web_search: boolean;
+  provider?: Provider;
   model: string;
   budget: number;
   steps: number;
@@ -20,10 +22,23 @@ export const defaultPolicy: Policy = {
   enabled: false,
   zdr: true,
   web_search: false,
+  provider: "openrouter",
   model: "",
   budget: 0.5,
   steps: 25,
 };
+
+export function providerOf(policy: Policy): Provider {
+  return policy.provider ?? "openrouter";
+}
+
+export function onDevice(policy: Policy) {
+  return providerOf(policy) === "local";
+}
+
+export function aiReady(policy: Policy) {
+  return policy.enabled && !!policy.model;
+}
 export type Message = Record<string, unknown>;
 export interface WebSource {
   url: string;

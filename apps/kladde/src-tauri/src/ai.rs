@@ -1,4 +1,5 @@
 use crate::{
+    local_ai::LocalRuns,
     notebook::vault::Vault,
     platform::keychain::{read_secret, write_secret},
 };
@@ -32,7 +33,7 @@ pub fn policy_key(space: Uuid) -> String {
     format!("ai:{space}")
 }
 
-fn policy(app: &AppHandle, vault: &Vault, space: Uuid) -> Result<Policy, String> {
+pub fn policy(app: &AppHandle, vault: &Vault, space: Uuid) -> Result<Policy, String> {
     let stored = vault.access(app, |store| store.state(&policy_key(space)))?;
 
     match stored {
@@ -51,18 +52,24 @@ pub fn ai_settings(
     app: AppHandle,
     vault: State<Vault>,
     runs: State<Runs>,
+    local: State<LocalRuns>,
     space: Uuid,
     settings: Policy,
 ) -> Result<(), String> {
     settings.validate().map_err(|e| e.to_string())?;
     let mut active = runs.active.lock().map_err(|_| "AI")?;
-    let mut previous = policy(&app, &vault, space)?;
+    let mut previous = policy(&app, &vault, space).unwrap_or_default();
 
     previous.web_search = settings.web_search;
     let other_settings_changed = previous != settings;
     let data = serde_json::to_vec(&settings).map_err(|_| "Settings")?;
 
     vault.access(&app, |store| store.set_state(&policy_key(space), &data))?;
+
+    if other_settings_changed {
+        local.cancel_space(space);
+    }
+
     active.retain(|_, r| {
         if r.space == space && (other_settings_changed || (r.using_web && !settings.web_search)) {
             r.cancel.cancel();
@@ -115,7 +122,7 @@ pub fn ai_start(
 ) -> Result<Uuid, String> {
     let settings = policy(&app, &vault, space)?;
 
-    if !settings.enabled || settings.model.is_empty() {
+    if !settings.uses_openrouter() || settings.model.is_empty() {
         return Err("Choose a model".into());
     }
 

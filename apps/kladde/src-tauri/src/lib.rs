@@ -7,6 +7,7 @@ compile_error!("Acceptance builds cannot be distributed");
 mod ai;
 mod attachments;
 mod capture;
+mod local_ai;
 mod notebook;
 mod platform;
 mod sync;
@@ -57,6 +58,8 @@ fn with_shared_state(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<taur
         .manage(capture::audio_notes::Recorder::default())
         .manage(notebook::backup::Restores::default())
         .manage(ai::Runs::default())
+        .manage(local_ai::LocalRuns::default())
+        .manage(local_ai::Downloads::default())
         .manage(Vault(Mutex::new(None)))
 }
 
@@ -126,6 +129,15 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
         ai::ai_start,
         ai::ai_stop,
         ai::ai_turn,
+        local_ai::local_ai_status,
+        local_ai::local_ai_start,
+        local_ai::local_ai_run,
+        local_ai::local_ai_tool_result,
+        local_ai::local_ai_stop,
+        local_ai::models::local_models,
+        local_ai::models::local_model_download,
+        local_ai::models::local_model_cancel,
+        local_ai::models::local_model_delete,
         sync::account_setup::connect_account,
         sync::account_setup::phrase,
         sync::document_sync::sync_now,

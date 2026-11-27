@@ -1,14 +1,23 @@
 import { useRef, useState, type FormEvent } from "react";
 import { command } from "../platform/native";
-import { loadModels, savePolicy, type Policy } from "../ai/assistant";
+import {
+  loadModels,
+  providerOf,
+  savePolicy,
+  type Policy,
+  type Provider,
+} from "../ai/assistant";
+import type { LocalStatus } from "../ai/localModel";
 import type { Notebook } from "../notebook/notebook";
 import type { Ask } from "../ui/dialog";
 import type { T } from "../locale/locale";
+import { cloudAllowed, enabledPolicy } from "./aiConsent";
 
 interface SettingsOptions {
   book: Notebook;
   policy: Policy;
   setPolicy: (policy: Policy) => void;
+  local: LocalStatus | null;
   ask: Ask;
   t: T;
 }
@@ -17,6 +26,7 @@ export function useAiSettings({
   book,
   policy,
   setPolicy,
+  local,
   ask,
   t,
 }: SettingsOptions) {
@@ -63,14 +73,16 @@ export function useAiSettings({
   }
 
   async function toggleEnabled() {
-    if (
-      policy.enabled ||
-      (await ask(t("aiPrivacy"), undefined, {
-        detail: t("aiPrivacyDetail"),
-        action: t("aiEnable"),
-      }))
-    )
-      await change({ enabled: !policy.enabled });
+    if (policy.enabled) return change({ enabled: false });
+    const next = await enabledPolicy(policy, local, ask, t);
+
+    if (next) await change(next);
+  }
+
+  async function chooseProvider(provider: Provider) {
+    if (provider === providerOf(policy)) return;
+    if (provider === "openrouter" && !(await cloudAllowed(ask, t))) return;
+    await change({ provider, web_search: false, model: "" });
   }
 
   async function toggleZdr() {
@@ -92,6 +104,7 @@ export function useAiSettings({
     refreshModels,
     saveKey,
     toggleEnabled,
+    chooseProvider,
     toggleZdr,
   };
 }

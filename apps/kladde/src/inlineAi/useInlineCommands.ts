@@ -27,7 +27,11 @@ interface CommandOptions {
   field: RefObject<HTMLInputElement | null>;
 }
 
-function sourceText(editor: BlockNoteEditor, start: InlineStart) {
+function sourceText(
+  editor: BlockNoteEditor,
+  start: InlineStart,
+  limit: number,
+) {
   if (start.selection) return start.selection;
   const book = pageLinkContextOf(editor)?.book;
   const hidden = book ? sharingChecker(book.pages) : () => true;
@@ -35,7 +39,7 @@ function sourceText(editor: BlockNoteEditor, start: InlineStart) {
     editor.blocksToMarkdownLossy(editor.document),
   );
 
-  return text.slice(-DOCUMENT_TEXT);
+  return text.slice(-limit);
 }
 
 function shownActions(options: CommandOptions) {
@@ -78,7 +82,7 @@ export function useInlineCommands(options: CommandOptions) {
         role: "user",
         content: JSON.stringify({
           instruction: text,
-          text: sourceText(editor, start),
+          text: sourceText(editor, start, run.textLimit(DOCUMENT_TEXT)),
         }),
       },
     ]);

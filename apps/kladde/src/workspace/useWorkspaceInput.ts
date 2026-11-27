@@ -31,7 +31,7 @@ export function useWorkspaceInput(
     theme: model.theme,
     dark: model.dark,
     behind: navigation.behind,
-    ai: model.ai.policy.enabled,
+    ai: model.ai.entry,
     nativeChrome: model.nativeChrome,
     setNativeChrome: model.setNativeChrome,
     act: (action) => runChromeAction(model, actions, action),
@@ -65,7 +65,7 @@ function runChromeAction(
 
   if (action === "home" || action === "pages") navigation.showTab(action);
   if (action === "search") actions.showSearch();
-  if (action === "ai" && model.ai.policy.enabled) actions.openAi();
+  if (action === "ai" && model.ai.entry) actions.openAi();
   if (action === "back") navigation.goBack();
   if (action === "settings") overlays.setModal("settings");
   if (action === "add") overlays.showSheet("add", book.id);

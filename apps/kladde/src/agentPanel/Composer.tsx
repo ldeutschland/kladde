@@ -14,12 +14,12 @@ import {
 } from "lucide-react";
 import type { Notebook, Page } from "../notebook/notebook";
 import type { T } from "../locale/locale";
-import type { Policy } from "../ai/assistant";
+import { onDevice, type Policy } from "../ai/assistant";
 import type { AiRole } from "../ai/aiPages";
 import { ATTACHED_PAGES } from "../ai/AgentRun";
 import { Popover, listKeys } from "../ui/dialog";
 import { Select } from "../ui/Select";
-import { modeChoices } from "./modes";
+import { effectiveMode, modeChoices } from "./modes";
 
 const QUESTION_LENGTH = 8192;
 
@@ -215,28 +215,37 @@ function PagePicker({ c }: { c: ComposerProps }) {
   );
 }
 
+function WebToggle({ c }: { c: ComposerProps }) {
+  const { t, policy } = c;
+
+  return (
+    <button
+      type="button"
+      className="webtoggle"
+      aria-pressed={policy.web_search}
+      disabled={c.webSaving}
+      onClick={c.toggleWeb}
+      title={t("webSearchHint")}
+    >
+      <Globe /> {t("webSearch")} {policy.web_search && <Check />}
+    </button>
+  );
+}
+
 function ComposerBar({ c }: { c: ComposerProps }) {
   const { book, t, policy } = c;
+  const local = onDevice(policy);
 
   return (
     <div className="composerbar">
-      <button
-        type="button"
-        className="webtoggle"
-        aria-pressed={policy.web_search}
-        disabled={c.webSaving}
-        onClick={c.toggleWeb}
-        title={t("webSearchHint")}
-      >
-        <Globe /> {t("webSearch")} {policy.web_search && <Check />}
-      </button>
+      {!local && <WebToggle c={c} />}
       <Select
         label={t("mode")}
-        value={c.mode}
-        choices={modeChoices(t)}
+        value={effectiveMode(c.mode, policy)}
+        choices={modeChoices(t, policy)}
         change={(next) => book.settings.set("agentMode", next)}
       />
-      <small className="grow">{policy.model}</small>
+      <small className="grow">{local ? t("localModel") : policy.model}</small>
       {c.busy ? (
         <button
           type="button"

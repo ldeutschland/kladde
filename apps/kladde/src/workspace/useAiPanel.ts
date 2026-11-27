@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Notebook } from "../notebook/notebook";
 import type { AiView } from "../agentPanel/types";
 import { defaultPolicy, loadPolicy, type Policy } from "../ai/assistant";
+import { localOffered, useLocalStatus } from "../ai/localModel";
 
 export function useAiPanel(book: Notebook) {
   const [open, setOpen] = useState(false),
@@ -9,6 +10,7 @@ export function useAiPanel(book: Notebook) {
     [prompt, setPrompt] = useState(""),
     [askReady, setAskReady] = useState(false),
     [policy, setPolicy] = useState<Policy>(defaultPolicy);
+  const local = useLocalStatus();
 
   useEffect(() => {
     let current = true;
@@ -38,6 +40,8 @@ export function useAiPanel(book: Notebook) {
     setAskReady,
     policy,
     setPolicy,
+    local,
+    entry: policy.enabled || localOffered(local),
     show,
     close: () => setOpen(false),
   };

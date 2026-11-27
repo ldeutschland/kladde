@@ -8,6 +8,7 @@ const DOCUMENT_SOURCES: [&str; 3] = [
     "src/native/pdf_editing.h",
 ];
 const LIFECYCLE_SOURCE: &str = "src/native/app_lifecycle.m";
+const PHONE_SOURCES: [&str; 1] = ["src/native/backup_exclusion.m"];
 const MACOS_SOURCES: [&str; 4] = [
     "src/native/quick_capture_shortcut.m",
     "src/native/navigation_gestures.m",
@@ -165,6 +166,7 @@ fn compile_native() {
     }
 
     if target == "ios" {
+        compile_objective_c(&PHONE_SOURCES, "kladde_phone");
         link_frameworks(&["UIKit"]);
     }
 
@@ -220,6 +222,15 @@ fn build_tauri() {
         "ai_start",
         "ai_stop",
         "ai_turn",
+        "local_ai_status",
+        "local_ai_start",
+        "local_ai_run",
+        "local_ai_tool_result",
+        "local_ai_stop",
+        "local_models",
+        "local_model_download",
+        "local_model_cancel",
+        "local_model_delete",
         "connect_account",
         "phrase",
         "sync_now",

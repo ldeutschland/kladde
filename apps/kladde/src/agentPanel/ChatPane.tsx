@@ -1,6 +1,6 @@
 import type { Notebook, Page } from "../notebook/notebook";
 import type { T } from "../locale/locale";
-import type { Policy } from "../ai/assistant";
+import { aiReady, type Policy } from "../ai/assistant";
 import type { SearchHit } from "../search/search";
 import { AiAnswer, type AnswerActions } from "./AiAnswer";
 import { AiWelcome } from "./ChatViews";
@@ -150,7 +150,7 @@ export function ChatPane(props: ChatPaneProps) {
         {chat.thread.length === 0 && (
           <AiWelcome
             t={t}
-            hasModel={!!props.policy.model}
+            hasModel={aiReady(props.policy)}
             hasPage={!!props.page.context}
             templates={props.templates.templates}
             setUp={props.setUp}
