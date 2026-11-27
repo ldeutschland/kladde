@@ -211,6 +211,32 @@ describe("Listing and searching", () => {
     expect(run.shared.has("secret")).toBe(false);
   });
 
+  it("never shows the AI the title of an excluded page a hit links to", async () => {
+    const hidden = "7d1c3b2a-9e8f-4a6b-8c5d-1e2f3a4b5c6d";
+    const home = space.entries.get("home")!;
+
+    space.add(hidden, "page", null, { aiExcluded: true });
+    writeParagraphs(home, [["b1", "Siehe Plan"]]);
+    home.doc
+      .getMap("meta")
+      .set("text", `Siehe [Gehaltsrunde](kladde:${hidden}) Plan`);
+    native.hits = [
+      { doc: "home", snippet: "Siehe Gehaltsrunde Plan" } as never,
+    ];
+    const { run } = startAgent(space, "read");
+    const guessed = (await run.call("search", { query: "Gehaltsrunde" })) as {
+      matches: { id: string }[];
+    };
+    const matched = (await run.call("search", { query: "siehe" })) as {
+      matches: { id: string; snippet: string }[];
+    };
+
+    expect(guessed.matches).toEqual([]);
+    expect(matched.matches).toEqual([
+      expect.objectContaining({ id: "home", snippet: "" }),
+    ]);
+  });
+
   it("adds title matches the full-text index missed", async () => {
     const { run } = startAgent(space, "read");
     const found = (await run.call("search", { query: "PLAN" })) as {

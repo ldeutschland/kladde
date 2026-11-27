@@ -9,7 +9,7 @@ import type { SearchHit } from "../search/search";
 import { markdown } from "../notebook/content";
 import { fields, views } from "../database/fields";
 import { automations, counters, numberRows } from "../database/rules";
-import { aiProtected, sharingChecker } from "./aiPages";
+import { aiProtected, markdownForAi, sharingChecker } from "./aiPages";
 import type { Ask } from "../ui/dialog";
 import { keepOriginalBlocks } from "./blockReview";
 import { keepVersion } from "../versions/versions";
@@ -97,7 +97,10 @@ export class AgentRun {
 
       if (!page || page.archived || page.kind === "chat") continue;
       const entry = await this.entry(id, false);
-      const full = entry.kind === "database" ? "" : markdown(entry);
+      const full =
+        entry.kind === "database"
+          ? ""
+          : markdownForAi(entry, this.exclusions());
       const text = full.slice(0, Math.min(ATTACHED_PAGE_TEXT, remaining));
 
       remaining -= text.length;

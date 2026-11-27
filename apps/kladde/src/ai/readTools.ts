@@ -1,8 +1,16 @@
-import type { Page } from "../notebook/notebook";
+import type { Entry, Page } from "../notebook/notebook";
 import { command } from "../platform/native";
-import { readPassage, searchContent } from "../search/search";
-import { blocks, markdown } from "../notebook/content";
+import {
+  readPassage,
+  searchContent,
+  searchTerms,
+  type SearchHit,
+} from "../search/search";
+import { blocks } from "../notebook/content";
 import { blockMarkdown } from "../notebook/pageMarkdown";
+import { pagesLinkedIn } from "../notebook/links";
+import { withLinksHidden } from "../editor/pageLinkSpec";
+import { markdownForAi } from "./aiPages";
 import { automations } from "../database/rules";
 import { fields, views } from "../database/fields";
 import { databaseGuide } from "../database/databaseGuide";
@@ -115,6 +123,36 @@ function hiddenFromSearch(run: AgentRun, request: ToolRequest, page: Page) {
   );
 }
 
+function linksHidden(entry: Entry, request: ToolRequest) {
+  const stored = entry.doc.getMap("meta").get("text");
+
+  return pagesLinkedIn(typeof stored === "string" ? stored : "").some((id) =>
+    request.excluded(id),
+  );
+}
+
+function folded(text: string) {
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+async function shownSnippet(
+  run: AgentRun,
+  request: ToolRequest,
+  hit: SearchHit,
+  page: Page,
+) {
+  if (hit.file) return hit.snippet;
+  const entry = await run.book.load(page.id);
+
+  if (!linksHidden(entry, request)) return hit.snippet;
+  const visible = folded(
+    page.title + "\n" + markdownForAi(entry, request.excluded),
+  );
+  const terms = searchTerms(textArg(request.args.query, SEARCH_QUERY));
+
+  return terms.every((term) => visible.includes(folded(term))) ? "" : null;
+}
+
 async function search(run: AgentRun, request: ToolRequest) {
   const { args, pages, visible } = request;
   const query = textArg(args.query, SEARCH_QUERY).trim();
@@ -136,6 +174,9 @@ async function search(run: AgentRun, request: ToolRequest) {
     const page = pages.get(hit.doc);
 
     if (!page || hiddenFromSearch(run, request, page)) continue;
+    const snippet = await shownSnippet(run, request, hit, page);
+
+    if (snippet === null) continue;
     run.shared.add(page.id);
     matches.push({
       id: page.id,
@@ -143,7 +184,7 @@ async function search(run: AgentRun, request: ToolRequest) {
       file: hit.file,
       offset: hit.offset,
       name: hit.name,
-      snippet: hit.snippet,
+      snippet,
     });
     if (matches.length === MAX_MATCHES) break;
   }
@@ -207,23 +248,25 @@ async function backlinks(run: AgentRun, request: ToolRequest) {
     .slice(0, MAX_BACKLINKS);
 }
 
-async function readPage(run: AgentRun, { id, args }: ToolRequest) {
+async function readPage(run: AgentRun, { id, args, excluded }: ToolRequest) {
   const entry = await run.entry(id, false);
   const offset = Number(args.offset ?? 0);
+  const shown = (block: ReturnType<typeof blocks>[number]) =>
+    ("[b:" + block.id + "] " + blockMarkdown(block)).slice(0, BLOCK_TEXT);
 
   run.shared.add(id);
 
-  return blocks(entry)
-    .slice(offset, offset + PAGE_BLOCKS)
-    .map((block) =>
-      ("[b:" + block.id + "] " + blockMarkdown(block)).slice(0, BLOCK_TEXT),
-    )
-    .join("\n")
-    .slice(0, PAGE_TEXT);
+  return withLinksHidden(excluded, () =>
+    blocks(entry)
+      .slice(offset, offset + PAGE_BLOCKS)
+      .map(shown)
+      .join("\n")
+      .slice(0, PAGE_TEXT),
+  );
 }
 
 async function citedText(run: AgentRun, request: ToolRequest, title: string) {
-  const { args, id } = request;
+  const { args, id, excluded } = request;
   const offset = Number(args.offset ?? 0);
   const file = args.file ? textArg(args.file, ID_LENGTH) : null;
 
@@ -233,7 +276,7 @@ async function citedText(run: AgentRun, request: ToolRequest, title: string) {
       offset,
       page: 0,
       name: title,
-      text: markdown(await run.book.load(id)),
+      text: markdownForAi(await run.book.load(id), excluded),
     };
   const passage = await readPassage(run.book.id, id, file, offset, true);
 

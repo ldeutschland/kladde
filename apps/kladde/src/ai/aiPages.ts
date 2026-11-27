@@ -1,5 +1,6 @@
 import { markdown, writeMarkdown } from "../notebook/content";
 import { pageLink } from "../notebook/links";
+import { withLinksHidden } from "../editor/pageLinkSpec";
 import {
   mayMove,
   type Entry,
@@ -191,6 +192,10 @@ export function sharingChecker(pages: PageLookup) {
   return checker(pages, true);
 }
 
+export function markdownForAi(entry: Entry, hidden: (id: unknown) => boolean) {
+  return withLinksHidden(hidden, () => markdown(entry));
+}
+
 const MAX_DEPTH = 100;
 
 export function aiProtected(book: Notebook, id: unknown) {
@@ -370,7 +375,8 @@ export async function pageText(book: Notebook, id: string, limit: number) {
 
   if (!page || page.archived || !ROLE_KINDS.includes(page.kind)) return null;
   if (aiExcluded(book, id)) return null;
-  const full = markdown(await book.load(id)).trim();
+  const entry = await book.load(id);
+  const full = markdownForAi(entry, sharingChecker(book.pages)).trim();
   const text = full.slice(0, Math.max(0, limit));
 
   return {

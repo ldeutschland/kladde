@@ -17,6 +17,7 @@ const IMAGE_ICON = "kladde-file:";
 const UNNAMED = "↗";
 const ANCHOR_PRIORITY = 60;
 const contexts = new WeakMap<object, PageLinkContext>();
+let hiddenLinks: ((id: string) => boolean) | null = null;
 
 const pageLinkConfig = {
   type: "pageLink",
@@ -102,9 +103,34 @@ function renderPageLink(value: string, editor: object, live: boolean) {
   return { dom: anchor, destroy: context.book.subscribe(show) };
 }
 
+export function withLinksHidden<Converted>(
+  hidden: (id: string) => boolean,
+  convert: () => Converted,
+) {
+  const outer = hiddenLinks;
+
+  hiddenLinks = hidden;
+
+  try {
+    return convert();
+  } finally {
+    hiddenLinks = outer;
+  }
+}
+
+function hiddenLabel(context: PageLinkContext | undefined) {
+  const label = span("pagelinktitle");
+
+  label.textContent = context ? context.t("aiExcludedChip") : UNNAMED;
+
+  return label;
+}
+
 function exportPageLink(value: string, editor: object) {
   const id = pageIdOf(value);
   const context = contexts.get(editor);
+
+  if (id && hiddenLinks?.(id)) return { dom: hiddenLabel(context) };
   const anchor = anchorTo(id);
 
   anchor.textContent = labelOf(context, pageOf(context, id));

@@ -1,6 +1,8 @@
 import { useEffect, type KeyboardEvent, type RefObject } from "react";
 import type { BlockNoteEditor } from "@blocknote/core";
 import type { T, Word } from "../locale/locale";
+import { pageLinkContextOf, withLinksHidden } from "../editor/pageLinkSpec";
+import { sharingChecker } from "../ai/aiPages";
 import {
   EDIT_ACTIONS,
   INLINE_SYSTEM,
@@ -27,8 +29,13 @@ interface CommandOptions {
 
 function sourceText(editor: BlockNoteEditor, start: InlineStart) {
   if (start.selection) return start.selection;
+  const book = pageLinkContextOf(editor)?.book;
+  const hidden = book ? sharingChecker(book.pages) : () => true;
+  const text = withLinksHidden(hidden, () =>
+    editor.blocksToMarkdownLossy(editor.document),
+  );
 
-  return editor.blocksToMarkdownLossy(editor.document).slice(-DOCUMENT_TEXT);
+  return text.slice(-DOCUMENT_TEXT);
 }
 
 function shownActions(options: CommandOptions) {
