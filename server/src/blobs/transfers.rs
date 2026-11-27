@@ -23,13 +23,13 @@ pub(crate) struct Limit {
 
 pub(crate) const UPLOADS: Limit = Limit {
     per_account: 2,
-    total: 64,
+    total: 128,
     counts: upload_counts,
 };
 
 pub(crate) const DOWNLOADS: Limit = Limit {
     per_account: 16,
-    total: 256,
+    total: 512,
     counts: download_counts,
 };
 
@@ -84,24 +84,33 @@ pub(crate) fn take_slot(relay: &App, account: Uuid, limit: &Limit) -> Result<Slo
     })
 }
 
-pub(crate) fn transfer_deadline(size: u64) -> Instant {
-    Instant::now() + TRANSFER_START + Duration::from_secs(size / SLOWEST_TRANSFER)
+fn slowest_pace(moved: u64) -> Duration {
+    TRANSFER_START + Duration::from_secs(moved / SLOWEST_TRANSFER)
 }
 
-fn next_due(deadline: Instant, idle: Duration) -> Instant {
-    deadline.min(Instant::now() + idle)
+pub(crate) fn transfer_deadline(size: u64) -> Instant {
+    Instant::now() + slowest_pace(size)
+}
+
+fn next_due(deadline: Instant, idle: Duration, started: Instant, moved: u64) -> Instant {
+    deadline
+        .min(started + slowest_pace(moved))
+        .min(Instant::now() + idle)
 }
 
 pub(crate) fn paced(body: axum::body::Body, deadline: Instant, idle: Duration) -> axum::body::Body {
+    let started = Instant::now();
     let chunks = body.into_data_stream();
-    let timed = futures_util::stream::unfold(chunks, move |mut chunks| async move {
+    let timed = futures_util::stream::unfold((chunks, 0), move |(mut chunks, moved)| async move {
         let next = futures_util::StreamExt::next(&mut chunks);
-        let item = match tokio::time::timeout_at(next_due(deadline, idle), next).await {
+        let item = match timeout_at(next_due(deadline, idle, started, moved), next).await {
             Ok(item) => item?.map_err(std::io::Error::other),
             Err(_) => Err(std::io::ErrorKind::TimedOut.into()),
         };
 
-        Some((item, chunks))
+        let moved = moved + item.as_ref().map_or(0, |chunk| chunk.len() as u64);
+
+        Some((item, (chunks, moved)))
     });
 
     axum::body::Body::from_stream(timed)
@@ -118,9 +127,11 @@ pub(crate) fn file_chunks<G: Send + 'static>(
     idle: Duration,
 ) -> impl futures_util::Stream<Item = std::io::Result<Bytes>> {
     let (sender, receiver) = mpsc::channel(2);
+    let started = Instant::now();
 
     tokio::spawn(async move {
         let _held = held;
+        let mut moved = 0;
 
         loop {
             let mut chunk = vec![0u8; READ_CHUNK];
@@ -131,8 +142,11 @@ pub(crate) fn file_chunks<G: Send + 'static>(
             };
 
             let last = item.is_err();
+            let due = next_due(deadline, idle, started, moved);
 
-            if !delivered(&sender, item, next_due(deadline, idle)).await || last {
+            moved += item.as_ref().map_or(0, |chunk| chunk.len() as u64);
+
+            if !delivered(&sender, item, due).await || last {
                 return;
             }
         }
@@ -180,6 +194,26 @@ mod tests {
         );
 
         assert!(axum::body::to_bytes(body, usize::MAX).await.is_err());
+    }
+
+    #[test]
+    fn a_transfer_has_to_keep_the_slowest_pace_from_its_start() {
+        let started = Instant::now();
+        let hour = Duration::from_secs(3600);
+        let deadline = started + hour;
+
+        assert_eq!(
+            next_due(deadline, hour, started, 0),
+            started + TRANSFER_START
+        );
+        assert_eq!(
+            next_due(deadline, hour, started, SLOWEST_TRANSFER * 30),
+            started + TRANSFER_START + Duration::from_secs(30)
+        );
+        assert_eq!(
+            next_due(deadline, hour, started, SLOWEST_TRANSFER * 7200),
+            deadline
+        );
     }
 
     #[tokio::test]

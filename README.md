@@ -184,12 +184,13 @@ Attachments are stored as files in the `data` volume (`/data/blobs`), everything
 
 ### Connecting the app
 
-1. In Kladde, open **Connect to sync server**.
-2. Enter `https://sync.example.org` as the server address.
-3. On the first device, choose **Create account**, pick a username (3 to 64 characters: letters, digits, `.`, `_`, `-`) and a password of at least 12 characters.
-4. Write down the recovery phrase and keep it somewhere safe and offline. It is shown only once.
-5. On every other device, choose **Sign in** with the same server, username and password.
-6. Under **Sync → Notebooks**, choose what each device syncs. Notebooks on the server sync to every signed-in device, also while they are not open, unless you switch them off on that device; nothing is deleted when you do. A notebook that only exists on one device is uploaded once you switch it on there. **Remove from server** (the crossed-out cloud next to a notebook) deletes a notebook from the server; the copies on your devices stay and simply stop syncing. The notebook you created the account with stays on the server. Deleting a notebook under **Manage notebooks** can remove it from the server as well; if it stays there, this device switches it off so it does not download again.
+1. Open registration for the accounts you want to create, see [Registration](#registration).
+2. In Kladde, open **Connect to sync server**.
+3. Enter `https://sync.example.org` as the server address.
+4. On the first device, choose **Create account**, pick a username (3 to 64 characters: letters, digits, `.`, `_`, `-`) and a password of at least 12 characters.
+5. Write down the recovery phrase and keep it somewhere safe and offline. It is shown only once.
+6. On every other device, choose **Sign in** with the same server, username and password.
+7. Under **Sync → Notebooks**, choose what each device syncs. Notebooks on the server sync to every signed-in device, also while they are not open, unless you switch them off on that device; nothing is deleted when you do. A notebook that only exists on one device is uploaded once you switch it on there. **Remove from server** (the crossed-out cloud next to a notebook) deletes a notebook from the server; the copies on your devices stay and simply stop syncing. The notebook you created the account with stays on the server. Deleting a notebook under **Manage notebooks** can remove it from the server as well; if it stays there, this device switches it off so it does not download again.
 
 ### Configuration
 
@@ -199,6 +200,7 @@ Variables in `deploy/.env`:
 | --- | --- |
 | `DOMAIN` | Hostname of the relay, used by Caddy for the certificate |
 | `POSTGRES_PASSWORD` | Password of the PostgreSQL user `kladde` |
+| `OPEN_REGISTRATION` | `1` lets new accounts register, `0` refuses them (default) |
 
 Variables of the `relay` service (set in `docker-compose.yml`, defaults come from the image):
 
@@ -210,6 +212,7 @@ Variables of the `relay` service (set in `docker-compose.yml`, defaults come fro
 | `OPAQUE_SETUP_FILE` | `/data/opaque.setup` | OPAQUE server key |
 | `TRUST_FORWARDED_FOR` | `0` (`1` in Compose) | Use the last `X-Forwarded-For` entry as client IP for rate limiting. Only set to `1` behind a proxy that overwrites this header, like the included Caddy config |
 | `ACCOUNT_QUOTA_BYTES` | unlimited | Storage limit per account, at least `1048576` |
+| `OPEN_REGISTRATION` | `0` (from `.env` in Compose) | `1` allows creating new accounts. Logins, recovery and sync work either way |
 
 To set a quota of 5 GiB, add it to the `environment` of the `relay` service:
 
@@ -217,21 +220,16 @@ To set a quota of 5 GiB, add it to the `environment` of the `relay` service:
 ACCOUNT_QUOTA_BYTES: "5368709120"
 ```
 
-### Restricting registration
+### Registration
 
-Registration is open to anyone who can reach the server (I plan to change this). If the relay is only meant for you, block it in the `Caddyfile` once your accounts exist:
+The relay refuses new accounts unless registration is open, including the very first one. To create accounts, set `OPEN_REGISTRATION=1` in `.env` and apply it:
 
-```caddy
-{$DOMAIN} {
-    header Strict-Transport-Security "max-age=31536000"
-    respond /v1/register/* 403
-    reverse_proxy relay:7341 {
-        header_up X-Forwarded-For {remote_host}
-    }
-}
+```sh
+sed -i "s/^OPEN_REGISTRATION=.*/OPEN_REGISTRATION=1/" .env
+docker compose up -d
 ```
 
-Apply it with `docker compose up -d --force-recreate caddy`. Remove the line again to create another account. Logins, recovery and sync keep working.
+Create the accounts in the app, then close registration again the same way with `OPEN_REGISTRATION=0`. Logins, recovery and sync keep working while registration is closed. Anyone who can reach the server can register while it is open, and the storage quota is unlimited unless you set `ACCOUNT_QUOTA_BYTES`, so keep it open only as long as you need it.
 
 ### Backups
 
@@ -280,7 +278,7 @@ OPAQUE_SETUP_FILE=/var/lib/kladde/opaque.setup \
 ./target/release/kladde-server
 ```
 
-It listens on `127.0.0.1:7341` by default and needs PostgreSQL. The proxy must terminate HTTPS and support WebSockets (`/v1/sync`). Only set `TRUST_FORWARDED_FOR=1` if the proxy replaces `X-Forwarded-For` with the real client IP. Otherwise clients could choose their own IP for rate limiting.
+It listens on `127.0.0.1:7341` by default and needs PostgreSQL. The proxy must terminate HTTPS and support WebSockets (`/v1/sync`). Only set `TRUST_FORWARDED_FOR=1` if the proxy replaces `X-Forwarded-For` with the real client IP. Otherwise clients could choose their own IP for rate limiting. Start it with `OPEN_REGISTRATION=1` while you create accounts. Allow it enough open files, for example `ulimit -n 65536`: every connection, sync socket and attachment transfer holds one or two.
 
 ## Building the app
 

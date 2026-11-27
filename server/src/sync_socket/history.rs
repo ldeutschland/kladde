@@ -1,4 +1,4 @@
-use super::{SEND_TIMEOUT, reply};
+use super::reply;
 use crate::{Result, Shared, bad};
 use axum::extract::ws::WebSocket;
 use kladde_protocol::{
@@ -9,11 +9,13 @@ use kladde_protocol::{
 
 use sqlx_core::{query::query, row::Row};
 use sqlx_postgres::PgRow;
-use tokio::sync::SemaphorePermit;
+use std::time::Duration;
+use tokio::sync::{Semaphore, SemaphorePermit};
 use uuid::Uuid;
 
 const HISTORY_PAGE: i64 = 8;
 const HISTORY_PAGE_BYTES: i64 = 8 * 1024 * 1024;
+const HISTORY_WAIT: Duration = Duration::from_secs(120);
 const KIB: u64 = 1024;
 
 async fn doc_position(relay: &Shared, space: Uuid, doc: Uuid) -> Result<(i64, i64)> {
@@ -80,26 +82,36 @@ fn page_end(sizes: &[(i64, i64)]) -> Option<(i64, i64)> {
     end.map(|seq| (seq, bytes))
 }
 
-async fn reserve_history(relay: &Shared, bytes: i64) -> Result<SemaphorePermit<'_>> {
-    let size = u64::try_from(bytes).map_err(|_| bad())?;
-    let kib = u32::try_from(size.div_ceil(KIB).max(1)).map_err(|_| bad())?;
-
-    match tokio::time::timeout(SEND_TIMEOUT, relay.history.acquire_many(kib)).await {
+async fn take_budget(budget: &Semaphore, kib: u32) -> Result<SemaphorePermit<'_>> {
+    match tokio::time::timeout(HISTORY_WAIT, budget.acquire_many(kib)).await {
         Ok(Ok(permit)) => Ok(permit),
         _ => Err(bad()),
     }
 }
 
-async fn fetch_page(
-    relay: &Shared,
+async fn reserve_history<'a>(
+    account: &'a Semaphore,
+    shared: &'a Semaphore,
+    bytes: i64,
+) -> Result<[SemaphorePermit<'a>; 2]> {
+    let size = u64::try_from(bytes).map_err(|_| bad())?;
+    let kib = u32::try_from(size.div_ceil(KIB).max(1)).map_err(|_| bad())?;
+    let own = take_budget(account, kib).await?;
+
+    Ok([own, take_budget(shared, kib).await?])
+}
+
+async fn fetch_page<'a>(
+    relay: &'a Shared,
+    account: &'a Semaphore,
     space: Uuid,
     doc: Uuid,
     cursor: i64,
     head: i64,
-) -> Result<(SemaphorePermit<'_>, Vec<PgRow>)> {
+) -> Result<([SemaphorePermit<'a>; 2], Vec<PgRow>)> {
     let sizes = page_sizes(relay, space, doc, cursor, head).await?;
     let (end, bytes) = page_end(&sizes).ok_or_else(bad)?;
-    let reserved = reserve_history(relay, bytes).await?;
+    let reserved = reserve_history(account, &relay.history, bytes).await?;
     let rows=query("SELECT u.seq,u.wire,d.cert FROM updates u JOIN devices d ON u.device=d.id WHERE u.doc=$1 AND u.space=$2 AND u.seq>$3 AND u.seq<=$4 ORDER BY u.seq").bind(doc).bind(space).bind(cursor).bind(end).fetch_all(&relay.pool).await?;
 
     if rows.is_empty() {
@@ -113,6 +125,7 @@ pub(crate) async fn send_history(
     relay: &Shared,
     ws: &mut WebSocket,
     peer: &Peer,
+    account: &Semaphore,
     space: Uuid,
     doc: Uuid,
     last_seq: i64,
@@ -126,7 +139,7 @@ pub(crate) async fn send_history(
     let mut cursor = first_served(last_seq, base);
 
     while cursor < head {
-        let (_reserved, rows) = fetch_page(relay, space, doc, cursor, head).await?;
+        let (_reserved, rows) = fetch_page(relay, account, space, doc, cursor, head).await?;
 
         for r in rows {
             let Some(wire) = r.get::<Option<Vec<u8>>, _>(1) else {
@@ -173,6 +186,21 @@ mod tests {
     use super::*;
 
     const MIB: i64 = 1024 * 1024;
+
+    #[tokio::test]
+    async fn an_account_that_spent_its_history_budget_leaves_the_rest_to_others() {
+        let shared = Semaphore::new(4096);
+        let (greedy, other) = (Semaphore::new(1024), Semaphore::new(1024));
+        let held = reserve_history(&greedy, &shared, MIB).await.unwrap();
+        let more = reserve_history(&greedy, &shared, 1);
+        let waited = tokio::time::timeout(Duration::from_millis(50), more).await;
+
+        assert!(waited.is_err());
+        assert!(reserve_history(&other, &shared, MIB).await.is_ok());
+        assert_eq!(shared.available_permits(), 3072);
+        drop(held);
+        assert_eq!(shared.available_permits(), 4096);
+    }
 
     #[test]
     fn a_history_page_stops_before_the_byte_budget_but_keeps_one_envelope() {

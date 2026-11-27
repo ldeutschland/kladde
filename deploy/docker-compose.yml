@@ -28,6 +28,8 @@ services:
     environment:
       DATABASE_URL: postgresql://kladde:${POSTGRES_PASSWORD}@postgres/kladde
       TRUST_FORWARDED_FOR: "1"
+      OPEN_REGISTRATION: ${OPEN_REGISTRATION:-0}
+    ulimits: {nofile: 65536}
     volumes: [data:/data]
     networks: [private, edge]
     depends_on:

@@ -2,7 +2,7 @@ set -eu
 : "${TEST_DATABASE_URL:?Set TEST_DATABASE_URL to an empty disposable PostgreSQL database}"
 work=$(mktemp -d)
 port=${KLADDE_TEST_PORT:-17341}
-export DATABASE_URL="$TEST_DATABASE_URL" OPAQUE_SETUP_FILE="$work/setup" BLOB_DIR="$work/blobs" LISTEN_ADDR="127.0.0.1:$port" ACCOUNT_QUOTA_BYTES=8388608
+export DATABASE_URL="$TEST_DATABASE_URL" OPAQUE_SETUP_FILE="$work/setup" BLOB_DIR="$work/blobs" LISTEN_ADDR="127.0.0.1:$port" ACCOUNT_QUOTA_BYTES=8388608 OPEN_REGISTRATION=1
 cargo build --locked -p kladde-server
 binary="${CARGO_TARGET_DIR:-target}/debug/kladde-server"
 "$binary" init-setup "$OPAQUE_SETUP_FILE"
