@@ -1,6 +1,6 @@
 use kladde_store::{Incoming, Note, Store, wire_form};
 use uuid::Uuid;
-use yrs::{Any, Doc, Map, MapPrelim, Out, ReadTxn, StateVector, Transact};
+use yrs::{Any, Doc, Map, MapPrelim, Out, ReadTxn, StateVector, Text, Transact};
 
 const CURSOR_KEY: &str = "head:test";
 
@@ -200,4 +200,86 @@ fn shared_types_nested_too_deeply_are_refused_before_recursive_code_runs() {
     let accepted = incoming([page(id, space, &nested(100))]);
 
     assert!(store.merge_all(accepted, CURSOR_KEY, b"1").unwrap());
+}
+
+fn filled(letter: &str, length: usize) -> Doc {
+    let doc = Doc::new();
+    let draft = doc.get_or_insert_text("draft");
+
+    draft.insert(&mut doc.transact_mut(), 0, &letter.repeat(length));
+
+    doc
+}
+
+#[test]
+fn an_envelope_the_store_could_never_keep_is_refused_on_arrival() {
+    let (id, space) = (Uuid::new_v4(), Uuid::new_v4());
+    let mut oversized = Incoming::default();
+
+    assert!(
+        oversized
+            .add(page(id, space, &filled("x", 4_200_000)))
+            .is_err()
+    );
+    assert!(oversized.is_empty());
+}
+
+#[test]
+fn only_envelopes_of_the_stored_page_join_it() {
+    let (mut store, _dir) = open();
+    let (id, space) = (Uuid::new_v4(), Uuid::new_v4());
+    let doc = written("x");
+    let mut row = page(id, space, &doc);
+
+    store.save(&[page(id, space, &doc)], true).unwrap();
+    let mut continuing = store.incoming(id).unwrap();
+
+    row.kind = "row".into();
+    assert!(continuing.add(row).is_err());
+    assert!(continuing.add(page(id, Uuid::new_v4(), &doc)).is_err());
+    assert!(continuing.is_empty());
+    continuing.add(page(id, space, &doc)).unwrap();
+    assert!(!continuing.is_empty());
+}
+
+#[test]
+fn an_envelope_that_would_outgrow_the_page_is_left_out_and_the_rest_kept() {
+    let (mut store, _dir) = open();
+    let (id, space) = (Uuid::new_v4(), Uuid::new_v4());
+    let mut halves = store.incoming(id).unwrap();
+
+    halves
+        .add(page(id, space, &filled("a", 2_500_000)))
+        .unwrap();
+    assert!(
+        halves
+            .add(page(id, space, &filled("b", 2_500_000)))
+            .is_err()
+    );
+    halves.add(page(id, space, &written("klein"))).unwrap();
+    assert!(store.merge_all(halves, CURSOR_KEY, b"c").unwrap());
+    let kept = store.get(id).unwrap().unwrap();
+
+    assert!(kept.data.len() < 3_000_000);
+    assert_eq!(kept.body, "klein");
+    assert_eq!(store.state(CURSOR_KEY).unwrap().unwrap(), b"c");
+}
+
+#[test]
+fn what_the_device_already_stored_counts_against_an_envelope() {
+    let (mut store, _dir) = open();
+    let (id, space) = (Uuid::new_v4(), Uuid::new_v4());
+
+    store
+        .save(&[page(id, space, &filled("a", 2_500_000))], true)
+        .unwrap();
+    let mut continuing = store.incoming(id).unwrap();
+
+    assert!(
+        continuing
+            .add(page(id, space, &filled("b", 2_500_000)))
+            .is_err()
+    );
+    assert!(continuing.is_empty());
+    continuing.add(page(id, space, &written("klein"))).unwrap();
 }

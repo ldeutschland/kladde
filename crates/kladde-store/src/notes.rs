@@ -141,7 +141,7 @@ fn refuse_deleted(tx: &Connection, id: Uuid) -> Result<(), Error> {
     Ok(())
 }
 
-fn check_note(note: &Note) -> Result<(), Error> {
+pub(crate) fn check_note(note: &Note) -> Result<(), Error> {
     if note.id.get_version_num() != 4
         || note.space.get_version_num() != 4
         || note.rev < 0

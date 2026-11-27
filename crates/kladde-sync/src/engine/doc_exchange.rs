@@ -127,9 +127,9 @@ pub(super) async fn receive_pull(
     cursor: &mut Cursor,
     report: &mut Report,
 ) -> Result<(), Error> {
-    let start = cursor.seq;
+    let start = cursor.clone();
     let covered = covered_heads(local, access, keys.id)?;
-    let mut incoming = Incoming::default();
+    let mut incoming = local.with(|store| store.incoming(keys.id))?;
     let mut damaged = false;
     let received = collect_items(
         socket,
@@ -146,28 +146,47 @@ pub(super) async fn receive_pull(
         forget_chains(local, access)?;
     }
 
-    if cursor.seq == start {
+    if cursor.seq == start.seq {
         return received;
     }
 
-    let head = p::encode(cursor)?;
-    let merged = local.with(|store| Ok(store.merge_all(incoming, &keys.head, &head)))?;
-
-    match merged {
-        Ok(true) => report_changed(local, report, keys.id),
-        Ok(false) => {}
-        Err(kladde_store::Error::Invalid) => {
-            local.with(|store| store.set_state(&keys.head, &head))?;
-            damaged = true;
-        }
-        Err(e) => return Err(local_error(e)),
-    }
+    damaged |= !keep_pulled(local, keys, incoming, cursor, start, report)?;
 
     if damaged {
         report_damaged(report, keys.id);
     }
 
     received
+}
+
+fn keep_pulled(
+    local: &impl Local,
+    keys: &DocKeys,
+    incoming: Incoming,
+    cursor: &mut Cursor,
+    start: Cursor,
+    report: &mut Report,
+) -> Result<bool, Error> {
+    let head = p::encode(cursor)?;
+
+    if incoming.is_empty() {
+        local.with(|store| store.set_state(&keys.head, &head))?;
+
+        return Ok(true);
+    }
+
+    match local.with(|store| Ok(store.merge_all(incoming, &keys.head, &head)))? {
+        Ok(true) => report_changed(local, report, keys.id),
+        Ok(false) => {}
+        Err(kladde_store::Error::Invalid) => {
+            *cursor = start;
+
+            return Ok(false);
+        }
+        Err(e) => return Err(local_error(e)),
+    }
+
+    Ok(true)
 }
 
 pub(super) async fn collect_items(

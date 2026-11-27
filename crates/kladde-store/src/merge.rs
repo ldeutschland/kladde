@@ -1,4 +1,8 @@
-use crate::{Error, Note, Store, notes::MAX_LINKS};
+use crate::{
+    Error, Note, Store,
+    notes::{MAX_LINKS, check_note},
+};
+
 use uuid::Uuid;
 use yrs::{Any, Doc, Map, MapRef, Out, ReadTxn, StateVector, Transact, Update, types::ToJson};
 
@@ -8,6 +12,8 @@ const WORKSPACE: &str = "workspace";
 
 pub struct Incoming {
     doc: Doc,
+    merged: Vec<u8>,
+    stored: Option<(Uuid, String)>,
     latest: Option<Note>,
 }
 
@@ -15,26 +21,78 @@ impl Default for Incoming {
     fn default() -> Self {
         Self {
             doc: Doc::new(),
+            merged: Vec::new(),
+            stored: None,
             latest: None,
         }
     }
 }
 
 impl Incoming {
+    fn continuing(stored: &Note) -> Result<Self, Error> {
+        let doc = Doc::new();
+
+        apply(&doc, &stored.data)?;
+
+        Ok(Self {
+            doc,
+            merged: stored.data.clone(),
+            stored: Some((stored.space, stored.kind.clone())),
+            latest: None,
+        })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.latest.is_none()
+    }
+
     pub fn add(&mut self, mut note: Note) -> Result<(), Error> {
-        if self
-            .latest
-            .as_ref()
-            .is_some_and(|known| !same_document(known, &note))
-        {
+        check_note(&note)?;
+
+        if self.foreign(&note) {
             return Err(Error::Invalid);
         }
 
-        apply(&self.doc, &note.data)?;
-        note.data = Vec::new();
-        self.latest = Some(note);
+        let data = std::mem::take(&mut note.data);
 
-        Ok(())
+        match apply(&self.doc, &data).and_then(|()| self.storable(&note)) {
+            Ok(merged) => {
+                self.merged = merged;
+                self.latest = Some(note);
+
+                Ok(())
+            }
+            Err(error) => {
+                self.doc = restored(&self.merged)?;
+
+                Err(error)
+            }
+        }
+    }
+
+    fn foreign(&self, note: &Note) -> bool {
+        let stored_elsewhere = self
+            .stored
+            .as_ref()
+            .is_some_and(|(space, kind)| *space != note.space || *kind != note.kind);
+
+        stored_elsewhere
+            || self
+                .latest
+                .as_ref()
+                .is_some_and(|known| !same_document(known, note))
+    }
+
+    fn storable(&self, note: &Note) -> Result<Vec<u8>, Error> {
+        let mut merged = note.clone();
+        let meta = self.doc.get_or_insert_map("meta");
+        let properties = self.doc.get_or_insert_map("properties");
+
+        derive(&self.doc, &meta, &properties, &mut merged);
+        merged.data = full_state(&self.doc);
+        check_note(&merged)?;
+
+        Ok(merged.data)
     }
 
     pub fn workspace_title(&self) -> Option<String> {
@@ -58,6 +116,13 @@ pub fn wire_form(mut note: Note) -> Note {
 }
 
 impl Store {
+    pub fn incoming(&self, id: Uuid) -> Result<Incoming, Error> {
+        match self.get(id)? {
+            Some(stored) => Incoming::continuing(&stored),
+            None => Ok(Incoming::default()),
+        }
+    }
+
     pub fn merge_all(
         &mut self,
         incoming: Incoming,
@@ -84,7 +149,7 @@ impl Store {
 
         let before = doc.transact().snapshot();
 
-        apply(&doc, &full_state(&incoming.doc))?;
+        apply(&doc, &incoming.merged)?;
         let grew = doc.transact().snapshot() != before;
 
         derive(&doc, &meta, &properties, &mut note);
@@ -126,6 +191,16 @@ fn apply(doc: &Doc, data: &[u8]) -> Result<(), Error> {
     doc.transact_mut()
         .apply_update(update)
         .map_err(|_| Error::Invalid)
+}
+
+fn restored(state: &[u8]) -> Result<Doc, Error> {
+    let doc = Doc::new();
+
+    if !state.is_empty() {
+        apply(&doc, state)?;
+    }
+
+    Ok(doc)
 }
 
 fn full_state(doc: &Doc) -> Vec<u8> {

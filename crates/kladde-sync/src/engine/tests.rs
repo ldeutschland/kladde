@@ -662,3 +662,103 @@ fn a_device_vouches_only_for_chains_it_holds_itself() {
         vec![(doc, device, 2, [2; 32])]
     );
 }
+
+const HALF_A_PAGE: usize = 2_500_000;
+
+fn sealed(device: &Access, cursor: &Cursor, id: Uuid, note: Note) -> Envelope {
+    let bytes = p::encode(&kladde_store::wire_form(note)).unwrap();
+    let request = cursor.push_as(device, id, &bytes, WRITING).unwrap();
+
+    envelope(&request).unwrap().clone()
+}
+
+fn filled_page(space: Uuid, id: Uuid, letter: &str) -> Note {
+    let doc = Doc::new();
+    let body = doc.get_or_insert_text("body");
+
+    body.insert(&mut doc.transact_mut(), 0, &letter.repeat(HALF_A_PAGE));
+
+    shaped(space, id, "page", None, &doc)
+}
+
+fn devices_sharing_keys() -> (Access, Access) {
+    let (account, space) = (Uuid::new_v4(), Uuid::new_v4());
+    let identity = SigningKey::from_bytes(&OLD_IDENTITY);
+    let keys = crate::account::extend_keyset(&[], &identity.verifying_key().to_bytes()).unwrap();
+
+    (
+        device_access(account, space, &identity, &keys, 5),
+        device_access(account, space, &identity, &keys, 6),
+    )
+}
+
+#[tokio::test]
+async fn an_entry_that_would_outgrow_the_page_is_left_out_of_the_pull() {
+    let (local, _dir) = empty_device();
+    let (laptop, phone) = devices_sharing_keys();
+    let id = Uuid::new_v4();
+    let mut author = Cursor::default();
+    let first = sealed(&laptop, &author, id, filled_page(laptop.space, id, "a"));
+
+    author.accept(&laptop, id, 1, &first, &laptop.cert).unwrap();
+    let second = sealed(&phone, &author, id, filled_page(phone.space, id, "b"));
+
+    author.accept(&phone, id, 2, &second, &phone.cert).unwrap();
+    let third = signed_entry(&laptop, &author, id, "drei");
+    let replies = vec![
+        item(1, &first, &laptop),
+        item(2, &second, &phone),
+        item(3, &third, &laptop),
+        Server::Head { doc: id, seq: 3 },
+    ];
+
+    let mut socket = relay_answering(replies).await;
+    let keys = DocKeys::new(&laptop, id);
+    let mut report = Report::default();
+    let mut cursor = Cursor::default();
+
+    pull(
+        &mut socket,
+        &laptop,
+        &local,
+        &keys,
+        &mut cursor,
+        &mut report,
+    )
+    .await
+    .unwrap();
+    let kept = local.with(|s| s.get(id)).unwrap().unwrap();
+
+    assert_eq!(cursor.seq, 3);
+    assert!(local.with(|s| s.state(&keys.head)).unwrap().is_some());
+    assert_eq!(kept.title, "drei");
+    assert!(kept.data.len() < 2 * HALF_A_PAGE);
+    assert_eq!(report.damaged, vec![id]);
+}
+
+#[tokio::test]
+async fn an_entry_of_another_kind_does_not_take_the_page_entries_with_it() {
+    let (local, _dir) = empty_device();
+    let a = access(Uuid::new_v4(), Uuid::new_v4());
+    let id = Uuid::new_v4();
+    let mut row = page(a.space, id);
+
+    local.with(|s| s.save(&[page(a.space, id)], true)).unwrap();
+    row.kind = "row".into();
+    let mut author = Cursor::default();
+    let forged = sealed(&a, &author, id, row);
+
+    author.accept(&a, id, 1, &forged, &a.cert).unwrap();
+    let genuine = signed_entry(&a, &author, id, "zwei");
+    let replies = vec![
+        item(1, &forged, &a),
+        item(2, &genuine, &a),
+        Server::Head { doc: id, seq: 2 },
+    ];
+
+    let (pulled, cursor) = pulled_from(&local, &a, id, replies).await;
+
+    pulled.unwrap();
+    assert_eq!(cursor.seq, 2);
+    assert_eq!(local.with(|s| s.get(id)).unwrap().unwrap().title, "zwei");
+}
