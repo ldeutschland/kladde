@@ -6,6 +6,7 @@ use super::{
 };
 
 use crate::notebook::vault::Vault;
+use kladde_protocol::account::MAX_JSON_KEYS;
 use kladde_sync::{
     Origin,
     account::{self, Access},
@@ -16,6 +17,8 @@ use uuid::Uuid;
 
 pub type SpaceList = Vec<(Uuid, Option<Vec<u8>>)>;
 const MAX_SPACES: usize = 128;
+const LISTED_SPACE: usize = 64;
+const SPACES_REPLY_LIMIT: usize = MAX_SPACES * (MAX_JSON_KEYS + LISTED_SPACE);
 
 fn workspaces_url(access: &Access) -> Result<url::Url, String> {
     Origin::parse(&access.origin)
@@ -33,7 +36,7 @@ pub async fn fetch_spaces(client: &reqwest::Client, access: &Access) -> Result<S
         .await
         .map_err(|_| "Sync offline")?;
     let response = success_or_message(response, "Authentication required")?;
-    let spaces: SpaceList = kladde_sync::json_limited(response, 100000)
+    let spaces: SpaceList = kladde_sync::json_limited(response, SPACES_REPLY_LIMIT)
         .await
         .map_err(to_message)?;
 

@@ -149,7 +149,9 @@ async fn replace_space_keys(
     if !provided.windows(2).all(|w| w[0] < w[1])
         || provided.iter().any(|id| !owned.contains(id))
         || (!repairs && !dropped.is_empty())
-        || spaces.iter().any(|(_, k)| !(48..=8192).contains(&k.len()))
+        || spaces
+            .iter()
+            .any(|(_, k)| !(48..=MAX_WRAPPED_KEYS).contains(&k.len()))
     {
         return Err(Fault(StatusCode::CONFLICT));
     }

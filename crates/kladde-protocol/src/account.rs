@@ -2,6 +2,13 @@ use super::Certificate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub const MAX_EPOCHS: usize = 1024;
+const EPOCH_BYTES: usize = 64;
+const BESIDE_EPOCHS: usize = 1024;
+const JSON_PER_BYTE: usize = 4;
+pub const MAX_WRAPPED_KEYS: usize = MAX_EPOCHS * EPOCH_BYTES + BESIDE_EPOCHS;
+pub const MAX_JSON_KEYS: usize = MAX_WRAPPED_KEYS * JSON_PER_BYTE;
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct AccountBundle {

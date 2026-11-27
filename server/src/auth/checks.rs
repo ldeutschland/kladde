@@ -35,7 +35,7 @@ pub(super) fn check_username(name: &str) -> Result<()> {
 pub(super) fn check_bundle(bundle: &AccountBundle) -> Result<()> {
     if bundle.version != 1
         || bundle.ksf != 1
-        || bundle.keys.len() > 8192
+        || bundle.keys.len() > MAX_WRAPPED_KEYS
         || bundle.keys.is_empty()
         || bundle.account.get_version_num() != 4
         || bundle.space.get_version_num() != 4
@@ -112,4 +112,28 @@ pub(crate) async fn request_signed(
     device_signed(relay, account, device, message, &proof).await?;
 
     Ok(proof)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bundle(keys: usize) -> AccountBundle {
+        AccountBundle {
+            version: 1,
+            ksf: 1,
+            account: Uuid::new_v4(),
+            space: Uuid::new_v4(),
+            identity: [0; 32],
+            recovery_public: [0; 32],
+            keys: vec![0; keys],
+        }
+    }
+
+    #[test]
+    fn a_bundle_may_carry_every_epoch_but_nothing_beyond() {
+        assert!(check_bundle(&bundle(MAX_WRAPPED_KEYS)).is_ok());
+        assert!(check_bundle(&bundle(MAX_WRAPPED_KEYS + 1)).is_err());
+        assert!(check_bundle(&bundle(0)).is_err());
+    }
 }

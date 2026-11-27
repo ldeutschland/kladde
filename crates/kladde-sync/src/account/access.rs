@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
-pub const MAX_EPOCHS: usize = 64;
+pub use kladde_protocol::account::MAX_EPOCHS;
+
 const KEY: usize = 32;
 const EPOCH: usize = 2 * KEY;
 const FIRST_EPOCH: u32 = 1;
