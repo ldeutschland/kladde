@@ -8,6 +8,7 @@ import {
   Monitor,
   Moon,
   Plus,
+  Scale,
   Scissors,
   ShieldCheck,
   Sparkles,
@@ -35,6 +36,7 @@ export interface SettingsActions {
   transfer: () => void;
   clipper: () => void;
   privacy: () => void;
+  licenses: () => void;
   support: () => void;
   books: () => void;
   newBook: () => void;
@@ -194,6 +196,11 @@ export function SettingsPanel({
         <button onClick={actions.privacy}>
           <ShieldCheck />
           {t("privacyPolicy")}
+          <ChevronRight className="trail" />
+        </button>
+        <button onClick={actions.licenses}>
+          <Scale />
+          {t("licenses")}
           <ChevronRight className="trail" />
         </button>
         <button onClick={actions.support}>

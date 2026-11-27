@@ -13,6 +13,7 @@ export type Modal =
   | "record"
   | "clipper"
   | "privacy"
+  | "licenses"
   | "support"
   | "books"
   | null;

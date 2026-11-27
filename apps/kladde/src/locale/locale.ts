@@ -946,6 +946,30 @@ const copy = {
     "Clip waiting: {error}. Kladde will try again shortly.",
   ],
   privacyPolicy: ["Datenschutz", "Privacy policy"],
+  licenses: ["Open-Source-Lizenzen", "Open source licenses"],
+  licensesIntro: [
+    "Kladde enthält Open-Source-Software. Hier stehen die Lizenzen aller Bibliotheken in der App und der KI-Modelle, die sie bei Bedarf lädt. Hinweisdateien der Hersteller sind unverändert übernommen und können auch Teile nennen, die nur beim Bauen verwendet werden.",
+    "Kladde contains open source software. Here are the licenses of all libraries in the app and of the AI models it downloads on demand. Vendor notice files are included unchanged and may also list parts that are only used when building.",
+  ],
+  licensesRust: ["Rust-Bibliotheken", "Rust libraries"],
+  licensesRustStd: ["Rust-Standardbibliothek", "Rust standard library"],
+  licensesWeb: [
+    "JavaScript- und CSS-Bibliotheken",
+    "JavaScript and CSS libraries",
+  ],
+  licensesLiteRt: [
+    "KI-Laufzeit auf dem Gerät (LiteRT-LM)",
+    "On-device AI runtime (LiteRT-LM)",
+  ],
+  licensesModels: [
+    "KI-Modelle (Download bei Bedarf)",
+    "AI models (downloaded on demand)",
+  ],
+  licensesSource: ["Quelle", "Source"],
+  licensesFailed: [
+    "Die Lizenzen konnten nicht geladen werden.",
+    "The licenses could not be loaded.",
+  ],
   support: ["Support", "Support"],
   supportIntro: [
     "Fragen, Fehler oder Wünsche? Schreib eine E-Mail an diese Adresse. Schick bitte keine privaten Notizinhalte mit.",

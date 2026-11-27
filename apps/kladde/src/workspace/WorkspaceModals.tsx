@@ -97,6 +97,7 @@ function settingsActionsFor(
     transfer: () => setModal("transfer"),
     clipper: () => setModal("clipper"),
     privacy: () => setModal("privacy"),
+    licenses: () => setModal("licenses"),
     support: () => setModal("support"),
     books: () => setModal("books"),
     newBook: () => void newWorkspace(workspace.context),

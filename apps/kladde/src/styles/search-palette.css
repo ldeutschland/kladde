@@ -50,6 +50,30 @@
   -webkit-user-select: text;
   user-select: text;
 }
+.licenses input[type="search"] {
+  width: 100%;
+  margin: 4px 0;
+}
+.licenseentry summary {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.licenseentry summary small {
+  color: var(--muted);
+}
+.licenses .licensesource,
+.licenses pre {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.licenses .licensesource {
+  margin: 4px 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
 .panel h3 {
   margin: 16px 0 6px;
   font-size: 12px;

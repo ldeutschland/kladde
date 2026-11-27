@@ -8,6 +8,7 @@ import { SyncPanel } from "../sync/SyncPanel";
 import {
   Capture,
   HistoryPanel,
+  Licenses,
   PrivacyPolicy,
   Recorder,
   Transfer,
@@ -139,6 +140,14 @@ function ToolModal({
         </Suspense>
       </Panel>
     );
+  if (modal === "licenses")
+    return (
+      <Panel title={t("licenses")} t={t} close={actions.close}>
+        <Suspense fallback={null}>
+          <Licenses t={t} />
+        </Suspense>
+      </Panel>
+    );
   if (modal === "support")
     return (
       <Panel title={t("support")} t={t} close={actions.close}>
@@ -205,6 +214,7 @@ export function ModalLayer({
   if (
     modal === "clipper" ||
     modal === "privacy" ||
+    modal === "licenses" ||
     modal === "support" ||
     modal === "sync" ||
     modal === "transfer"

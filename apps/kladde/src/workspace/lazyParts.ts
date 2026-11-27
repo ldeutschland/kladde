@@ -40,6 +40,9 @@ export const WebClipper = lazy(() => import("../capture/WebClipper"));
 export const PrivacyPolicy = lazy(() =>
   import("./PrivacyPolicy").then((m) => ({ default: m.PrivacyPolicy })),
 );
+export const Licenses = lazy(() =>
+  import("./Licenses").then((m) => ({ default: m.Licenses })),
+);
 export const Transfer = lazy(() =>
   import("../files/Transfer").then((m) => ({ default: m.Transfer })),
 );
