@@ -172,6 +172,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    attachments::text_and_previews::restrict_image_types();
     with_shared_state(with_plugins(tauri::Builder::default()))
         .setup(start_background_work)
         .invoke_handler(commands())

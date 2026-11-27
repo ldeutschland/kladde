@@ -52,6 +52,12 @@ unsafe extern "C" {
         capacity: usize,
         written: *mut usize,
     ) -> i32;
+
+    fn kladde_restrict_image_types();
+}
+
+pub fn restrict_image_types() {
+    unsafe { kladde_restrict_image_types() }
 }
 
 pub fn is_pdf(bytes: &[u8]) -> bool {

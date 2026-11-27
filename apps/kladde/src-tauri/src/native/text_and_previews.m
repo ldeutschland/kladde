@@ -163,11 +163,18 @@ static CGImageRef imageThumbnail(CGImageSourceRef source, size_t index, size_t e
     return CGImageSourceCreateThumbnailAtIndex(source, index, (__bridge CFDictionaryRef)options);
 }
 
+static NSArray<NSString *> *previewTypes(void) {
+    return @[@"public.png", @"public.jpeg", @"public.tiff", @"public.heic", @"public.heif",
+             @"public.avif", @"org.webmproject.webp", @"com.compuserve.gif", @"com.microsoft.bmp", @"public.jpeg-2000"];
+}
+
 static BOOL isPreviewImage(CGImageSourceRef source) {
     NSString *type = (__bridge NSString *)CGImageSourceGetType(source);
-    NSArray *types = @[@"public.png", @"public.jpeg", @"public.tiff", @"public.heic", @"public.heif",
-                       @"public.avif", @"org.webmproject.webp", @"com.compuserve.gif", @"com.microsoft.bmp", @"public.jpeg-2000"];
-    return type && [types containsObject:type];
+    return type && [previewTypes() containsObject:type];
+}
+
+void kladde_restrict_image_types(void) {
+    CGImageSourceSetAllowableTypes((__bridge CFArrayRef)previewTypes());
 }
 
 static int extractImage(NSData *data, NSMutableString *output, size_t capacity) {
@@ -232,8 +239,8 @@ size_t kladde_file_preview(const uint8_t *bytes, size_t length, size_t index, bo
             } else {
                 CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
                 if (!source) return 0;
-                count = CGImageSourceGetCount(source);
-                if (index < count && isPreviewImage(source)) image = imageThumbnail(source, index, edge);
+                count = isPreviewImage(source) ? CGImageSourceGetCount(source) : 0;
+                if (index < count) image = imageThumbnail(source, index, edge);
                 CFRelease(source);
             }
             if (!image) return 0;
@@ -273,7 +280,7 @@ size_t kladde_find_boxes(const uint8_t *bytes, size_t length, size_t index, bool
             } else {
                 CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
                 if (!source) return 0;
-                if (index < CGImageSourceGetCount(source) && isPreviewImage(source)) image = imageThumbnail(source, index, imageEdge);
+                if (isPreviewImage(source) && index < CGImageSourceGetCount(source)) image = imageThumbnail(source, index, imageEdge);
                 CFRelease(source);
             }
             recognizedBoxes(image, wanted, &into);
@@ -333,7 +340,7 @@ static void findInImage(NSData *data, NSString *term, NSArray<NSString *> *index
     if (known && !mentions(indexed[0], term)) return;
     CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
     if (!source) return;
-    BOOL readable = CGImageSourceGetCount(source) > 0 && isPreviewImage(source);
+    BOOL readable = isPreviewImage(source) && CGImageSourceGetCount(source) > 0;
     CGImageRef image = readable ? imageThumbnail(source, 0, imageEdge) : NULL;
     CFRelease(source);
     recognizedBoxes(image, term, into);
