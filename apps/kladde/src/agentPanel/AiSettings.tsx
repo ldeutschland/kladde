@@ -5,7 +5,12 @@ import { onDevice, providerOf, type Policy } from "../ai/assistant";
 import { localOffered, type LocalStatus } from "../ai/localModel";
 import type { Notebook } from "../notebook/notebook";
 import type { Ask } from "../ui/dialog";
-import type { T } from "../locale/locale";
+import {
+  aiLanguage,
+  LANGUAGE_CHOICES,
+  setAiLanguage,
+  type T,
+} from "../locale/locale";
 import { LocalModels } from "./LocalModels";
 import { effectiveMode, modeChoices } from "./modes";
 import { useAiSettings } from "./useAiSettings";
@@ -199,6 +204,25 @@ function ModeField({
   );
 }
 
+function LanguageField({ book, t }: { book: Notebook; t: T }) {
+  const choices = [
+    { value: "", label: t("aiLanguageApp") },
+    ...LANGUAGE_CHOICES,
+  ];
+
+  return (
+    <label>
+      {t("aiLanguage")}
+      <Select
+        label={t("aiLanguage")}
+        value={aiLanguage(book)}
+        choices={choices}
+        change={(next) => setAiLanguage(book, next)}
+      />
+    </label>
+  );
+}
+
 function MemorySettings({
   book,
   t,
@@ -256,6 +280,7 @@ function EnabledSettings({
       ) : (
         <CloudModel {...section} />
       )}
+      {onPhone && <LanguageField book={book} t={t} />}
       <ModeField book={book} mode={mode} policy={policy} t={t} />
       {onPhone && <p className="settinghint">{t("localDrafts")}</p>}
       <MemorySettings book={book} t={t} openHome={openHome} />

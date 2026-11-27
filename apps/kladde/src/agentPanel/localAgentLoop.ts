@@ -1,4 +1,4 @@
-import type { T } from "../locale/locale";
+import { aiLanguage, type T } from "../locale/locale";
 import type { AgentRun } from "../ai/AgentRun";
 import { LocalHandles } from "../ai/localHandles";
 import {
@@ -144,7 +144,7 @@ async function preparedRun(request: LocalLoopRequest, context: number) {
   return {
     request,
     context: { ...prompt, mode: request.task.mode },
-    language: replyLanguage(request.lang),
+    language: replyLanguage(aiLanguage(request.task.book) || request.lang),
     handles: new LocalHandles(),
     budget: localBudget(context),
     notes: [],

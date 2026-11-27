@@ -14,7 +14,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { Entry, Notebook } from "../notebook/notebook";
-import type { T } from "../locale/locale";
+import { LANGUAGE_CHOICES, type T } from "../locale/locale";
 import type { Ask } from "../ui/dialog";
 import { Panel } from "../ui/dialog";
 import { Select } from "../ui/Select";
@@ -27,10 +27,6 @@ const THEMES = [
   ["dark", Moon],
 ] as const;
 const BROWSER_EXTENSION = import.meta.env.VITE_KLADDE_BROWSER_EXTENSION === "1";
-const LANGUAGE_CHOICES = [
-  { value: "de", label: "Deutsch" },
-  { value: "en", label: "English" },
-];
 
 export interface SettingsActions {
   close: () => void;

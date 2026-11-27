@@ -403,6 +403,8 @@ const copy = {
   ],
   aiCloudSwitch: ["Zu OpenRouter wechseln?", "Switch to OpenRouter?"],
   aiWhere: ["Wo die KI läuft", "Where the AI runs"],
+  aiLanguage: ["Sprache der KI", "AI language"],
+  aiLanguageApp: ["Wie die App", "Same as the app"],
   localModel: ["Auf diesem Gerät (Gemma 4)", "On this device (Gemma 4)"],
   cloudModel: ["OpenRouter (Cloud)", "OpenRouter (cloud)"],
   localHint: [
@@ -1367,4 +1369,25 @@ export function deviceLanguage() {
 
 export function notebookLanguage(book: Notebook) {
   return String(book.settings.get("language") ?? deviceLanguage());
+}
+
+export const LANGUAGE_CHOICES = [
+  { value: "de", label: "Deutsch" },
+  { value: "en", label: "English" },
+];
+const AI_LANGUAGE_KEY = "aiLanguage";
+
+function knownLanguage(language: unknown): language is string {
+  return LANGUAGE_CHOICES.some((choice) => choice.value === language);
+}
+
+export function aiLanguage(book: Notebook) {
+  const stored = book.settings.get(AI_LANGUAGE_KEY);
+
+  return knownLanguage(stored) ? stored : "";
+}
+
+export function setAiLanguage(book: Notebook, language: string) {
+  if (knownLanguage(language)) book.settings.set(AI_LANGUAGE_KEY, language);
+  else book.settings.delete(AI_LANGUAGE_KEY);
 }
