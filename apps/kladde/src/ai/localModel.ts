@@ -68,6 +68,7 @@ const FAILURE_WORDS: Record<string, Word> = {
   failed: "localFailed",
   network: "localNetwork",
   storage: "localStorage",
+  space: "localSpace",
   checksum: "localChecksum",
   cancelled: "runStopped",
 };

@@ -52,6 +52,7 @@ targets:
         NSCameraUsageDescription: "Kladde verwendet die Kamera, wenn du ein Foto aufnimmst, um es in eine Notiz einzufügen."
         NSPhotoLibraryAddUsageDescription: "Kladde legt Bilder in deiner Fotomediathek ab, wenn du „Bild sichern“ wählst."
         ITSAppUsesNonExemptEncryption: false
+        BGTaskSchedulerPermittedIdentifiers: ["$(PRODUCT_BUNDLE_IDENTIFIER).continued.*"]
         UIBackgroundModes: [audio]
         LSRequiresIPhoneOS: true
         UILaunchStoryboardName: LaunchScreen

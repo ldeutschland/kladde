@@ -419,6 +419,7 @@ const copy = {
   modelThorough: ["gründlicher", "more thorough"],
   modelDownload: ["Laden", "Download"],
   modelResume: ["Fortsetzen", "Resume"],
+  modelDownloadTitle: ["{name} wird geladen", "Downloading {name}"],
   modelVerifying: ["Wird geprüft …", "Verifying…"],
   modelActive: ["Aktiv", "Active"],
   modelTooLarge: ["Zu groß für dieses Gerät", "Too large for this device"],
@@ -458,6 +459,10 @@ const copy = {
   localStorage: [
     "Nicht genug freier Speicher für das Modell.",
     "Not enough free storage for the model.",
+  ],
+  localSpace: [
+    "Auf diesem Gerät ist zu wenig Speicher frei. Das Modell braucht seine Größe und etwa 1 GB zusätzlich.",
+    "There isn't enough free storage on this device. The model needs its own size plus about 1 GB.",
   ],
   localChecksum: [
     "Die geladene Datei war beschädigt und wurde verworfen. Bitte lade sie erneut.",

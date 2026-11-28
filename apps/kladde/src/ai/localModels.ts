@@ -40,8 +40,8 @@ export async function localModels(): Promise<LocalModelInfo[]> {
   }
 }
 
-export function downloadModel(id: string) {
-  return command("local_model_download", { id });
+export function downloadModel(id: string, title: string) {
+  return command("local_model_download", { id, title });
 }
 
 export function cancelDownload(id: string) {

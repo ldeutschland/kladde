@@ -43,6 +43,12 @@ async function act(actions: ModelActions, work: () => Promise<unknown>) {
   await actions.refresh();
 }
 
+function download(model: LocalModelInfo, t: T) {
+  const title = t("modelDownloadTitle").replace("{name}", modelName(model.id));
+
+  return downloadModel(model.id, title);
+}
+
 async function remove(model: LocalModelInfo, actions: ModelActions) {
   const { t } = actions;
   const agreed = await actions.ask(t("modelDeleteAsk"), undefined, {
@@ -95,7 +101,7 @@ function ModelAction({
     );
 
   return (
-    <button onClick={() => void act(actions, () => downloadModel(model.id))}>
+    <button onClick={() => void act(actions, () => download(model, t))}>
       {t(model.state === "partial" ? "modelResume" : "modelDownload")}
     </button>
   );

@@ -7,8 +7,14 @@ const DOCUMENT_SOURCES: [&str; 3] = [
     "src/native/pdf_editing.m",
     "src/native/pdf_editing.h",
 ];
-const LIFECYCLE_SOURCE: &str = "src/native/app_lifecycle.m";
-const BACKUP_SOURCE: &str = "src/native/backup_exclusion.m";
+const LIFECYCLE_SOURCES: [&str; 2] = [
+    "src/native/app_lifecycle.m",
+    "src/native/continued_processing.m",
+];
+const STORAGE_SOURCES: [&str; 2] = [
+    "src/native/backup_exclusion.m",
+    "src/native/available_space.m",
+];
 const MACOS_SOURCES: [&str; 4] = [
     "src/native/quick_capture_shortcut.m",
     "src/native/navigation_gestures.m",
@@ -141,7 +147,7 @@ fn compile_objective_c(sources: &[&str], library: &str) {
         build.file(source);
     }
 
-    build.flag("-fobjc-arc").compile(library);
+    build.flag("-fobjc-arc").flag("-fmodules").compile(library);
 
     for source in sources {
         println!("cargo:rerun-if-changed={source}");
@@ -161,13 +167,13 @@ fn compile_native() {
     let target = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
 
     if target == "macos" || target == "ios" {
-        compile_objective_c(&[LIFECYCLE_SOURCE], "kladde_lifecycle");
-        compile_objective_c(&[BACKUP_SOURCE], "kladde_backup");
+        compile_objective_c(&LIFECYCLE_SOURCES, "kladde_lifecycle");
+        compile_objective_c(&STORAGE_SOURCES, "kladde_storage");
         link_frameworks(&["Network"]);
     }
 
     if target == "ios" {
-        link_frameworks(&["UIKit"]);
+        link_frameworks(&["UIKit", "BackgroundTasks"]);
     }
 
     if target == "macos" {

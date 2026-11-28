@@ -1,4 +1,4 @@
-use crate::platform::app_lifecycle::Hold;
+use crate::platform::{app_lifecycle::Hold, continued_processing::ContinuedProcessing};
 
 use futures_util::StreamExt;
 use reqwest::{Client, Response, StatusCode, header::RANGE, redirect};
@@ -7,7 +7,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
-    ffi::{c_char, c_int, c_void},
+    ffi::{CString, c_char, c_int, c_void},
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -32,10 +32,17 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const READ_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_REDIRECTS: usize = 5;
 const HASH_BUFFER: usize = 1 << 20;
+const SPACE_RESERVE: u64 = GIB;
+const RETRIES: u32 = 5;
+const RETRY_DELAY: Duration = Duration::from_secs(3);
+const MAX_TITLE: usize = 100;
 const TRUSTED_HOST: &str = "huggingface.co";
 const TRUSTED_SUFFIX: &str = ".hf.co";
 const STORAGE: &str = "storage";
 const NETWORK: &str = "network";
+const SPACE: &str = "space";
+const TITLE: &str = "title";
+const CANCELLED: &str = "cancelled";
 const UNKNOWN: &str = "Unknown model";
 
 pub struct LocalModel {
@@ -86,6 +93,8 @@ unsafe extern "C" {
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 unsafe extern "C" {
     fn kladde_exclude_from_backup(path: *const c_char) -> bool;
+
+    fn kladde_available_space(path: *const c_char) -> i64;
 }
 
 pub fn device_memory() -> u64 {
@@ -108,17 +117,39 @@ pub fn fits_device(model: &LocalModel) -> bool {
     device_memory() >= model.memory
 }
 
+fn c_path(path: &Path) -> Option<CString> {
+    CString::new(path.to_str()?).ok()
+}
+
 fn exclude_from_backup(path: &Path) {
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    if let Some(text) = path
-        .to_str()
-        .and_then(|text| std::ffi::CString::new(text).ok())
-    {
+    if let Some(text) = c_path(path) {
         unsafe { kladde_exclude_from_backup(text.as_ptr()) };
     }
 
     #[cfg(not(any(target_os = "ios", target_os = "macos")))]
     let _ = path;
+}
+
+#[cfg(any(target_os = "ios", target_os = "macos"))]
+fn available_space(path: &Path) -> Option<u64> {
+    let text = c_path(path)?;
+
+    u64::try_from(unsafe { kladde_available_space(text.as_ptr()) }).ok()
+}
+
+#[cfg(not(any(target_os = "ios", target_os = "macos")))]
+fn available_space(_: &Path) -> Option<u64> {
+    None
+}
+
+fn has_room(model: &LocalModel, received: u64, available: Option<u64>) -> bool {
+    let needed = model
+        .bytes
+        .saturating_sub(received)
+        .saturating_add(SPACE_RESERVE);
+
+    available.is_none_or(|space| space >= needed)
 }
 
 fn folder(app: &AppHandle) -> Result<PathBuf, String> {
@@ -136,6 +167,12 @@ fn partial(folder: &Path, model: &LocalModel) -> PathBuf {
 
 fn size(path: &Path) -> u64 {
     fs::metadata(path).map(|meta| meta.len()).unwrap_or(0)
+}
+
+fn partial_size(app: &AppHandle, model: &LocalModel) -> u64 {
+    folder(app)
+        .map(|folder| size(&partial(&folder, model)))
+        .unwrap_or(0)
 }
 
 pub fn installed(app: &AppHandle, model: &LocalModel) -> Option<PathBuf> {
@@ -197,9 +234,7 @@ fn info(app: &AppHandle, downloads: &Downloads, model: &'static LocalModel) -> M
             .get(model.id)
             .map(|download| (download.received, download.verifying))
     });
-    let part = folder(app)
-        .map(|folder| size(&partial(&folder, model)))
-        .unwrap_or(0);
+    let part = partial_size(app, model);
     let (state, received) = match running {
         Some((_, true)) => ("verifying", model.bytes),
         Some((received, false)) => ("downloading", received),
@@ -277,6 +312,8 @@ struct Progress<'a> {
     app: &'a AppHandle,
     downloads: &'a Downloads,
     model: &'static LocalModel,
+    work: &'a ContinuedProcessing,
+    cancel: &'a AtomicBool,
     shown: Instant,
 }
 
@@ -284,10 +321,20 @@ impl Progress<'_> {
     fn report(&mut self, received: u64) {
         self.downloads.update(self.model.id, received, false);
 
-        if self.shown.elapsed() >= PROGRESS_INTERVAL {
-            self.shown = Instant::now();
-            emit(self.app, self.model, "downloading", received, "");
+        if self.shown.elapsed() < PROGRESS_INTERVAL {
+            return;
         }
+
+        self.shown = Instant::now();
+        emit(self.app, self.model, "downloading", received, "");
+
+        if !self.work.progress(received, self.model.bytes) {
+            self.cancel.store(true, Ordering::Release);
+        }
+    }
+
+    fn cancelled(&self) -> bool {
+        self.cancel.load(Ordering::Acquire)
     }
 }
 
@@ -301,14 +348,13 @@ async fn receive(
     response: Response,
     file: &mut File,
     mut received: u64,
-    cancel: &AtomicBool,
     progress: &mut Progress<'_>,
 ) -> Result<u64, String> {
     let mut stream = response.bytes_stream();
 
     while let Some(chunk) = stream.next().await {
-        if cancel.load(Ordering::Acquire) {
-            return Err("cancelled".into());
+        if progress.cancelled() {
+            return Err(CANCELLED.into());
         }
 
         let chunk = chunk.map_err(|_| NETWORK)?;
@@ -359,44 +405,97 @@ async fn verified(part: &Path, model: &'static LocalModel) -> Result<(), String>
     Ok(())
 }
 
+async fn transfer(part: &Path, progress: &mut Progress<'_>) -> Result<(), String> {
+    let offset = size(part).min(progress.model.bytes);
+    let response = request(progress.model, offset).await?;
+    let resumed = response.status() == StatusCode::PARTIAL_CONTENT;
+    let mut file = open_part(part, resumed)?;
+    let start = if resumed { offset } else { 0 };
+    let received = receive(response, &mut file, start, progress).await?;
+
+    if received != progress.model.bytes {
+        return Err(NETWORK.into());
+    }
+
+    Ok(())
+}
+
 async fn fetch(
     app: &AppHandle,
     model: &'static LocalModel,
     cancel: &AtomicBool,
+    work: &ContinuedProcessing,
 ) -> Result<(), String> {
     let downloads = app.state::<Downloads>();
     let folder = folder(app)?;
     let part = partial(&folder, model);
-    let offset = size(&part).min(model.bytes);
-    let response = request(model, offset).await?;
-    let resumed = response.status() == StatusCode::PARTIAL_CONTENT;
-    let mut file = open_part(&part, resumed)?;
-    let start = if resumed { offset } else { 0 };
     let mut progress = Progress {
         app,
         downloads: &downloads,
         model,
+        work,
+        cancel,
         shown: Instant::now(),
     };
 
-    let received = receive(response, &mut file, start, cancel, &mut progress).await?;
-
-    if received != model.bytes {
-        return Err(NETWORK.into());
+    if progress.cancelled() {
+        return Err(CANCELLED.into());
     }
 
-    downloads.update(model.id, received, true);
-    emit(app, model, "verifying", received, "");
+    if size(&part) < model.bytes {
+        transfer(&part, &mut progress).await?;
+    }
+
+    downloads.update(model.id, model.bytes, true);
+    emit(app, model, "verifying", model.bytes, "");
+    work.progress(model.bytes, model.bytes);
     verified(&part, model).await?;
 
     fs::rename(&part, folder.join(model.file)).map_err(|_| STORAGE.into())
 }
 
-async fn download(app: AppHandle, model: &'static LocalModel, cancel: Arc<AtomicBool>) {
+fn interrupted(result: &Result<(), String>, cancel: &AtomicBool) -> bool {
+    result.as_ref().is_err_and(|reason| reason == NETWORK) && !cancel.load(Ordering::Acquire)
+}
+
+async fn attempts(
+    app: &AppHandle,
+    model: &'static LocalModel,
+    cancel: &AtomicBool,
+    work: &ContinuedProcessing,
+) -> Result<(), String> {
+    let mut stalled = 0;
+
+    loop {
+        let before = partial_size(app, model);
+        let result = fetch(app, model, cancel, work).await;
+
+        if !interrupted(&result, cancel) || stalled >= RETRIES {
+            return result;
+        }
+
+        stalled = if partial_size(app, model) > before {
+            0
+        } else {
+            stalled + 1
+        };
+
+        tokio::time::sleep(RETRY_DELAY).await;
+    }
+}
+
+async fn download(
+    app: AppHandle,
+    model: &'static LocalModel,
+    cancel: Arc<AtomicBool>,
+    title: String,
+) {
     let _hold = Hold::new();
-    let result = fetch(&app, model, &cancel).await;
+    let work = ContinuedProcessing::begin(model.id, &title);
+    let result = attempts(&app, model, &cancel, &work).await;
 
     app.state::<Downloads>().finish(model.id);
+    work.finish(result.is_ok());
 
     match result {
         Ok(()) => emit(&app, model, "ready", model.bytes, ""),
@@ -412,28 +511,35 @@ pub fn local_models(app: AppHandle, downloads: State<Downloads>) -> Vec<ModelInf
         .collect()
 }
 
-#[tauri::command]
-pub fn local_model_download(
-    app: AppHandle,
-    downloads: State<Downloads>,
-    id: String,
-) -> Result<(), String> {
-    let model = model(&id)?;
+fn download_title(title: &str) -> Result<String, String> {
+    let title = title.trim();
+    let length = title.chars().count();
 
-    if !super::SUPPORTED || !fits_device(model) {
-        return Err("device".into());
+    if length == 0 || length > MAX_TITLE || title.chars().any(char::is_control) {
+        return Err(TITLE.into());
     }
 
-    if installed(&app, model).is_some() {
-        return Ok(());
-    }
+    Ok(title.to_owned())
+}
 
+fn ensure_room(app: &AppHandle, model: &LocalModel) -> Result<(), String> {
+    let folder = folder(app)?;
+    let received = size(&partial(&folder, model));
+
+    if has_room(model, received, available_space(&folder)) {
+        Ok(())
+    } else {
+        Err(SPACE.into())
+    }
+}
+
+fn start(
+    app: &AppHandle,
+    active: &mut HashMap<&'static str, Download>,
+    model: &'static LocalModel,
+    title: String,
+) {
     let cancel = Arc::new(AtomicBool::new(false));
-    let mut active = downloads.active()?;
-
-    if active.contains_key(model.id) {
-        return Ok(());
-    }
 
     active.insert(
         model.id,
@@ -443,7 +549,31 @@ pub fn local_model_download(
             cancel: cancel.clone(),
         },
     );
-    tauri::async_runtime::spawn(download(app.clone(), model, cancel));
+    tauri::async_runtime::spawn(download(app.clone(), model, cancel, title));
+}
+
+#[tauri::command]
+pub fn local_model_download(
+    app: AppHandle,
+    downloads: State<Downloads>,
+    id: String,
+    title: String,
+) -> Result<(), String> {
+    let model = model(&id)?;
+    let title = download_title(&title)?;
+
+    if !super::SUPPORTED || !fits_device(model) {
+        return Err("device".into());
+    }
+
+    let mut active = downloads.active()?;
+
+    if installed(&app, model).is_some() || active.contains_key(model.id) {
+        return Ok(());
+    }
+
+    ensure_room(&app, model)?;
+    start(&app, &mut active, model, title);
 
     Ok(())
 }
@@ -558,6 +688,44 @@ mod tests {
             hash.unwrap(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    #[test]
+    fn room_counts_the_partial_download_and_the_cache() {
+        let model = &MODELS[0];
+        let needed = model.bytes + SPACE_RESERVE;
+
+        assert!(has_room(model, 0, Some(needed)));
+        assert!(!has_room(model, 0, Some(needed - 1)));
+        assert!(has_room(model, GIB, Some(needed - GIB)));
+        assert!(has_room(model, model.bytes, Some(SPACE_RESERVE)));
+        assert!(has_room(model, 0, None));
+    }
+
+    #[test]
+    fn download_titles_are_short_plain_text() {
+        assert_eq!(
+            download_title("  Gemma 4 E2B wird geladen ").unwrap(),
+            "Gemma 4 E2B wird geladen"
+        );
+        assert!(download_title("").is_err());
+        assert!(download_title("   ").is_err());
+        assert!(download_title("Gemma\n4").is_err());
+        assert!(download_title("Gemma\u{7}4").is_err());
+        assert!(download_title(&"x".repeat(MAX_TITLE + 1)).is_err());
+        assert!(download_title(&"ä".repeat(MAX_TITLE)).is_ok());
+    }
+
+    #[test]
+    fn only_network_failures_are_retried() {
+        let cancel = AtomicBool::new(false);
+
+        assert!(interrupted(&Err(NETWORK.into()), &cancel));
+        assert!(!interrupted(&Err("checksum".into()), &cancel));
+        assert!(!interrupted(&Err(STORAGE.into()), &cancel));
+        assert!(!interrupted(&Ok(()), &cancel));
+        cancel.store(true, Ordering::Release);
+        assert!(!interrupted(&Err(NETWORK.into()), &cancel));
     }
 
     #[test]

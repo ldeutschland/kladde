@@ -1,4 +1,5 @@
 pub mod app_lifecycle;
+pub mod continued_processing;
 pub mod haptic;
 pub mod ios_navigation_bars;
 pub mod keychain;
