@@ -11,7 +11,7 @@
 .askbox:focus-within {
   box-shadow:
     var(--card-shadow),
-    0 0 0 2px rgba(127, 99, 217, 0.25);
+    0 0 0 2px rgba(144, 101, 176, 0.25);
 }
 .askbox input {
   flex: 1;

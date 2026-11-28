@@ -11,7 +11,7 @@ import { isValidLink } from "../notebook/links";
 import { schema } from "./schema";
 import { usePageLinkMigration } from "./usePageLinkMigration";
 
-const CURSOR_COLOR = "#7f63d9";
+const CURSOR_COLOR = "#9065b0";
 
 const GERMAN = {
   ...de,

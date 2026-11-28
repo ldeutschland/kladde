@@ -27,18 +27,18 @@
   --ink: #191919;
   --ink-hover: #000000;
   --on-ink: #ffffff;
-  --accent: #7f63d9;
-  --accent-hover: #6d50cc;
+  --accent: #9065b0;
+  --accent-hover: #7d529d;
   --on-accent: #ffffff;
-  --accent-text: #7a5cd6;
+  --accent-text: #8558a8;
   --ai: #9065b0;
   --ai-soft: rgba(144, 101, 176, 0.12);
-  --focus: rgba(127, 99, 217, 0.57);
-  --drop: rgba(127, 99, 217, 0.16);
+  --focus: rgba(144, 101, 176, 0.57);
+  --drop: rgba(144, 101, 176, 0.16);
   --found: rgba(255, 212, 0, 0.35);
   --found-edge: rgba(214, 160, 0, 0.9);
   --found-current: rgba(255, 140, 0, 0.55);
-  --ring: inset 0 0 0 1px var(--focus), 0 0 0 2px rgba(127, 99, 217, 0.25);
+  --ring: inset 0 0 0 1px var(--focus), 0 0 0 2px rgba(144, 101, 176, 0.25);
   --red: #eb5757;
   --star: #e9a820;
   --toast: #2f2f2f;
@@ -82,7 +82,7 @@
     --ink: #ebebea;
     --ink-hover: #ffffff;
     --on-ink: #191919;
-    --accent-text: #a993ec;
+    --accent-text: #b48fdb;
     --ai: #9d68d3;
     --ai-soft: rgba(157, 104, 211, 0.18);
     --toast: #3a3a3a;
@@ -122,7 +122,7 @@
   --ink: #ebebea;
   --ink-hover: #ffffff;
   --on-ink: #191919;
-  --accent-text: #a993ec;
+  --accent-text: #b48fdb;
   --ai: #9d68d3;
   --ai-soft: rgba(157, 104, 211, 0.18);
   --toast: #3a3a3a;
@@ -149,7 +149,7 @@ body {
   overscroll-behavior: none;
 }
 ::selection {
-  background: rgba(127, 99, 217, 0.28);
+  background: rgba(144, 101, 176, 0.28);
 }
 button,
 input,

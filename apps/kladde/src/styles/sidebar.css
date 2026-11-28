@@ -329,15 +329,15 @@
   position: absolute;
   z-index: 1;
   border-radius: 4px;
-  background: rgba(127, 99, 217, 0.14);
+  background: rgba(144, 101, 176, 0.14);
   pointer-events: none;
 }
 .selectbox {
   position: fixed;
   z-index: 40;
-  border: 1px solid rgba(127, 99, 217, 0.55);
+  border: 1px solid rgba(144, 101, 176, 0.55);
   border-radius: 2px;
-  background: rgba(127, 99, 217, 0.1);
+  background: rgba(144, 101, 176, 0.1);
   pointer-events: none;
 }
 .dropline::before {

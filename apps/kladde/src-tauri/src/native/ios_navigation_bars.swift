@@ -39,6 +39,12 @@ private enum Measure {
     static let revealLimit = 1.5
 }
 
+private enum Palette {
+    static let accent = UIColor(red: 0x90 / 255.0, green: 0x65 / 255.0, blue: 0xB0 / 255.0, alpha: 1)
+    static let darkAccent = UIColor(red: 0xB4 / 255.0, green: 0x8F / 255.0, blue: 0xDB / 255.0, alpha: 1)
+    static let tint = UIColor { $0.userInterfaceStyle == .dark ? darkAccent : accent }
+}
+
 private struct ChromeState: Decodable, Equatable {
     struct Labels: Decodable, Equatable {
         let home: String
@@ -166,6 +172,7 @@ private final class Chrome: NSObject {
         if host != nil { return true }
         guard let view = window?.rootViewController?.view else { return false }
         host = view
+        window?.tintColor = Palette.tint
         calm(view)
         buildBar(in: view)
         buildTop(in: view)

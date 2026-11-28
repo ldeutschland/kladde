@@ -32,7 +32,7 @@ export function VersionPreview({
         syntaxHighlighter,
         CollaborationExtension({
           fragment: old.doc.getXmlFragment("blocks"),
-          user: { name: "", color: "#7f63d9" },
+          user: { name: "", color: "#9065b0" },
         }),
       ],
       links: { isValidLink, onClick: () => true },

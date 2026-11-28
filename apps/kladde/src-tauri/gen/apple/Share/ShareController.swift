@@ -12,8 +12,8 @@ private let maxPreview = 140
 private let closeDelay: Duration = .milliseconds(1800)
 private let destinationKey = "share.destination"
 private let modeKey = "share.mode"
-private let accentHex: UInt32 = 0x7F63D9
-private let darkAccentTextHex: UInt32 = 0xA993EC
+private let accentHex: UInt32 = 0x9065B0
+private let darkAccentTextHex: UInt32 = 0xB48FDB
 
 private let german = Locale.preferredLanguages.first?.hasPrefix("de") ?? false
 
