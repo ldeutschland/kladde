@@ -956,6 +956,11 @@ const copy = {
     "Kladde enthält Open-Source-Software. Hier stehen die Lizenzen aller Bibliotheken in der App und der KI-Modelle, die sie bei Bedarf lädt. Hinweisdateien der Hersteller sind unverändert übernommen und können auch Teile nennen, die nur beim Bauen verwendet werden.",
     "Kladde contains open source software. Here are the licenses of all libraries in the app and of the AI models it downloads on demand. Vendor notice files are included unchanged and may also list parts that are only used when building.",
   ],
+  licensesFree: [
+    "Kladde selbst ist freie Software unter der GNU Affero General Public License 3.0. Du darfst Kladde unter dieser Lizenz weitergeben und verändern. Kladde wird ohne jede Gewährleistung bereitgestellt. Den vollständigen Quellcode findest du hier:",
+    "Kladde itself is free software under the GNU Affero General Public License 3.0. You may redistribute and modify Kladde under this license. Kladde comes with absolutely no warranty. The complete source code is available here:",
+  ],
+  licensesApp: ["Kladde selbst", "Kladde itself"],
   licensesRust: ["Rust-Bibliotheken", "Rust libraries"],
   licensesRustStd: ["Rust-Standardbibliothek", "Rust standard library"],
   licensesWeb: [

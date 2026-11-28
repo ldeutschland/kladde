@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import type { T, Word } from "../locale/locale";
+import { command } from "../platform/native";
 
 interface LicensePackage {
   name: string;
@@ -20,7 +21,9 @@ interface LicenseData {
 }
 
 const HTTPS = "https://";
+const APP_GROUP = "kladde";
 const GROUP_TITLES: Record<string, Word> = {
+  kladde: "licensesApp",
   rust: "licensesRust",
   "rust-std": "licensesRustStd",
   web: "licensesWeb",
@@ -106,6 +109,40 @@ function useLicenses() {
 
 function matches(item: LicensePackage, query: string) {
   return (item.name + " " + item.license).toLowerCase().includes(query);
+}
+
+function openSource(
+  event: MouseEvent<HTMLAnchorElement>,
+  address: string,
+  fail: (failed: boolean) => void,
+) {
+  event.preventDefault();
+  fail(false);
+  void command("open_web_source", { address }).catch(() => fail(true));
+}
+
+function AppNotice({ data, t }: { data: LicenseData; t: T }) {
+  const [failed, setFailed] = useState(false);
+  const app = data.groups.find((group) => group.id === APP_GROUP)?.packages[0];
+
+  if (!app?.url) return null;
+
+  return (
+    <>
+      <p>
+        {t("licensesFree")}{" "}
+        <a
+          href={app.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => openSource(event, app.url, setFailed)}
+        >
+          {app.url.slice(HTTPS.length)}
+        </a>
+      </p>
+      {failed && <p role="alert">{t("linkFailed")}</p>}
+    </>
+  );
 }
 
 function PackageTexts({
@@ -200,6 +237,7 @@ function LicenseList({ data, t }: { data: LicenseData; t: T }) {
 
   return (
     <>
+      <AppNotice data={data} t={t} />
       <input
         type="search"
         value={query}

@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "apps" / "kladde"
 OUTPUT = APP / "src" / "workspace" / "licenses.json"
 APP_CRATE = "kladde"
+APP_NAME = "Kladde"
+APP_LICENSE = ROOT / "LICENSE"
 FEATURES = "kladde/custom-protocol,kladde/distribution"
 TARGETS = ("aarch64-apple-ios", "aarch64-apple-darwin", "x86_64-apple-darwin")
 BUNDLED_TOOLS = (("tailwindcss", ""), ("vite", ""), ("rolldown", "vite"))
@@ -354,6 +356,13 @@ def std_packages() -> list[Package]:
     return [main] + sorted(others, key=sort_key)
 
 
+def app_packages() -> list[Package]:
+    manifest = json.loads((APP / "package.json").read_text(encoding="utf-8"))
+    version = manifest.get("version") or ""
+
+    return [Package(APP_NAME, version, manifest_license(manifest), manifest_url(manifest), [read_text(APP_LICENSE)])]
+
+
 def model_packages(references: References) -> list[Package]:
     return [Package(name, "", "Apache-2.0", url, [references.apache]) for name, url in MODELS]
 
@@ -400,6 +409,7 @@ def collect() -> list[tuple[str, list[Package]]]:
     shared = references(rust + web)
 
     return [
+        ("kladde", app_packages()),
         ("rust", with_fallbacks(rust, shared)),
         ("rust-std", std_packages()),
         ("web", with_fallbacks(web, shared)),
