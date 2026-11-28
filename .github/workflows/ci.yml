@@ -13,6 +13,7 @@ jobs:
       - run: rustup update stable && rustup component add clippy rustfmt && rustup target add aarch64-apple-ios aarch64-apple-ios-sim
       - run: pnpm build && pnpm lint && pnpm test
       - run: cargo fmt --all --check && cargo clippy --locked --workspace --all-targets -- -D warnings && cargo test --locked --workspace
+      - run: python3 scripts/licenses.py --check
       - run: pnpm exec playwright install webkit && pnpm e2e
       - run: cargo check -p kladde --lib --locked --target aarch64-apple-ios && pnpm tauri build --no-sign --bundles app
       - run: |
