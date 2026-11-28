@@ -142,7 +142,11 @@ interface Match {
   snippet: string;
 }
 
-function matchLine(handles: LocalHandles, match: Match) {
+function matchLine(
+  handles: LocalHandles,
+  match: Match,
+  snippetLength = SNIPPET_LENGTH,
+) {
   const page = handles.page(match.id);
   const file = match.file
     ? " file " +
@@ -152,7 +156,7 @@ function matchLine(handles: LocalHandles, match: Match) {
       '"'
     : "";
   const snippet = match.snippet
-    ? ": " + clean(match.snippet, SNIPPET_LENGTH)
+    ? ": " + clean(match.snippet, snippetLength)
     : "";
 
   return "- " + linkTo(page, match.title) + " id " + page + file + snippet;
@@ -254,7 +258,7 @@ async function excerpt(task: AgentRun, id: string) {
   try {
     const raw = await task.call("read_page", { id, offset: 0 });
 
-    return clean(blockTexts(raw).join(" "), EXCERPT_LENGTH);
+    return blockTexts(raw).join(" ");
   } catch (error) {
     if (task.stopped) throw error;
 
@@ -273,7 +277,7 @@ async function pageEntries(context: ToolContext, id: string, empty: boolean) {
     if (empty && index < ENTRY_EXCERPTS)
       entry.snippet = await excerpt(task, entry.id);
 
-  return entries.map((entry) => matchLine(handles, entry));
+  return entries.map((entry) => matchLine(handles, entry, EXCERPT_LENGTH));
 }
 
 async function readPageText(context: ToolContext) {
